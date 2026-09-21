@@ -15,7 +15,7 @@ export function Switch({ checked, onChange, label }: SwitchProps) {
       onClick={() => onChange(!checked)}
       className={cn(
         'relative h-6 w-11 shrink-0 rounded-pill transition-colors duration-200',
-        checked ? 'bg-gold' : 'bg-bg-soft border border-border',
+        checked ? 'bg-rust' : 'bg-bg-soft border border-border',
       )}
     >
       <span

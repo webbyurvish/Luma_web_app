@@ -25,23 +25,23 @@ export function MonthSelector() {
   }
 
   return (
-    <div className="flex items-center gap-1 rounded-pill border border-border bg-card px-1.5 py-1.5 shadow-xs">
+    <div className="flex items-center gap-0.5 border border-border bg-surface px-1 py-1">
       <button
         onClick={() => goTo(-1)}
         aria-label="Previous month"
-        className="flex h-7 w-7 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-bg-soft hover:text-ink"
+        className="flex h-6 w-6 items-center justify-center text-ink-soft transition-colors hover:text-ink"
       >
-        <ChevronLeft size={15} />
+        <ChevronLeft size={13} />
       </button>
-      <span className="min-w-[128px] text-center text-sm font-medium text-ink">
-        {MONTHS[monthIndex]} {year}
+      <span className="min-w-[104px] text-center font-mono-figure text-[11px] text-ink">
+        {MONTHS[monthIndex].slice(0, 3).toUpperCase()} {year}
       </span>
       <button
         onClick={() => goTo(1)}
         aria-label="Next month"
-        className="flex h-7 w-7 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-bg-soft hover:text-ink"
+        className="flex h-6 w-6 items-center justify-center text-ink-soft transition-colors hover:text-ink"
       >
-        <ChevronRight size={15} />
+        <ChevronRight size={13} />
       </button>
     </div>
   )

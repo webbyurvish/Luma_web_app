@@ -12,44 +12,38 @@ export function Header() {
   const meta = getPageMeta(location.pathname)
 
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between gap-4 border-b border-border-soft bg-bg/80 px-4 py-4 backdrop-blur-md sm:px-6 md:py-5">
+    <header className="flex items-center justify-between gap-4 border-b border-border px-4 py-4 sm:px-7 md:py-5">
       <div className="flex min-w-0 items-center gap-3">
         <button
           onClick={openMobile}
           aria-label="Open navigation"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-btn border border-border bg-card text-ink-soft md:hidden"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border border-border text-ink-soft md:hidden"
         >
-          <Menu size={18} />
+          <Menu size={16} />
         </button>
         <div className="min-w-0">
-          <h1 className="truncate text-xl font-bold tracking-tight text-ink sm:text-[26px]">{meta.title}</h1>
-          <p className="truncate text-xs text-ink-soft sm:text-sm">{meta.subtitle}</p>
+          <h1 className="truncate font-display text-[22px] italic leading-none text-ink sm:text-[26px]">{meta.title}</h1>
+          <p className="mt-1 truncate text-[11px] uppercase tracking-[0.08em] text-ink-muted">{meta.subtitle}</p>
         </div>
       </div>
 
-      <div className="flex shrink-0 items-center gap-2.5 sm:gap-3">
-        <div className="hidden lg:block">
-          <button
-            aria-label="Search"
-            className="glass-surface flex w-56 items-center gap-2.5 rounded-pill px-3.5 py-2 text-left text-xs text-ink-muted shadow-xs transition-shadow hover:shadow-card xl:w-72"
-          >
-            <Search size={15} className="shrink-0" />
-            <span className="flex-1">Search...</span>
-            <kbd className="shrink-0 rounded-md border border-border bg-card/70 px-1.5 py-0.5 font-sans text-[10px] font-medium text-ink-muted">
-              ⌘K
-            </kbd>
-          </button>
-        </div>
+      <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+        <button
+          aria-label="Search"
+          className="hidden items-center gap-2 rounded-sm border border-border bg-surface px-3 py-1.5 text-[11px] text-ink-muted transition-colors hover:border-ink-soft lg:flex lg:w-52 xl:w-64"
+        >
+          <Search size={13} className="shrink-0" />
+          <span className="flex-1 text-left">Search</span>
+          <kbd className="shrink-0 rounded-xs border border-border px-1 py-0.5 font-mono-figure text-[9px] text-ink-muted">⌘K</kbd>
+        </button>
         <button
           aria-label="Notifications"
-          className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-btn border border-border bg-card text-ink-soft transition-all duration-200 hover:-translate-y-0.5 hover:text-ink hover:shadow-card"
+          className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border border-border text-ink-soft transition-colors hover:border-ink-soft hover:text-ink"
         >
-          <Bell size={18} />
-          {hasNotifications && (
-            <span className="absolute right-2.5 top-2.5 h-1.5 w-1.5 rounded-full bg-danger ring-2 ring-card" aria-hidden="true" />
-          )}
+          <Bell size={15} />
+          {hasNotifications && <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-rust" aria-hidden="true" />}
         </button>
-        <Avatar name="Urvish Krina" size={38} className="hidden sm:flex" />
+        <Avatar name="Urvish Krina" size={32} className="hidden sm:flex" />
       </div>
     </header>
   )

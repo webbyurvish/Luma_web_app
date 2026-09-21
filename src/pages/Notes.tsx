@@ -22,17 +22,17 @@ export function Notes() {
   }, [activeFolder, search])
 
   return (
-    <div className="flex flex-col gap-5 pt-4 lg:flex-row">
-      <aside className="shrink-0 lg:w-56">
+    <div className="flex flex-col gap-4 pt-3 lg:flex-row">
+      <aside className="shrink-0 border-b border-border-soft pb-3 lg:w-48 lg:border-b-0 lg:pb-0">
         <NoteFolderList folders={mockNoteFolders} active={activeFolder} onSelect={setActiveFolder} />
       </aside>
 
-      <div className="min-w-0 flex-1 space-y-5">
+      <div className="min-w-0 flex-1 space-y-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="sm:w-72">
-            <Input icon={<Search size={16} />} placeholder="Search notes..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Input icon={<Search size={15} />} placeholder="Search notes..." value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <Button icon={<Plus size={15} />} onClick={() => showToast('New note editor is coming in a future phase', 'info')}>
+          <Button size="sm" icon={<Plus size={13} />} onClick={() => showToast('New note editor is coming in a future phase', 'info')}>
             New Note
           </Button>
         </div>
@@ -40,7 +40,7 @@ export function Notes() {
         {filtered.length === 0 ? (
           <EmptyState icon={<NotebookText size={22} />} title="No notes yet" description="Create a note to keep important information handy." />
         ) : (
-          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
             {filtered.map((note) => (
               <NoteCard key={note.id} note={note} />
             ))}

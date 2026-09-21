@@ -19,9 +19,9 @@ export function Tasks() {
   const completed = tasks.filter((task) => task.status === 'completed' || task.completed)
 
   return (
-    <div className="flex flex-col gap-6 pt-4">
+    <div className="flex flex-col gap-5 pt-3">
       <div className="flex justify-end">
-        <Button icon={<CirclePlus size={16} />} onClick={() => setAddOpen(true)}>
+        <Button size="sm" icon={<CirclePlus size={13} />} onClick={() => setAddOpen(true)}>
           Add Task
         </Button>
       </div>

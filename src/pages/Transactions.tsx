@@ -28,7 +28,7 @@ export function Transactions() {
   }, [search, type, category])
 
   return (
-    <div className="flex flex-col gap-5 pt-4">
+    <div className="flex flex-col gap-4 pt-3">
       <TransactionsFilters
         search={search}
         onSearchChange={(value) => {

@@ -22,58 +22,46 @@ export function TransactionsTable({ transactions, page, pageSize, onPageChange }
   return (
     <Card>
       {transactions.length === 0 ? (
-        <EmptyState
-          icon={<Receipt size={22} />}
-          title="No transactions found"
-          description="Try adjusting your search or filters."
-        />
+        <EmptyState icon={<Receipt size={20} />} title="No transactions found" description="Try adjusting your search or filters." />
       ) : (
         <>
-          <div className="-mx-2 overflow-x-auto">
-            <table className="w-full min-w-[680px] border-separate border-spacing-0 text-sm">
-              <thead>
-                <tr className="text-left text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
-                  <th className="px-2 pb-3 font-semibold">Category</th>
-                  <th className="px-2 pb-3 font-semibold">Description</th>
-                  <th className="px-2 pb-3 font-semibold">Type</th>
-                  <th className="px-2 pb-3 font-semibold">Date</th>
-                  <th className="px-2 pb-3 font-semibold">Payment</th>
-                  <th className="px-2 pb-3 text-right font-semibold">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pageItems.map((item) => {
-                  const meta = CATEGORY_META[item.category]
-                  const Icon = meta.icon
-                  const signedAmount = item.type === 'expense' ? -item.amount : item.amount
-                  return (
-                    <tr key={item.id} className="transition-transform duration-150 hover:-translate-y-px hover:[&>td]:bg-bg-soft">
-                      <td className="border-t border-border-soft px-2 py-3.5 transition-colors duration-150">
-                        <span
-                          className="flex h-8 w-8 items-center justify-center rounded-full"
-                          style={{ backgroundColor: meta.bg, color: meta.color }}
-                        >
-                          <Icon size={15} />
-                        </span>
-                      </td>
-                      <td className="border-t border-border-soft px-2 py-3.5 font-medium text-ink transition-colors duration-150">{item.description}</td>
-                      <td className="border-t border-border-soft px-2 py-3.5 capitalize text-ink-soft transition-colors duration-150">{item.type}</td>
-                      <td className="border-t border-border-soft px-2 py-3.5 text-ink-soft transition-colors duration-150">{formatDate(item.date)}</td>
-                      <td className="border-t border-border-soft px-2 py-3.5 text-ink-soft transition-colors duration-150">{item.payment}</td>
-                      <td
-                        className={cn(
-                          'border-t border-border-soft px-2 py-3.5 text-right font-semibold transition-colors duration-150',
-                          signedAmount < 0 ? 'text-ink' : 'text-success',
-                        )}
-                      >
-                        {formatCurrency(signedAmount, { signed: true })}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-[10px] font-semibold uppercase tracking-[0.06em] text-ink-muted">
+                <th className="py-2 pr-3 font-semibold">Category</th>
+                <th className="py-2 pr-3 font-semibold">Description</th>
+                <th className="py-2 pr-3 font-semibold">Type</th>
+                <th className="py-2 pr-3 font-semibold">Date</th>
+                <th className="py-2 pr-3 font-semibold">Payment</th>
+                <th className="py-2 text-right font-semibold">Amount</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border-soft">
+              {pageItems.map((item) => {
+                const meta = CATEGORY_META[item.category]
+                const signedAmount = item.type === 'expense' ? -item.amount : item.amount
+                return (
+                  <tr key={item.id} className="transition-colors hover:bg-bg-soft">
+                    <td className="py-2.5 pr-3 text-[10px] font-semibold uppercase tracking-[0.05em]" style={{ color: meta.color }}>
+                      {meta.label}
+                    </td>
+                    <td className="py-2.5 pr-3 text-xs font-medium text-ink">{item.description}</td>
+                    <td className="py-2.5 pr-3 text-xs capitalize text-ink-soft">{item.type}</td>
+                    <td className="py-2.5 pr-3 font-mono-figure text-xs text-ink-muted">{formatDate(item.date)}</td>
+                    <td className="py-2.5 pr-3 text-xs text-ink-soft">{item.payment}</td>
+                    <td
+                      className={cn(
+                        'py-2.5 text-right font-mono-figure text-xs font-bold',
+                        signedAmount < 0 ? 'text-ink' : 'text-success',
+                      )}
+                    >
+                      {formatCurrency(signedAmount, { signed: true })}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
           <Pagination page={page} pageCount={pageCount} onPageChange={onPageChange} />
         </>
       )}

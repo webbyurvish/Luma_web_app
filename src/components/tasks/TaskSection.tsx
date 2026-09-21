@@ -1,5 +1,6 @@
 import { ListChecks } from 'lucide-react'
 import { TaskCard } from './TaskCard'
+import { Card } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/EmptyState'
 import type { Task } from '@/types'
 
@@ -13,18 +14,20 @@ interface TaskSectionProps {
 export function TaskSection({ title, emptyText, tasks, onToggle }: TaskSectionProps) {
   return (
     <section>
-      <div className="mb-3 flex items-center gap-2">
-        <h3 className="text-sm font-semibold text-ink">{title}</h3>
-        <span className="rounded-pill bg-bg-soft px-2 py-0.5 text-[11px] font-medium text-ink-soft">{tasks.length}</span>
+      <div className="mb-2 flex items-baseline gap-2">
+        <h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-soft">{title}</h3>
+        <span className="font-mono-figure text-[10px] text-ink-muted">{tasks.length}</span>
       </div>
       {tasks.length === 0 ? (
         <EmptyState icon={<ListChecks size={20} />} title="Nothing here" description={emptyText} />
       ) : (
-        <div className="flex flex-col gap-2.5">
-          {tasks.map((task) => (
-            <TaskCard key={task.id} task={task} onToggle={onToggle} />
-          ))}
-        </div>
+        <Card>
+          <div className="-mt-2.5 divide-y divide-border-soft">
+            {tasks.map((task) => (
+              <TaskCard key={task.id} task={task} onToggle={onToggle} />
+            ))}
+          </div>
+        </Card>
       )}
     </section>
   )

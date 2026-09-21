@@ -1,32 +1,22 @@
-import { motion } from 'framer-motion'
-import { cn } from '@/lib/cn'
-
 interface LumaSparkProps {
   size?: number
   animated?: boolean
   className?: string
 }
 
-export function LumaSpark({ size = 32, animated, className }: LumaSparkProps) {
+export function LumaSpark({ size = 28, animated, className }: LumaSparkProps) {
   return (
-    <motion.svg
+    <svg
       width={size}
       height={size}
-      viewBox="0 0 40 40"
+      viewBox="0 0 30 30"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
-      className={cn(animated && 'animate-spark', className)}
+      className={`${animated ? 'animate-spark' : ''} ${className ?? ''}`}
     >
-      <defs>
-        <linearGradient id="luma-spark-gradient" x1="3" y1="3" x2="37" y2="37" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#F4B83F" />
-          <stop offset="0.5" stopColor="#DF5B9C" />
-          <stop offset="1" stopColor="#7759E8" />
-        </linearGradient>
-      </defs>
-      <rect x="2" y="2" width="36" height="36" rx="13" fill="url(#luma-spark-gradient)" />
-      <path d="M20 10.5L22.1 17.9L29.5 20L22.1 22.1L20 29.5L17.9 22.1L10.5 20L17.9 17.9L20 10.5Z" fill="#FFFFFF" />
-    </motion.svg>
+      <rect x="0.5" y="0.5" width="29" height="29" rx="4" fill="#35415C" />
+      <path d="M15 8L16.6 13.4L22 15L16.6 16.6L15 22L13.4 16.6L8 15L13.4 13.4L15 8Z" fill="#F6F1E7" />
+    </svg>
   )
 }

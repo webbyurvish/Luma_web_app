@@ -12,7 +12,7 @@ export function AppShell() {
           <Sidebar />
           <div className="flex min-w-0 flex-1 flex-col">
             <Header />
-            <main className="min-w-0 flex-1 px-4 pb-10 pt-2 sm:px-6">
+            <main className="min-w-0 flex-1 px-4 pb-8 sm:px-7">
               <PageTransition />
             </main>
           </div>

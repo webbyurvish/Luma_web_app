@@ -2,7 +2,6 @@ import { type FormEvent, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
-import { LumaSpark } from '@/components/assistant/LumaSpark'
 import { mockSuggestedPrompts } from '@/data/mockAssistant'
 
 export function AIInsightCard() {
@@ -15,41 +14,37 @@ export function AIInsightCard() {
   }
 
   return (
-    <Card hoverable variant="tint" className="bg-gradient-lavender flex h-full flex-col">
-      <div className="mb-4 flex items-center gap-3">
-        <LumaSpark size={34} />
-        <div>
-          <h3 className="text-sm font-semibold text-ink">Ask your assistant</h3>
-          <p className="text-xs text-ink-soft">Your finances, documents and tasks — all in one place</p>
-        </div>
-      </div>
+    <Card hoverable variant="inset" className="flex h-full flex-col">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-ai">Ask Luma</p>
+      <p className="mt-1.5 font-display text-base italic leading-snug text-ink">"How did I spend this month?"</p>
 
-      <form onSubmit={handleSubmit} className="mb-4">
-        <div className="flex items-center gap-2 rounded-btn border border-white/60 bg-white/60 px-3.5 py-2.5 transition-shadow focus-within:shadow-ai">
+      <form onSubmit={handleSubmit} className="mt-4">
+        <div className="flex items-center gap-2 border-b border-ink/25 pb-1.5 transition-colors focus-within:border-ink">
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Ask me anything..."
-            className="w-full bg-transparent text-sm text-ink placeholder:text-ink-muted focus:outline-none"
+            placeholder="Ask anything..."
+            className="w-full bg-transparent text-xs text-ink placeholder:text-ink-muted focus:outline-none"
             aria-label="Ask your assistant"
           />
           <button type="submit" aria-label="Send" className="shrink-0 text-ai transition-transform hover:translate-x-0.5">
-            <ArrowRight size={17} />
+            <ArrowRight size={15} />
           </button>
         </div>
       </form>
 
-      <div className="mt-auto flex flex-wrap gap-2">
+      <ul className="mt-4 space-y-1.5">
         {mockSuggestedPrompts.slice(0, 3).map((prompt) => (
-          <button
-            key={prompt.id}
-            onClick={() => navigate('/assistant')}
-            className="rounded-pill border border-white/60 bg-white/50 px-3 py-1.5 text-[11px] font-medium text-ink-soft transition-colors hover:border-ai hover:text-ai"
-          >
-            {prompt.label}
-          </button>
+          <li key={prompt.id}>
+            <button
+              onClick={() => navigate('/assistant')}
+              className="text-left text-[11px] text-ink-soft transition-colors hover:text-ai"
+            >
+              {prompt.label}
+            </button>
+          </li>
         ))}
-      </div>
+      </ul>
     </Card>
   )
 }

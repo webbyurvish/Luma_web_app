@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { cardHover } from '@/lib/motion'
 import { cn } from '@/lib/cn'
 
-type CardVariant = 'standard' | 'tint' | 'glass' | 'flat'
+type CardVariant = 'standard' | 'flat' | 'panel' | 'inset'
 
 type MotionSafeDivAttributes = Omit<
   HTMLAttributes<HTMLDivElement>,
@@ -16,10 +16,10 @@ interface CardProps extends MotionSafeDivAttributes {
 }
 
 const variantClasses: Record<CardVariant, string> = {
-  standard: 'border border-border bg-card shadow-card',
-  tint: 'border border-border-soft shadow-xs',
-  glass: 'glass-surface shadow-card',
-  flat: 'bg-transparent',
+  standard: 'rounded-card border border-border-soft bg-card p-4',
+  flat: 'bg-transparent p-0',
+  panel: 'rounded-hero border border-border bg-surface p-5',
+  inset: 'rounded-card border border-border-soft bg-bg-soft p-4',
 }
 
 export function Card({ hoverable, variant = 'standard', className, children, ...props }: CardProps) {
@@ -29,7 +29,7 @@ export function Card({ hoverable, variant = 'standard', className, children, ...
         initial="rest"
         whileHover="hover"
         variants={cardHover}
-        className={cn('rounded-card p-5', variantClasses[variant], className)}
+        className={cn(variantClasses[variant], className)}
         {...props}
       >
         {children}
@@ -38,7 +38,7 @@ export function Card({ hoverable, variant = 'standard', className, children, ...
   }
 
   return (
-    <div className={cn('rounded-card p-5', variantClasses[variant], className)} {...props}>
+    <div className={cn(variantClasses[variant], className)} {...props}>
       {children}
     </div>
   )
@@ -53,12 +53,12 @@ interface CardHeaderProps {
 
 export function CardHeader({ title, subtitle, action, icon }: CardHeaderProps) {
   return (
-    <div className="mb-4 flex items-start justify-between gap-3">
-      <div className="flex items-start gap-3">
-        {icon && <div className="shrink-0">{icon}</div>}
+    <div className="mb-3.5 flex items-start justify-between gap-3">
+      <div className="flex items-start gap-2.5">
+        {icon && <div className="shrink-0 pt-0.5">{icon}</div>}
         <div>
-          <h3 className="text-sm font-semibold tracking-tight text-ink">{title}</h3>
-          {subtitle && <p className="mt-0.5 text-xs text-ink-soft">{subtitle}</p>}
+          <h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-soft">{title}</h3>
+          {subtitle && <p className="mt-0.5 text-xs text-ink-muted">{subtitle}</p>}
         </div>
       </div>
       {action && <div className="shrink-0">{action}</div>}

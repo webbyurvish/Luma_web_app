@@ -1,18 +1,18 @@
-import { KPIGrid } from '@/components/dashboard/KPIGrid'
-import { CategoryChart } from '@/components/dashboard/CategoryChart'
+import { OverviewBand } from '@/components/dashboard/OverviewBand'
+import { CategoryBars } from '@/components/dashboard/CategoryBars'
 import { IncomeExpenseChart } from '@/components/finance/IncomeExpenseChart'
 import { PaymentMethodChart } from '@/components/finance/PaymentMethodChart'
 import { mockFinanceSummary } from '@/data/mockExpenses'
 
 export function Finance() {
   return (
-    <div className="flex flex-col gap-5 pt-4">
-      <KPIGrid summary={mockFinanceSummary} />
+    <div className="flex flex-col gap-4 pt-3">
+      <OverviewBand summary={mockFinanceSummary} />
 
       <IncomeExpenseChart />
 
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
-        <CategoryChart />
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <CategoryBars />
         <PaymentMethodChart />
       </div>
     </div>

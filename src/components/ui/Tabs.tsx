@@ -9,7 +9,7 @@ interface TabsProps {
 
 export function Tabs({ tabs, active, onChange, className }: TabsProps) {
   return (
-    <div className={cn('flex items-center gap-1 rounded-pill bg-bg-soft p-1', className)} role="tablist">
+    <div className={cn('flex items-center gap-5 border-b border-border-soft', className)} role="tablist">
       {tabs.map((tab) => (
         <button
           key={tab.id}
@@ -17,11 +17,12 @@ export function Tabs({ tabs, active, onChange, className }: TabsProps) {
           aria-selected={active === tab.id}
           onClick={() => onChange(tab.id)}
           className={cn(
-            'rounded-pill px-3.5 py-1.5 text-xs font-medium transition-colors',
-            active === tab.id ? 'bg-card text-ink shadow-xs' : 'text-ink-soft hover:text-ink',
+            'relative pb-2.5 text-xs font-medium uppercase tracking-[0.05em] transition-colors',
+            active === tab.id ? 'text-ink' : 'text-ink-muted hover:text-ink-soft',
           )}
         >
           {tab.label}
+          {active === tab.id && <span className="absolute inset-x-0 -bottom-px h-[2px] bg-rust" aria-hidden="true" />}
         </button>
       ))}
     </div>

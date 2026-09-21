@@ -20,15 +20,11 @@ export function ChatInput({ onSend, compact }: ChatInputProps) {
   }
 
   return (
-    <div className={cn('border-t border-border-soft pt-4', compact && 'border-t-0 pt-0')}>
+    <div className={cn('border-t border-border-soft pt-3.5', compact && 'border-t-0 pt-0')}>
       {!compact && (
-        <div className="mb-3 flex flex-wrap gap-2">
+        <div className="mb-3 flex flex-wrap gap-x-4 gap-y-1.5">
           {mockSuggestedPrompts.map((prompt) => (
-            <button
-              key={prompt.id}
-              onClick={() => onSend(prompt.label)}
-              className="rounded-pill border border-border-soft bg-card px-3 py-1.5 text-xs font-medium text-ink-soft transition-colors hover:border-ai hover:text-ai"
-            >
+            <button key={prompt.id} onClick={() => onSend(prompt.label)} className="text-[11px] text-ink-soft transition-colors hover:text-ai">
               {prompt.label}
             </button>
           ))}
@@ -37,13 +33,10 @@ export function ChatInput({ onSend, compact }: ChatInputProps) {
 
       <form
         onSubmit={handleSubmit}
-        className={cn(
-          'flex items-center gap-2 rounded-hero border bg-card px-3 py-2.5 shadow-card transition-shadow duration-200',
-          focused ? 'border-ai/40 shadow-ai' : 'border-border-soft',
-        )}
+        className={cn('flex items-center gap-2.5 border-b pb-2 transition-colors duration-150', focused ? 'border-ink' : 'border-border')}
       >
-        <button type="button" aria-label="Attach file" className="shrink-0 rounded-full p-2 text-ink-muted transition-colors hover:bg-bg-soft hover:text-ink">
-          <Paperclip size={17} />
+        <button type="button" aria-label="Attach file" className="shrink-0 text-ink-muted transition-colors hover:text-ink">
+          <Paperclip size={14} />
         </button>
         <input
           value={value}
@@ -54,16 +47,16 @@ export function ChatInput({ onSend, compact }: ChatInputProps) {
           aria-label="Message"
           className="flex-1 bg-transparent text-sm text-ink placeholder:text-ink-muted focus:outline-none"
         />
-        <button type="button" aria-label="Voice input" className="shrink-0 rounded-full p-2 text-ink-muted transition-colors hover:bg-bg-soft hover:text-ink">
-          <Mic size={17} />
+        <button type="button" aria-label="Voice input" className="shrink-0 text-ink-muted transition-colors hover:text-ink">
+          <Mic size={14} />
         </button>
         <button
           type="submit"
           aria-label="Send message"
           disabled={!value.trim()}
-          className="bg-gradient-aurora flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white transition-opacity disabled:opacity-40"
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ai text-[#F6F1E7] transition-opacity disabled:opacity-30"
         >
-          <ArrowUp size={17} />
+          <ArrowUp size={13} />
         </button>
       </form>
     </div>

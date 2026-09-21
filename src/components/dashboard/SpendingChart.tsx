@@ -11,12 +11,9 @@ type Period = 'weekly' | 'monthly'
 function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) {
   if (!active || !payload?.length) return null
   return (
-    <div className="rounded-btn border border-border-soft bg-card px-3.5 py-2.5 text-xs shadow-hover">
-      <p className="font-medium text-ink-soft">{label}</p>
-      <p className="mt-0.5 flex items-center gap-1.5 text-sm font-semibold text-ink">
-        <span className="h-1.5 w-1.5 rounded-full bg-gold-dark" />
-        {formatCurrency(payload[0].value)}
-      </p>
+    <div className="border border-border bg-surface px-3 py-2 text-xs shadow-hover">
+      <p className="text-ink-muted">{label}</p>
+      <p className="mt-0.5 font-mono-figure font-bold text-ink">{formatCurrency(payload[0].value)}</p>
     </div>
   )
 }
@@ -31,18 +28,15 @@ export function SpendingChart({ loading }: { loading?: boolean }) {
   return (
     <Card hoverable className="h-full">
       <CardHeader
-        title="Spending Overview"
+        title="Spending rhythm"
         subtitle={period === 'weekly' ? 'This week' : 'Last 7 months'}
         action={
-          <div className="flex items-center rounded-pill bg-bg-soft p-1 text-xs font-medium">
+          <div className="flex items-center gap-3 text-[10px] font-semibold uppercase tracking-[0.06em]">
             {(['weekly', 'monthly'] as Period[]).map((option) => (
               <button
                 key={option}
                 onClick={() => setPeriod(option)}
-                className={cn(
-                  'rounded-pill px-3 py-1.5 capitalize transition-colors',
-                  period === option ? 'bg-card text-ink shadow-xs' : 'text-ink-soft hover:text-ink',
-                )}
+                className={cn('pb-0.5 transition-colors', period === option ? 'border-b-2 border-rust text-ink' : 'text-ink-muted hover:text-ink-soft')}
               >
                 {option}
               </button>
@@ -50,13 +44,13 @@ export function SpendingChart({ loading }: { loading?: boolean }) {
           </div>
         }
       />
-      <div className="h-56 w-full sm:h-64">
+      <div className="h-36 w-full sm:h-40">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+          <AreaChart data={data} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="spendingFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="var(--color-gold)" stopOpacity={0.32} />
-                <stop offset="100%" stopColor="var(--color-gold)" stopOpacity={0} />
+                <stop offset="0%" stopColor="var(--color-rust)" stopOpacity={0.22} />
+                <stop offset="100%" stopColor="var(--color-rust)" stopOpacity={0} />
               </linearGradient>
             </defs>
             <XAxis
@@ -66,26 +60,27 @@ export function SpendingChart({ loading }: { loading?: boolean }) {
               tick={({ x, y, payload }) => (
                 <text
                   x={x}
-                  y={Number(y) + 14}
+                  y={Number(y) + 13}
                   textAnchor="middle"
-                  fontSize={11}
-                  fontWeight={payload.value === lastLabel ? 600 : 400}
-                  fill={payload.value === lastLabel ? 'var(--color-gold-dark)' : 'var(--color-ink-muted)'}
+                  fontSize={10}
+                  fontFamily={payload.value === lastLabel ? 'var(--font-mono)' : 'var(--font-sans)'}
+                  fontWeight={payload.value === lastLabel ? 700 : 400}
+                  fill={payload.value === lastLabel ? 'var(--color-rust)' : 'var(--color-ink-muted)'}
                 >
                   {payload.value}
                 </text>
               )}
             />
-            <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'var(--color-border)', strokeWidth: 1, strokeDasharray: '3 5' }} />
+            <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'var(--color-border)', strokeWidth: 1, strokeDasharray: '2 4' }} />
             <Area
               type="monotone"
               dataKey="expense"
-              stroke="var(--color-gold-dark)"
-              strokeWidth={2.5}
+              stroke="var(--color-rust)"
+              strokeWidth={1.75}
               fill="url(#spendingFill)"
-              animationDuration={700}
+              animationDuration={500}
               animationEasing="ease-out"
-              activeDot={{ r: 5, stroke: 'white', strokeWidth: 2, fill: 'var(--color-gold-dark)' }}
+              activeDot={{ r: 3.5, stroke: 'var(--color-surface)', strokeWidth: 2, fill: 'var(--color-rust)' }}
             />
           </AreaChart>
         </ResponsiveContainer>

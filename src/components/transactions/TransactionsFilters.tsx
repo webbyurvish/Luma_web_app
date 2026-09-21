@@ -59,13 +59,13 @@ export function TransactionsFilters({
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
-        <Button variant="secondary" size="md" icon={<SlidersHorizontal size={15} />}>
+        <Button variant="secondary" size="sm" icon={<SlidersHorizontal size={13} />}>
           Filter
         </Button>
-        <Button variant="secondary" size="md" icon={<Download size={15} />} onClick={onExport}>
+        <Button variant="secondary" size="sm" icon={<Download size={13} />} onClick={onExport}>
           Export
         </Button>
-        <Button size="md" onClick={onAdd}>
+        <Button size="sm" onClick={onAdd}>
           Add Transaction
         </Button>
       </div>

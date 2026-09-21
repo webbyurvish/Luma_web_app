@@ -1,6 +1,4 @@
 import { motion } from 'framer-motion'
-import { Avatar } from '@/components/ui/Avatar'
-import { LumaSpark } from './LumaSpark'
 import { fadeUp } from '@/lib/motion'
 import { cn } from '@/lib/cn'
 import type { ChatMessage } from '@/types'
@@ -17,23 +15,16 @@ export function ChatWindow({ messages }: { messages: ChatMessage[] }) {
             variants={fadeUp}
             initial="hidden"
             animate="visible"
-            className={cn('flex items-start gap-3', !isAssistant && 'flex-row-reverse')}
+            className={cn(isAssistant ? 'max-w-[85%]' : 'ml-auto max-w-[75%] text-right')}
           >
+            <p className={cn('mb-1 text-[10px] font-semibold uppercase tracking-[0.1em]', isAssistant ? 'text-ai' : 'text-ink-muted')}>
+              {isAssistant ? 'Luma' : 'You'}
+            </p>
             {isAssistant ? (
-              <LumaSpark size={28} className="mt-0.5 shrink-0" />
+              <p className="ledger-marker pl-3 text-sm leading-relaxed text-ink [&::before]:bg-ai">{message.content}</p>
             ) : (
-              <Avatar name="Urvish Krina" size={28} />
+              <p className="font-display text-[15px] italic leading-relaxed text-ink">{message.content}</p>
             )}
-            <div
-              className={cn(
-                'max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed sm:max-w-[68%]',
-                isAssistant
-                  ? 'bg-gradient-lavender rounded-tl-md text-ink'
-                  : 'rounded-tr-md border border-border-soft bg-card text-ink shadow-xs',
-              )}
-            >
-              {message.content}
-            </div>
           </motion.div>
         )
       })}

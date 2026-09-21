@@ -11,12 +11,12 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
 ) {
   return (
     <div className="relative flex items-center">
-      {icon && <span className="pointer-events-none absolute left-3.5 text-ink-muted">{icon}</span>}
+      {icon && <span className="pointer-events-none absolute left-3 text-ink-muted">{icon}</span>}
       <input
         ref={ref}
         className={cn(
-          'h-10 w-full rounded-btn border border-border bg-card px-3.5 text-sm text-ink placeholder:text-ink-muted transition-colors focus:border-gold-dark focus:outline-none',
-          icon && 'pl-10',
+          'h-9 w-full rounded-sm border border-border bg-surface px-3 text-xs text-ink placeholder:text-ink-muted transition-colors focus:border-rust focus:outline-none',
+          icon && 'pl-9',
           className,
         )}
         {...props}

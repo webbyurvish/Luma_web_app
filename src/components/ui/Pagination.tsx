@@ -29,8 +29,8 @@ export function Pagination({ page, pageCount, onPageChange }: PaginationProps) {
             onClick={() => onPageChange(p)}
             aria-current={p === page ? 'page' : undefined}
             className={cn(
-              'h-8 w-8 rounded-btn text-xs font-medium transition-colors',
-              p === page ? 'bg-gold text-ink' : 'text-ink-soft hover:bg-bg-soft',
+              'h-7 w-7 rounded-sm font-mono-figure text-xs transition-colors',
+              p === page ? 'bg-rust text-[#F6F1E7]' : 'text-ink-soft hover:bg-bg-soft',
             )}
           >
             {p}

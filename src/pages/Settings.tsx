@@ -27,7 +27,7 @@ export function Settings() {
   const handleSave = () => showToast('Settings saved (demo — not persisted yet)')
 
   return (
-    <div className="flex flex-col gap-5 pt-4">
+    <div className="flex flex-col gap-4 pt-3">
       <Tabs tabs={sections} active={active} onChange={setActive} className="w-fit" />
 
       {active === 'profile' && (

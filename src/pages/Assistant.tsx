@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { CalendarClock, FileText, HandCoins, Wallet } from 'lucide-react'
 import { ConversationList } from '@/components/assistant/ConversationList'
 import { ChatWindow } from '@/components/assistant/ChatWindow'
 import { ChatInput } from '@/components/assistant/ChatInput'
@@ -11,11 +10,11 @@ import { mockFinanceSummary } from '@/data/mockExpenses'
 import { mockUdhaarSummary } from '@/data/mockUdhaar'
 import type { ChatMessage } from '@/types'
 
-const contextItems = [
-  { icon: Wallet, label: 'Current balance', value: formatCurrency(mockFinanceSummary.currentBalance), color: 'text-gold-dark', bg: 'bg-warning-soft' },
-  { icon: HandCoins, label: 'Udhaar to receive', value: formatCurrency(mockUdhaarSummary.toReceive), color: 'text-ai', bg: 'bg-ai-soft' },
-  { icon: CalendarClock, label: 'Tasks due today', value: '3 tasks', color: 'text-info', bg: 'bg-info-soft' },
-  { icon: FileText, label: 'Documents', value: '9 files', color: 'text-success', bg: 'bg-success-soft' },
+const contextRows = [
+  { label: 'Spent today', value: formatCurrency(2850, { compact: true }) },
+  { label: 'Udhaar to receive', value: formatCurrency(mockUdhaarSummary.toReceive, { compact: true }) },
+  { label: 'Tasks today', value: '3 open' },
+  { label: 'Documents', value: '1 needs review' },
 ]
 
 export function Assistant() {
@@ -39,17 +38,13 @@ export function Assistant() {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-5 pt-4 lg:grid-cols-[220px_1fr] xl:grid-cols-[220px_1fr_260px]">
-      <Card variant="glass" className="hidden max-h-[calc(100vh-140px)] lg:flex lg:flex-col">
-        <ConversationList
-          conversations={mockConversations}
-          activeId={activeId}
-          onSelect={setActiveId}
-          onNew={() => setMessages([])}
-        />
+    <div className="grid grid-cols-1 gap-4 pt-3 lg:grid-cols-[190px_1fr] xl:grid-cols-[190px_1fr_220px]">
+      <Card variant="flat" className="hidden max-h-[calc(100vh-130px)] border-r border-border-soft pr-4 lg:flex lg:flex-col">
+        <ConversationList conversations={mockConversations} activeId={activeId} onSelect={setActiveId} onNew={() => setMessages([])} />
       </Card>
 
-      <Card className="flex min-h-[calc(100vh-140px)] flex-col">
+      <Card variant="panel" className="flex min-h-[calc(100vh-130px)] flex-col">
+        <p className="mb-4 text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-muted">Ask Luma</p>
         {messages.length === 0 ? (
           <>
             <AssistantEmptyState onPrompt={handleSend} />
@@ -63,23 +58,26 @@ export function Assistant() {
         )}
       </Card>
 
-      <div className="hidden flex-col gap-4 xl:flex">
-        <Card variant="glass">
-          <h3 className="mb-3 text-sm font-semibold tracking-tight text-ink">Current context</h3>
-          <ul className="space-y-3">
-            {contextItems.map((item) => (
-              <li key={item.label} className="flex items-center gap-3">
-                <span className={`flex h-8 w-8 items-center justify-center rounded-full ${item.bg} ${item.color}`}>
-                  <item.icon size={15} />
-                </span>
-                <div className="min-w-0">
-                  <p className="truncate text-xs text-ink-soft">{item.label}</p>
-                  <p className="truncate text-sm font-semibold text-ink">{item.value}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </Card>
+      <div className="hidden flex-col xl:flex">
+        <p className="mb-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-muted">Your day</p>
+        <ul className="divide-y divide-border-soft border-t border-border-soft">
+          {contextRows.map((row) => (
+            <li key={row.label} className="flex items-baseline justify-between py-2.5">
+              <span className="text-[11px] text-ink-soft">{row.label}</span>
+              <span className="font-mono-figure text-xs font-bold text-ink">{row.value}</span>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-4 border-t border-border-soft pt-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-ai">Insight</p>
+          <p className="mt-1.5 text-xs leading-relaxed text-ink-soft">
+            Dining spend is 14% higher than last month — mostly weekday lunches.
+          </p>
+        </div>
+        <div className="mt-4 border-t border-border-soft pt-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-muted">Balance</p>
+          <p className="mt-1.5 font-mono-figure text-sm font-bold text-ink">{formatCurrency(mockFinanceSummary.currentBalance)}</p>
+        </div>
       </div>
     </div>
   )

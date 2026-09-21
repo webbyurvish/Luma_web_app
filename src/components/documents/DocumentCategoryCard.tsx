@@ -6,26 +6,23 @@ interface DocumentCategoryCardProps {
   count: number
   icon: LucideIcon
   color: string
-  bg: string
   active?: boolean
   onClick?: () => void
 }
 
-export function DocumentCategoryCard({ name, count, icon: Icon, color, bg, active, onClick }: DocumentCategoryCardProps) {
+export function DocumentCategoryCard({ name, count, icon: Icon, color, active, onClick }: DocumentCategoryCardProps) {
   return (
     <button
       onClick={onClick}
       className={cn(
-        'flex flex-col items-start gap-3 rounded-card border bg-card p-4 text-left shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-hover',
-        active ? 'border-gold-dark ring-1 ring-gold-dark' : 'border-border',
+        'flex items-center gap-2.5 border bg-card px-3 py-2.5 text-left transition-colors duration-150 hover:bg-bg-soft',
+        active ? 'border-ink' : 'border-border-soft',
       )}
     >
-      <span className="flex h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: bg, color }}>
-        <Icon size={18} />
-      </span>
-      <div>
-        <p className="text-sm font-semibold text-ink">{name}</p>
-        <p className="text-xs text-ink-soft">{count} files</p>
+      <Icon size={15} style={{ color }} className="shrink-0" />
+      <div className="min-w-0">
+        <p className="truncate text-xs font-medium text-ink">{name}</p>
+        <p className="font-mono-figure text-[10px] text-ink-muted">{count} files</p>
       </div>
     </button>
   )

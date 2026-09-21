@@ -11,14 +11,14 @@ export function Select({ className, children, ...props }: SelectProps) {
     <div className="relative flex items-center">
       <select
         className={cn(
-          'h-10 w-full appearance-none rounded-btn border border-border bg-card pl-3.5 pr-9 text-sm text-ink transition-colors focus:border-gold-dark focus:outline-none',
+          'h-9 w-full appearance-none rounded-sm border border-border bg-surface pl-3 pr-8 text-xs text-ink transition-colors focus:border-rust focus:outline-none',
           className,
         )}
         {...props}
       >
         {children}
       </select>
-      <ChevronDown size={16} className="pointer-events-none absolute right-3 text-ink-muted" />
+      <ChevronDown size={14} className="pointer-events-none absolute right-2.5 text-ink-muted" />
     </div>
   )
 }

@@ -4,6 +4,7 @@ interface AvatarProps {
   name: string
   size?: number
   className?: string
+  inverted?: boolean
 }
 
 function getInitials(name: string): string {
@@ -12,11 +13,15 @@ function getInitials(name: string): string {
   return initials.toUpperCase()
 }
 
-export function Avatar({ name, size = 36, className }: AvatarProps) {
+export function Avatar({ name, size = 36, className, inverted }: AvatarProps) {
   return (
     <div
-      className={cn('flex shrink-0 items-center justify-center rounded-full bg-linear-to-br from-gold-mid to-gold-dark font-semibold text-ink shadow-xs', className)}
-      style={{ width: size, height: size, fontSize: size * 0.38 }}
+      className={cn(
+        'flex shrink-0 items-center justify-center rounded-full font-display font-medium',
+        inverted ? 'bg-rust text-[#F6F1E7]' : 'bg-ink-rail text-paper',
+        className,
+      )}
+      style={{ width: size, height: size, fontSize: size * 0.4 }}
       aria-label={name}
     >
       {getInitials(name)}

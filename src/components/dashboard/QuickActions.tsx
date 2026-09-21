@@ -1,55 +1,47 @@
 import { useState } from 'react'
-import { motion } from 'framer-motion'
 import { ArrowLeftRight, CircleMinus, CirclePlus, HandCoins, ListChecks, Upload } from 'lucide-react'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { QuickActionModal, type QuickActionKind } from '@/components/common/QuickActionModal'
-import { tileHover } from '@/lib/motion'
+import { cn } from '@/lib/cn'
 
 interface QuickActionDef {
   kind: QuickActionKind
   label: string
   icon: typeof CirclePlus
-  tint: string
   color: string
 }
 
 const actions: QuickActionDef[] = [
-  { kind: 'expense', label: 'Expense', icon: CircleMinus, tint: 'bg-danger-soft', color: 'text-danger' },
-  { kind: 'income', label: 'Income', icon: CirclePlus, tint: 'bg-success-soft', color: 'text-success' },
-  { kind: 'udhaar', label: 'Udhaar', icon: HandCoins, tint: 'bg-ai-soft', color: 'text-ai' },
-  { kind: 'repayment', label: 'Repayment', icon: ArrowLeftRight, tint: 'bg-pink-soft', color: 'text-pink' },
-  { kind: 'task', label: 'Task', icon: ListChecks, tint: 'bg-info-soft', color: 'text-info' },
-  { kind: 'document', label: 'Upload', icon: Upload, tint: 'bg-cyan-soft', color: 'text-cyan' },
+  { kind: 'expense', label: 'Add expense', icon: CircleMinus, color: 'text-danger' },
+  { kind: 'income', label: 'Add income', icon: CirclePlus, color: 'text-success' },
+  { kind: 'udhaar', label: 'Add udhaar', icon: HandCoins, color: 'text-ai' },
+  { kind: 'repayment', label: 'Add repayment', icon: ArrowLeftRight, color: 'text-pink' },
+  { kind: 'task', label: 'Add task', icon: ListChecks, color: 'text-ink-soft' },
+  { kind: 'document', label: 'Upload document', icon: Upload, color: 'text-cyan' },
 ]
 
 export function QuickActions() {
   const [activeKind, setActiveKind] = useState<QuickActionKind | null>(null)
 
   return (
-    <Card hoverable className="h-full">
-      <CardHeader title="Quick Actions" subtitle="Add something in seconds" />
-      <div className="grid grid-cols-3 gap-2.5">
+    <Card hoverable>
+      <CardHeader title="Quick actions" subtitle="Add something in seconds" />
+      <ul className="-mx-1 divide-y divide-border-soft">
         {actions.map((action) => (
-          <motion.button
-            key={action.kind}
-            onClick={() => setActiveKind(action.kind)}
-            initial="rest"
-            whileHover="hover"
-            whileTap="tap"
-            variants={tileHover}
-            className={`flex flex-col items-center gap-2 rounded-btn ${action.tint} px-2 py-3.5 text-center`}
-          >
-            <motion.span
-              variants={{ rest: { y: 0 }, hover: { y: -2 } }}
-              transition={{ duration: 0.2 }}
-              className={`flex h-10 w-10 items-center justify-center rounded-full bg-white/70 ${action.color}`}
+          <li key={action.kind}>
+            <button
+              onClick={() => setActiveKind(action.kind)}
+              className={cn(
+                'group flex w-full items-center gap-2.5 px-1 py-2 text-left text-xs text-ink-soft transition-colors hover:text-ink',
+              )}
             >
-              <action.icon size={18} />
-            </motion.span>
-            <span className="text-[11px] font-medium leading-tight text-ink">{action.label}</span>
-          </motion.button>
+              <action.icon size={14} className={cn('shrink-0 transition-transform duration-150 group-hover:translate-x-0.5', action.color)} />
+              <span className="flex-1">{action.label}</span>
+              <span className="text-ink-muted opacity-0 transition-opacity group-hover:opacity-100">→</span>
+            </button>
+          </li>
         ))}
-      </div>
+      </ul>
 
       <QuickActionModal open={activeKind !== null} kind={activeKind ?? 'expense'} onClose={() => setActiveKind(null)} />
     </Card>
