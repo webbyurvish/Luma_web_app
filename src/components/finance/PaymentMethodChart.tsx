@@ -13,7 +13,7 @@ const methodColor: Record<PaymentMethod, string> = {
 
 export function PaymentMethodChart() {
   return (
-    <Card>
+    <Card hoverable>
       <CardHeader title="Payment Methods" subtitle="Share of spending this month" />
       <ul className="space-y-4">
         {mockPaymentMethods.map((method) => (

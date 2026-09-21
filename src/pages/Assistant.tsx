@@ -3,6 +3,7 @@ import { CalendarClock, FileText, HandCoins, Wallet } from 'lucide-react'
 import { ConversationList } from '@/components/assistant/ConversationList'
 import { ChatWindow } from '@/components/assistant/ChatWindow'
 import { ChatInput } from '@/components/assistant/ChatInput'
+import { AssistantEmptyState } from '@/components/assistant/AssistantEmptyState'
 import { Card } from '@/components/ui/Card'
 import { mockChatMessages, mockConversations } from '@/data/mockAssistant'
 import { formatCurrency } from '@/lib/formatCurrency'
@@ -39,7 +40,7 @@ export function Assistant() {
 
   return (
     <div className="grid grid-cols-1 gap-5 pt-4 lg:grid-cols-[220px_1fr] xl:grid-cols-[220px_1fr_260px]">
-      <Card className="hidden max-h-[calc(100vh-140px)] lg:flex lg:flex-col">
+      <Card variant="glass" className="hidden max-h-[calc(100vh-140px)] lg:flex lg:flex-col">
         <ConversationList
           conversations={mockConversations}
           activeId={activeId}
@@ -49,13 +50,22 @@ export function Assistant() {
       </Card>
 
       <Card className="flex min-h-[calc(100vh-140px)] flex-col">
-        <ChatWindow messages={messages} />
-        <ChatInput onSend={handleSend} />
+        {messages.length === 0 ? (
+          <>
+            <AssistantEmptyState onPrompt={handleSend} />
+            <ChatInput onSend={handleSend} compact />
+          </>
+        ) : (
+          <>
+            <ChatWindow messages={messages} />
+            <ChatInput onSend={handleSend} />
+          </>
+        )}
       </Card>
 
       <div className="hidden flex-col gap-4 xl:flex">
-        <Card>
-          <h3 className="mb-3 text-sm font-semibold text-ink">Quick context</h3>
+        <Card variant="glass">
+          <h3 className="mb-3 text-sm font-semibold tracking-tight text-ink">Current context</h3>
           <ul className="space-y-3">
             {contextItems.map((item) => (
               <li key={item.label} className="flex items-center gap-3">

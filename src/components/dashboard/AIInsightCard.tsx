@@ -1,7 +1,8 @@
 import { type FormEvent, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, Sparkles } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
+import { LumaSpark } from '@/components/assistant/LumaSpark'
 import { mockSuggestedPrompts } from '@/data/mockAssistant'
 
 export function AIInsightCard() {
@@ -14,11 +15,9 @@ export function AIInsightCard() {
   }
 
   return (
-    <Card className="flex h-full flex-col bg-linear-to-br from-ai-soft to-card">
+    <Card hoverable variant="tint" className="bg-gradient-lavender flex h-full flex-col">
       <div className="mb-4 flex items-center gap-3">
-        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-ai text-white">
-          <Sparkles size={17} />
-        </span>
+        <LumaSpark size={34} />
         <div>
           <h3 className="text-sm font-semibold text-ink">Ask your assistant</h3>
           <p className="text-xs text-ink-soft">Your finances, documents and tasks — all in one place</p>
@@ -26,7 +25,7 @@ export function AIInsightCard() {
       </div>
 
       <form onSubmit={handleSubmit} className="mb-4">
-        <div className="flex items-center gap-2 rounded-btn border border-border bg-card px-3.5 py-2.5">
+        <div className="flex items-center gap-2 rounded-btn border border-white/60 bg-white/60 px-3.5 py-2.5 transition-shadow focus-within:shadow-ai">
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -45,7 +44,7 @@ export function AIInsightCard() {
           <button
             key={prompt.id}
             onClick={() => navigate('/assistant')}
-            className="rounded-pill border border-border bg-card px-3 py-1.5 text-[11px] font-medium text-ink-soft transition-colors hover:border-ai hover:text-ai"
+            className="rounded-pill border border-white/60 bg-white/50 px-3 py-1.5 text-[11px] font-medium text-ink-soft transition-colors hover:border-ai hover:text-ai"
           >
             {prompt.label}
           </button>

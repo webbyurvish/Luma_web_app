@@ -1,4 +1,4 @@
-import { FileText, HandCoins, LayoutDashboard, ListChecks, NotebookText, Settings, Sparkles, Wallet, type LucideIcon } from 'lucide-react'
+import { FileText, HandCoins, Home, ListChecks, NotebookText, Settings, Sparkles, Wallet, type LucideIcon } from 'lucide-react'
 
 export interface NavItem {
   to: string
@@ -7,7 +7,7 @@ export interface NavItem {
 }
 
 export const mainNavItems: NavItem[] = [
-  { to: '/', label: 'Home', icon: LayoutDashboard },
+  { to: '/', label: 'Home', icon: Home },
   { to: '/assistant', label: 'Assistant', icon: Sparkles },
   { to: '/finance', label: 'Finance', icon: Wallet },
   { to: '/udhaar', label: 'Udhaar', icon: HandCoins },

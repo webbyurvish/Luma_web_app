@@ -9,14 +9,20 @@ import { mockTransactions } from '@/data/mockTransactions'
 import { cn } from '@/lib/cn'
 
 export function RecentActivity({ loading }: { loading?: boolean }) {
-  const items = [...mockTransactions].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 5)
+  const items = [...mockTransactions].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 6)
+
+  const groups = items.reduce<Record<string, typeof items>>((acc, item) => {
+    const key = formatRelativeDate(item.date)
+    acc[key] = acc[key] ? [...acc[key], item] : [item]
+    return acc
+  }, {})
 
   return (
-    <Card className="h-full">
+    <Card hoverable className="h-full">
       <CardHeader title="Recent Activity" subtitle="Latest movements across your accounts" />
 
       {loading ? (
-        <div className="divide-y divide-border">
+        <div className="divide-y divide-border-soft">
           {Array.from({ length: 5 }).map((_, index) => (
             <ListRowSkeleton key={index} />
           ))}
@@ -28,36 +34,46 @@ export function RecentActivity({ loading }: { loading?: boolean }) {
           description="Your recent transactions will show up here."
         />
       ) : (
-        <ul className="divide-y divide-border">
-          {items.map((item) => {
-            const meta = CATEGORY_META[item.category]
-            const Icon = meta.icon
-            const isPositive = item.type === 'income' || item.type === 'udhaar'
-            const signedAmount = item.type === 'expense' ? -item.amount : item.amount
-            return (
-              <li key={item.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                <span
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-                  style={{ backgroundColor: meta.bg, color: meta.color }}
-                >
-                  <Icon size={17} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-ink">{item.description}</p>
-                  <p className="text-xs text-ink-soft">
-                    {meta.label} · {formatRelativeDate(item.date)}
-                  </p>
-                </div>
-                <div className="shrink-0 text-right">
-                  <p className={cn('text-sm font-semibold', isPositive ? 'text-success' : 'text-ink')}>
-                    {formatCurrency(signedAmount, { signed: true })}
-                    {item.type === 'udhaar' && item.status === 'pending' ? ' receivable' : ''}
-                  </p>
-                </div>
-              </li>
-            )
-          })}
-        </ul>
+        <div className="space-y-5">
+          {Object.entries(groups).map(([day, dayItems]) => (
+            <div key={day}>
+              <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-wide text-ink-muted">{day}</p>
+              <ul className="relative space-y-0.5 border-l border-border-soft pl-4">
+                {dayItems.map((item) => {
+                  const meta = CATEGORY_META[item.category]
+                  const Icon = meta.icon
+                  const isPositive = item.type === 'income' || item.type === 'udhaar'
+                  const signedAmount = item.type === 'expense' ? -item.amount : item.amount
+                  return (
+                    <li key={item.id} className="group relative flex items-center gap-3 rounded-md py-2 pl-2 pr-1 transition-colors duration-150 hover:bg-bg-soft">
+                      <span
+                        className="absolute -left-[21px] top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full border-2 border-surface"
+                        style={{ backgroundColor: meta.color }}
+                        aria-hidden="true"
+                      />
+                      <span
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+                        style={{ backgroundColor: meta.bg, color: meta.color }}
+                      >
+                        <Icon size={15} />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-ink">{item.description}</p>
+                        <p className="text-xs text-ink-soft">
+                          {meta.label} · {item.payment}
+                        </p>
+                      </div>
+                      <p className={cn('shrink-0 text-sm font-semibold', isPositive ? 'text-success' : 'text-ink')}>
+                        {formatCurrency(signedAmount, { signed: true })}
+                        {item.type === 'udhaar' && item.status === 'pending' ? ' receivable' : ''}
+                      </p>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
       )}
     </Card>
   )

@@ -2,6 +2,7 @@ import { HandCoins, PiggyBank, TrendingDown, TrendingUp } from 'lucide-react'
 import { KPICard } from './KPICard'
 import { KPICardSkeleton } from '@/components/ui/Skeleton'
 import { formatCurrency } from '@/lib/formatCurrency'
+import { mockMonthlySpending } from '@/data/mockExpenses'
 import type { FinanceSummary } from '@/types'
 
 interface KPIGridProps {
@@ -10,6 +11,9 @@ interface KPIGridProps {
 }
 
 export function KPIGrid({ summary, loading }: KPIGridProps) {
+  const incomeTrend = mockMonthlySpending.map((p) => p.income)
+  const expenseTrend = mockMonthlySpending.map((p) => p.expense)
+
   if (loading) {
     return (
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -28,6 +32,8 @@ export function KPIGrid({ summary, loading }: KPIGridProps) {
         trend={summary.balanceTrend}
         icon={<PiggyBank size={18} />}
         accent="gold"
+        sparkline={incomeTrend}
+        index={0}
       />
       <KPICard
         label="Total Income"
@@ -35,6 +41,8 @@ export function KPIGrid({ summary, loading }: KPIGridProps) {
         trend={summary.incomeTrend}
         icon={<TrendingUp size={18} />}
         accent="success"
+        sparkline={incomeTrend}
+        index={1}
       />
       <KPICard
         label="Total Expense"
@@ -42,6 +50,8 @@ export function KPIGrid({ summary, loading }: KPIGridProps) {
         trend={summary.expenseTrend}
         icon={<TrendingDown size={18} />}
         accent="danger"
+        sparkline={expenseTrend}
+        index={2}
       />
       <KPICard
         label="Udhaar Receivable"
@@ -49,6 +59,8 @@ export function KPIGrid({ summary, loading }: KPIGridProps) {
         trend={summary.udhaarTrend}
         icon={<HandCoins size={18} />}
         accent="ai"
+        sparkline={expenseTrend.slice().reverse()}
+        index={3}
       />
     </div>
   )

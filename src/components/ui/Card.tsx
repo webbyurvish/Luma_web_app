@@ -1,20 +1,44 @@
 import type { HTMLAttributes, ReactNode } from 'react'
+import { motion } from 'framer-motion'
+import { cardHover } from '@/lib/motion'
 import { cn } from '@/lib/cn'
 
-interface CardProps extends HTMLAttributes<HTMLDivElement> {
+type CardVariant = 'standard' | 'tint' | 'glass' | 'flat'
+
+type MotionSafeDivAttributes = Omit<
+  HTMLAttributes<HTMLDivElement>,
+  'onDrag' | 'onDragStart' | 'onDragEnd' | 'onAnimationStart' | 'onAnimationEnd'
+>
+
+interface CardProps extends MotionSafeDivAttributes {
   hoverable?: boolean
+  variant?: CardVariant
 }
 
-export function Card({ hoverable, className, children, ...props }: CardProps) {
+const variantClasses: Record<CardVariant, string> = {
+  standard: 'border border-border bg-card shadow-card',
+  tint: 'border border-border-soft shadow-xs',
+  glass: 'glass-surface shadow-card',
+  flat: 'bg-transparent',
+}
+
+export function Card({ hoverable, variant = 'standard', className, children, ...props }: CardProps) {
+  if (hoverable) {
+    return (
+      <motion.div
+        initial="rest"
+        whileHover="hover"
+        variants={cardHover}
+        className={cn('rounded-card p-5', variantClasses[variant], className)}
+        {...props}
+      >
+        {children}
+      </motion.div>
+    )
+  }
+
   return (
-    <div
-      className={cn(
-        'rounded-card border border-border bg-card p-5 shadow-card',
-        hoverable && 'transition-shadow duration-300 hover:shadow-hover',
-        className,
-      )}
-      {...props}
-    >
+    <div className={cn('rounded-card p-5', variantClasses[variant], className)} {...props}>
       {children}
     </div>
   )
@@ -33,7 +57,7 @@ export function CardHeader({ title, subtitle, action, icon }: CardHeaderProps) {
       <div className="flex items-start gap-3">
         {icon && <div className="shrink-0">{icon}</div>}
         <div>
-          <h3 className="text-sm font-semibold text-ink">{title}</h3>
+          <h3 className="text-sm font-semibold tracking-tight text-ink">{title}</h3>
           {subtitle && <p className="mt-0.5 text-xs text-ink-soft">{subtitle}</p>}
         </div>
       </div>

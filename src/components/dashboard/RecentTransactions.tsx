@@ -12,7 +12,7 @@ export function RecentTransactions() {
   const items = [...mockTransactions].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 6)
 
   return (
-    <Card>
+    <Card hoverable>
       <CardHeader
         title="Recent Transactions"
         subtitle="Your latest payments and receipts"
@@ -33,13 +33,13 @@ export function RecentTransactions() {
         <div className="-mx-2 overflow-x-auto">
           <table className="w-full min-w-[640px] border-separate border-spacing-0 text-sm">
             <thead>
-              <tr className="text-left text-xs font-medium text-ink-soft">
-                <th className="px-2 pb-3 font-medium">Category</th>
-                <th className="px-2 pb-3 font-medium">Description</th>
-                <th className="px-2 pb-3 font-medium">Type</th>
-                <th className="px-2 pb-3 font-medium">Date</th>
-                <th className="px-2 pb-3 font-medium">Payment</th>
-                <th className="px-2 pb-3 text-right font-medium">Amount</th>
+              <tr className="text-left text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
+                <th className="px-2 pb-3 font-semibold">Category</th>
+                <th className="px-2 pb-3 font-semibold">Description</th>
+                <th className="px-2 pb-3 font-semibold">Type</th>
+                <th className="px-2 pb-3 font-semibold">Date</th>
+                <th className="px-2 pb-3 font-semibold">Payment</th>
+                <th className="px-2 pb-3 text-right font-semibold">Amount</th>
               </tr>
             </thead>
             <tbody>
@@ -48,8 +48,8 @@ export function RecentTransactions() {
                 const Icon = meta.icon
                 const signedAmount = item.type === 'expense' ? -item.amount : item.amount
                 return (
-                  <tr key={item.id} className="group transition-colors hover:bg-bg-soft">
-                    <td className="border-t border-border px-2 py-3.5">
+                  <tr key={item.id} className="[transform:translateZ(0)] transition-transform duration-150 hover:-translate-y-px hover:[&>td]:bg-bg-soft">
+                    <td className="border-t border-border-soft px-2 py-3.5 transition-colors duration-150 first:rounded-l-btn last:rounded-r-btn">
                       <span
                         className="flex h-8 w-8 items-center justify-center rounded-full"
                         style={{ backgroundColor: meta.bg, color: meta.color }}
@@ -57,13 +57,13 @@ export function RecentTransactions() {
                         <Icon size={15} />
                       </span>
                     </td>
-                    <td className="border-t border-border px-2 py-3.5 font-medium text-ink">{item.description}</td>
-                    <td className="border-t border-border px-2 py-3.5 capitalize text-ink-soft">{item.type}</td>
-                    <td className="border-t border-border px-2 py-3.5 text-ink-soft">{formatDate(item.date)}</td>
-                    <td className="border-t border-border px-2 py-3.5 text-ink-soft">{item.payment}</td>
+                    <td className="border-t border-border-soft px-2 py-3.5 font-medium text-ink transition-colors duration-150">{item.description}</td>
+                    <td className="border-t border-border-soft px-2 py-3.5 capitalize text-ink-soft transition-colors duration-150">{item.type}</td>
+                    <td className="border-t border-border-soft px-2 py-3.5 text-ink-soft transition-colors duration-150">{formatDate(item.date)}</td>
+                    <td className="border-t border-border-soft px-2 py-3.5 text-ink-soft transition-colors duration-150">{item.payment}</td>
                     <td
                       className={cn(
-                        'border-t border-border px-2 py-3.5 text-right font-semibold',
+                        'border-t border-border-soft px-2 py-3.5 text-right font-semibold transition-colors duration-150',
                         signedAmount < 0 ? 'text-ink' : 'text-success',
                       )}
                     >

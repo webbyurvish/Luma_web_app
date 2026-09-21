@@ -31,7 +31,7 @@ export function Settings() {
       <Tabs tabs={sections} active={active} onChange={setActive} className="w-fit" />
 
       {active === 'profile' && (
-        <Card className="max-w-2xl">
+        <Card hoverable className="max-w-2xl">
           <CardHeader title="Profile" subtitle="Your personal information" icon={<User size={17} className="text-ink-soft" />} />
           <div className="mb-5 flex items-center gap-4">
             <Avatar name="Urvish Krina" size={56} />
@@ -57,7 +57,7 @@ export function Settings() {
       )}
 
       {active === 'appearance' && (
-        <Card className="max-w-2xl">
+        <Card hoverable className="max-w-2xl">
           <CardHeader title="Appearance" subtitle="Personalize how Luma looks" icon={<Palette size={17} className="text-ink-soft" />} />
           <div>
             <label className="mb-1.5 block text-xs font-medium text-ink-soft">Theme</label>
@@ -72,7 +72,7 @@ export function Settings() {
       )}
 
       {active === 'notifications' && (
-        <Card className="max-w-2xl">
+        <Card hoverable className="max-w-2xl">
           <CardHeader title="Notifications" subtitle="Choose what you want to be notified about" icon={<Bell size={17} className="text-ink-soft" />} />
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -101,7 +101,7 @@ export function Settings() {
       )}
 
       {active === 'finance' && (
-        <Card className="max-w-2xl">
+        <Card hoverable className="max-w-2xl">
           <CardHeader title="Finance Preferences" subtitle="Defaults used across the app" icon={<CreditCard size={17} className="text-ink-soft" />} />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
@@ -128,7 +128,7 @@ export function Settings() {
       )}
 
       {active === 'security' && (
-        <Card className="max-w-2xl">
+        <Card hoverable className="max-w-2xl">
           <CardHeader title="Security" subtitle="Keep your account safe" icon={<ShieldCheck size={17} className="text-ink-soft" />} />
           <p className="text-sm text-ink-soft">
             Authentication and account security will be available once accounts are introduced in a future phase.

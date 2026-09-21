@@ -15,7 +15,7 @@ function getInitials(name: string): string {
 export function Avatar({ name, size = 36, className }: AvatarProps) {
   return (
     <div
-      className={cn('flex shrink-0 items-center justify-center rounded-full bg-linear-to-br from-gold-light to-gold font-semibold text-ink', className)}
+      className={cn('flex shrink-0 items-center justify-center rounded-full bg-linear-to-br from-gold-mid to-gold-dark font-semibold text-ink shadow-xs', className)}
       style={{ width: size, height: size, fontSize: size * 0.38 }}
       aria-label={name}
     >

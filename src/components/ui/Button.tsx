@@ -1,10 +1,16 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import { motion } from 'framer-motion'
 import { cn } from '@/lib/cn'
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
 type ButtonSize = 'sm' | 'md' | 'lg'
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+type MotionSafeButtonAttributes = Omit<
+  ButtonHTMLAttributes<HTMLButtonElement>,
+  'onDrag' | 'onDragStart' | 'onDragEnd' | 'onAnimationStart' | 'onAnimationEnd'
+>
+
+interface ButtonProps extends MotionSafeButtonAttributes {
   variant?: ButtonVariant
   size?: ButtonSize
   icon?: ReactNode
@@ -12,12 +18,10 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary:
-    'bg-gold text-ink shadow-xs hover:bg-gold-light hover:shadow-hover active:scale-[0.98]',
-  secondary:
-    'bg-card text-ink border border-border hover:bg-bg-soft active:scale-[0.98]',
+  primary: 'bg-gradient-gold text-ink shadow-xs hover:shadow-gold',
+  secondary: 'bg-card text-ink border border-border hover:bg-bg-soft',
   ghost: 'bg-transparent text-ink-soft hover:bg-bg-soft hover:text-ink',
-  danger: 'bg-danger text-white hover:opacity-90 active:scale-[0.98]',
+  danger: 'bg-danger text-white hover:opacity-90',
 }
 
 const sizeClasses: Record<ButtonSize, string> = {
@@ -36,9 +40,11 @@ export function Button({
   ...props
 }: ButtonProps) {
   return (
-    <button
+    <motion.button
+      whileTap={{ scale: 0.97 }}
+      transition={{ duration: 0.12 }}
       className={cn(
-        'inline-flex items-center justify-center rounded-btn font-medium transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50',
+        'inline-flex items-center justify-center rounded-btn font-medium transition-[box-shadow,background-color,opacity] duration-200 disabled:cursor-not-allowed disabled:opacity-50',
         variantClasses[variant],
         sizeClasses[size],
         className,
@@ -48,6 +54,6 @@ export function Button({
       {icon && iconPosition === 'left' && <span className="shrink-0">{icon}</span>}
       {children}
       {icon && iconPosition === 'right' && <span className="shrink-0">{icon}</span>}
-    </button>
+    </motion.button>
   )
 }

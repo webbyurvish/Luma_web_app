@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
+import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { ChartCardSkeleton } from '@/components/ui/Skeleton'
 import { formatCurrency } from '@/lib/formatCurrency'
@@ -11,9 +11,12 @@ type Period = 'weekly' | 'monthly'
 function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) {
   if (!active || !payload?.length) return null
   return (
-    <div className="rounded-btn border border-border bg-card px-3 py-2 text-xs shadow-hover">
+    <div className="rounded-btn border border-border-soft bg-card px-3.5 py-2.5 text-xs shadow-hover">
       <p className="font-medium text-ink-soft">{label}</p>
-      <p className="mt-0.5 font-semibold text-ink">{formatCurrency(payload[0].value)}</p>
+      <p className="mt-0.5 flex items-center gap-1.5 text-sm font-semibold text-ink">
+        <span className="h-1.5 w-1.5 rounded-full bg-gold-dark" />
+        {formatCurrency(payload[0].value)}
+      </p>
     </div>
   )
 }
@@ -21,11 +24,12 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
 export function SpendingChart({ loading }: { loading?: boolean }) {
   const [period, setPeriod] = useState<Period>('weekly')
   const data = period === 'weekly' ? mockWeeklySpending : mockMonthlySpending
+  const lastLabel = data[data.length - 1]?.label
 
   if (loading) return <ChartCardSkeleton />
 
   return (
-    <Card className="h-full">
+    <Card hoverable className="h-full">
       <CardHeader
         title="Spending Overview"
         subtitle={period === 'weekly' ? 'This week' : 'Last 7 months'}
@@ -51,26 +55,37 @@ export function SpendingChart({ loading }: { loading?: boolean }) {
           <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="spendingFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="var(--color-gold)" stopOpacity={0.35} />
+                <stop offset="0%" stopColor="var(--color-gold)" stopOpacity={0.32} />
                 <stop offset="100%" stopColor="var(--color-gold)" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid vertical={false} stroke="var(--color-border)" strokeDasharray="4 8" />
             <XAxis
               dataKey="label"
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 11, fill: 'var(--color-ink-muted)' }}
-              dy={8}
+              tick={({ x, y, payload }) => (
+                <text
+                  x={x}
+                  y={Number(y) + 14}
+                  textAnchor="middle"
+                  fontSize={11}
+                  fontWeight={payload.value === lastLabel ? 600 : 400}
+                  fill={payload.value === lastLabel ? 'var(--color-gold-dark)' : 'var(--color-ink-muted)'}
+                >
+                  {payload.value}
+                </text>
+              )}
             />
-            <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'var(--color-border)', strokeWidth: 1 }} />
+            <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'var(--color-border)', strokeWidth: 1, strokeDasharray: '3 5' }} />
             <Area
               type="monotone"
               dataKey="expense"
               stroke="var(--color-gold-dark)"
               strokeWidth={2.5}
               fill="url(#spendingFill)"
-              animationDuration={600}
+              animationDuration={700}
+              animationEasing="ease-out"
+              activeDot={{ r: 5, stroke: 'white', strokeWidth: 2, fill: 'var(--color-gold-dark)' }}
             />
           </AreaChart>
         </ResponsiveContainer>
