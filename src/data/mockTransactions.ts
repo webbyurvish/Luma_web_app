@@ -1,0 +1,26 @@
+import type { Transaction } from '@/types'
+
+export const mockTransactions: Transaction[] = [
+  { id: 'tx-001', category: 'food', description: 'Dinner at The Spice Route', type: 'expense', date: '2026-09-22', payment: 'UPI', amount: 850, status: 'successful' },
+  { id: 'tx-002', category: 'transport', description: 'Fuel — Indian Oil', type: 'expense', date: '2026-09-22', payment: 'Card', amount: 2000, status: 'successful' },
+  { id: 'tx-003', category: 'shopping', description: 'Amazon — Home essentials', type: 'expense', date: '2026-09-21', payment: 'UPI', amount: 1250, status: 'successful' },
+  { id: 'tx-004', category: 'income', description: 'Salary — Sept', type: 'income', date: '2026-09-01', payment: 'Bank Transfer', amount: 145296, status: 'successful' },
+  { id: 'tx-005', category: 'udhaar', description: 'Rahul — receivable', type: 'udhaar', date: '2026-09-10', payment: 'Cash', amount: 5000, status: 'pending' },
+  { id: 'tx-006', category: 'bills', description: 'Airtel Broadband', type: 'expense', date: '2026-09-19', payment: 'UPI', amount: 999, status: 'successful' },
+  { id: 'tx-007', category: 'bills', description: 'House Rent', type: 'expense', date: '2026-09-05', payment: 'Bank Transfer', amount: 12500, status: 'successful' },
+  { id: 'tx-008', category: 'food', description: 'BigBasket — Groceries', type: 'expense', date: '2026-09-18', payment: 'UPI', amount: 3850, status: 'successful' },
+  { id: 'tx-009', category: 'entertainment', description: 'Netflix Subscription', type: 'expense', date: '2026-09-14', payment: 'Card', amount: 649, status: 'successful' },
+  { id: 'tx-010', category: 'health', description: 'Apollo Pharmacy', type: 'expense', date: '2026-09-16', payment: 'UPI', amount: 720, status: 'successful' },
+  { id: 'tx-011', category: 'transport', description: 'Uber rides', type: 'expense', date: '2026-09-20', payment: 'UPI', amount: 480, status: 'successful' },
+  { id: 'tx-012', category: 'shopping', description: 'Myntra — Festival shopping', type: 'expense', date: '2026-09-12', payment: 'Card', amount: 4200, status: 'successful' },
+  { id: 'tx-013', category: 'udhaar', description: 'Jay — receivable', type: 'udhaar', date: '2026-09-08', payment: 'Cash', amount: 4500, status: 'pending' },
+  { id: 'tx-014', category: 'bills', description: 'Electricity Bill — BESCOM', type: 'expense', date: '2026-09-06', payment: 'UPI', amount: 1840, status: 'successful' },
+  { id: 'tx-015', category: 'food', description: 'Zomato — Lunch order', type: 'expense', date: '2026-09-17', payment: 'UPI', amount: 420, status: 'successful' },
+  { id: 'tx-016', category: 'other', description: 'Gym Membership', type: 'expense', date: '2026-09-03', payment: 'Card', amount: 1500, status: 'successful' },
+  { id: 'tx-017', category: 'transport', description: 'Metro Card Recharge', type: 'expense', date: '2026-09-11', payment: 'UPI', amount: 600, status: 'successful' },
+  { id: 'tx-018', category: 'udhaar', description: 'Amit — repayment received', type: 'udhaar', date: '2026-09-15', payment: 'Cash', amount: 2000, status: 'successful' },
+  { id: 'tx-019', category: 'income', description: 'Freelance — UI project', type: 'income', date: '2026-09-13', payment: 'Bank Transfer', amount: 22000, status: 'successful' },
+  { id: 'tx-020', category: 'shopping', description: 'Croma — Headphones', type: 'expense', date: '2026-09-09', payment: 'Card', amount: 3499, status: 'successful' },
+  { id: 'tx-021', category: 'health', description: 'Cult.fit — Monthly plan', type: 'expense', date: '2026-09-02', payment: 'UPI', amount: 1299, status: 'successful' },
+  { id: 'tx-022', category: 'entertainment', description: 'PVR Cinemas', type: 'expense', date: '2026-09-07', payment: 'UPI', amount: 980, status: 'successful' },
+]
