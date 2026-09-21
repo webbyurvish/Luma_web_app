@@ -1,4 +1,4 @@
-import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
+import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { formatCurrency } from '@/lib/formatCurrency'
 import { mockMonthlySpending } from '@/data/mockExpenses'
@@ -39,6 +39,7 @@ export function IncomeExpenseChart() {
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={mockMonthlySpending} margin={{ top: 4, right: 4, left: 0, bottom: 0 }} barGap={4}>
             <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--color-ink-muted)' }} dy={6} />
+            <YAxis hide domain={[0, 'dataMax']} />
             <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--color-bg-soft)' }} />
             <Bar dataKey="income" name="Income" fill="var(--color-success)" maxBarSize={16} animationDuration={500} />
             <Bar dataKey="expense" name="Expense" fill="var(--color-rust)" maxBarSize={16} animationDuration={500} />
