@@ -30,7 +30,7 @@ export function OverviewBand({ summary, showUdhaar = true }: OverviewBandProps) 
             variants={fadeUp}
             initial="hidden"
             animate="visible"
-            className="mt-1.5 font-display text-[36px] italic leading-none text-ink sm:text-[42px]"
+            className="mt-1.5 font-mono-figure text-[36px] font-bold leading-none text-ink sm:text-[42px]"
           >
             {formatCurrency(summary.currentBalance)}
           </motion.p>

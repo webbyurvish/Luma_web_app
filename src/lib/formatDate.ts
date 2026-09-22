@@ -1,5 +1,7 @@
 const dayFormatter = new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short' })
 const fullFormatter = new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+const weekdayFormatter = new Intl.DateTimeFormat('en-IN', { weekday: 'long' })
+const monthYearFormatter = new Intl.DateTimeFormat('en-IN', { month: 'long', year: 'numeric' })
 
 export function formatDate(iso: string): string {
   return dayFormatter.format(new Date(iso))
@@ -7,6 +9,14 @@ export function formatDate(iso: string): string {
 
 export function formatFullDate(iso: string): string {
   return fullFormatter.format(new Date(iso))
+}
+
+export function formatWeekday(iso: string): string {
+  return weekdayFormatter.format(new Date(iso))
+}
+
+export function formatMonthYear(iso: string): string {
+  return monthYearFormatter.format(new Date(iso))
 }
 
 export function formatRelativeDate(iso: string): string {

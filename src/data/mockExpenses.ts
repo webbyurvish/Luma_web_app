@@ -12,23 +12,23 @@ export const mockFinanceSummary: FinanceSummary = {
 }
 
 export const mockWeeklySpending: SpendingPoint[] = [
-  { label: 'Mon', income: 0, expense: 1840 },
-  { label: 'Tue', income: 0, expense: 2650 },
-  { label: 'Wed', income: 22000, expense: 980 },
-  { label: 'Thu', income: 0, expense: 4200 },
-  { label: 'Fri', income: 0, expense: 1560 },
-  { label: 'Sat', income: 0, expense: 3850 },
-  { label: 'Sun', income: 0, expense: 2850 },
+  { label: 'Mon', income: 0, expense: 1840, date: '2026-09-16' },
+  { label: 'Tue', income: 0, expense: 2650, date: '2026-09-17' },
+  { label: 'Wed', income: 22000, expense: 980, date: '2026-09-18' },
+  { label: 'Thu', income: 0, expense: 4200, date: '2026-09-19' },
+  { label: 'Fri', income: 0, expense: 1560, date: '2026-09-20' },
+  { label: 'Sat', income: 0, expense: 3850, date: '2026-09-21' },
+  { label: 'Sun', income: 0, expense: 2850, date: '2026-09-22' },
 ]
 
 export const mockMonthlySpending: SpendingPoint[] = [
-  { label: 'Mar', income: 152000, expense: 58200 },
-  { label: 'Apr', income: 152000, expense: 61400 },
-  { label: 'May', income: 158000, expense: 54900 },
-  { label: 'Jun', income: 158000, expense: 66800 },
-  { label: 'Jul', income: 163000, expense: 59200 },
-  { label: 'Aug', income: 167296, expense: 65700 },
-  { label: 'Sep', income: 185000, expense: 60440 },
+  { label: 'Mar', income: 152000, expense: 58200, date: '2026-03-01' },
+  { label: 'Apr', income: 152000, expense: 61400, date: '2026-04-01' },
+  { label: 'May', income: 158000, expense: 54900, date: '2026-05-01' },
+  { label: 'Jun', income: 158000, expense: 66800, date: '2026-06-01' },
+  { label: 'Jul', income: 163000, expense: 59200, date: '2026-07-01' },
+  { label: 'Aug', income: 167296, expense: 65700, date: '2026-08-01' },
+  { label: 'Sep', income: 185000, expense: 60440, date: '2026-09-01' },
 ]
 
 export const mockCategoryBreakdown: CategoryBreakdown[] = [

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/Button'
 import { MonthSelector } from '@/components/dashboard/MonthSelector'
 import { OverviewBand } from '@/components/dashboard/OverviewBand'
 import { SpendingChart } from '@/components/dashboard/SpendingChart'
-import { CategoryBars } from '@/components/dashboard/CategoryBars'
+import { CategoryDonut } from '@/components/dashboard/CategoryDonut'
 import { QuickActions } from '@/components/dashboard/QuickActions'
 import { AIInsightCard } from '@/components/dashboard/AIInsightCard'
 import { RecentActivity } from '@/components/dashboard/RecentActivity'
@@ -44,7 +44,7 @@ export function Dashboard() {
         <div className="xl:col-span-2">
           <SpendingChart loading={loading} />
         </div>
-        <CategoryBars loading={loading} />
+        <CategoryDonut loading={loading} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">

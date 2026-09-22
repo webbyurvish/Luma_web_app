@@ -1,5 +1,5 @@
 import { OverviewBand } from '@/components/dashboard/OverviewBand'
-import { CategoryBars } from '@/components/dashboard/CategoryBars'
+import { CategoryDonut } from '@/components/dashboard/CategoryDonut'
 import { IncomeExpenseChart } from '@/components/finance/IncomeExpenseChart'
 import { PaymentMethodChart } from '@/components/finance/PaymentMethodChart'
 import { mockFinanceSummary } from '@/data/mockExpenses'
@@ -12,7 +12,7 @@ export function Finance() {
       <IncomeExpenseChart />
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <CategoryBars />
+        <CategoryDonut />
         <PaymentMethodChart />
       </div>
     </div>

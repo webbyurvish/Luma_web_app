@@ -1,0 +1,103 @@
+import { useState } from 'react'
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
+import type { PieProps } from 'recharts'
+import { Card, CardHeader } from '@/components/ui/Card'
+import { ChartCardSkeleton } from '@/components/ui/Skeleton'
+import { formatCurrency } from '@/lib/formatCurrency'
+import { mockCategoryBreakdown, mockFinanceSummary } from '@/data/mockExpenses'
+import { cn } from '@/lib/cn'
+import type { CategoryBreakdown } from '@/types'
+
+interface DonutTooltipPayload {
+  payload: CategoryBreakdown
+}
+
+function DonutTooltip({ active, payload }: { active?: boolean; payload?: DonutTooltipPayload[] }) {
+  if (!active || !payload?.length) return null
+  const entry = payload[0].payload
+  const percentage = ((entry.amount / mockFinanceSummary.totalExpense) * 100).toFixed(1)
+  return (
+    <div className="min-w-[128px] rounded-sm bg-ink-rail px-3 py-2 shadow-hover">
+      <p className="text-[11px] font-medium text-paper">{entry.label}</p>
+      <p className="mt-0.5 font-mono-figure text-sm font-bold text-paper">{formatCurrency(entry.amount)}</p>
+      <p className="text-[10px] text-paper/55">{percentage}% of spending</p>
+    </div>
+  )
+}
+
+export function CategoryDonut({ loading }: { loading?: boolean }) {
+  const [hovered, setHovered] = useState<number | null>(null)
+
+  if (loading) return <ChartCardSkeleton />
+
+  const activeEntry = hovered !== null ? mockCategoryBreakdown[hovered] : null
+
+  const handleEnter: NonNullable<PieProps['onMouseEnter']> = (_, index) => setHovered(index)
+  const handleLeave = () => setHovered(null)
+
+  return (
+    <Card hoverable className="h-full">
+      <CardHeader title="Where it goes" subtitle={`${formatCurrency(mockFinanceSummary.totalExpense, { compact: true })} spent this month`} />
+
+      <div className="flex flex-col items-center gap-5 sm:flex-row">
+        <div className="relative h-[168px] w-[168px] shrink-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={mockCategoryBreakdown}
+                dataKey="amount"
+                nameKey="label"
+                innerRadius={56}
+                outerRadius={80}
+                paddingAngle={2.5}
+                cornerRadius={5}
+                stroke="none"
+                isAnimationActive
+                animationDuration={750}
+                animationEasing="ease-out"
+                onMouseEnter={handleEnter}
+                onMouseLeave={handleLeave}
+              >
+                {mockCategoryBreakdown.map((entry, index) => (
+                  <Cell
+                    key={entry.category}
+                    fill={entry.color}
+                    opacity={hovered === null || hovered === index ? 1 : 0.35}
+                    style={{ transition: 'opacity 150ms ease' }}
+                  />
+                ))}
+              </Pie>
+              <Tooltip content={<DonutTooltip />} />
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+            <p className="font-mono-figure text-lg font-bold text-ink">
+              {formatCurrency(activeEntry ? activeEntry.amount : mockFinanceSummary.totalExpense, { compact: true })}
+            </p>
+            <p className="text-[10px] uppercase tracking-[0.05em] text-ink-muted">{activeEntry ? activeEntry.label : 'Total spent'}</p>
+          </div>
+        </div>
+
+        <ul className="w-full flex-1 space-y-1.5">
+          {mockCategoryBreakdown.map((entry, index) => (
+            <li
+              key={entry.category}
+              onMouseEnter={() => setHovered(index)}
+              onMouseLeave={() => setHovered(null)}
+              className={cn(
+                'flex items-center justify-between gap-3 px-1.5 py-1 text-xs transition-colors duration-150',
+                hovered === index && 'bg-bg-soft',
+              )}
+            >
+              <span className="flex min-w-0 items-center gap-2 text-ink-soft">
+                <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: entry.color }} />
+                <span className={cn('truncate', hovered === index && 'font-medium text-ink')}>{entry.label}</span>
+              </span>
+              <span className="shrink-0 font-mono-figure text-ink">{formatCurrency(entry.amount, { compact: true })}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </Card>
+  )
+}

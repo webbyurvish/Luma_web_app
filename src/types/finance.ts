@@ -15,6 +15,7 @@ export interface SpendingPoint {
   label: string
   income: number
   expense: number
+  date: string
 }
 
 export interface CategoryBreakdown {

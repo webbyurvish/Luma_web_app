@@ -7,7 +7,16 @@ export interface NoteFolder {
 export interface Note {
   id: string
   title: string
-  excerpt: string
-  folderId: string
+  content: string
+  category: string
+  tags: string[]
+  createdAt: string
   updatedAt: string
+}
+
+export interface NoteInput {
+  title: string
+  content: string
+  category: string
+  tags: string[]
 }
