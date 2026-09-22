@@ -30,7 +30,7 @@ export function AccountRow({ account, onEdit, onDelete }: AccountRowProps) {
         <p className={`font-mono-figure text-xs font-semibold ${isCreditCard && account.balance > 0 ? 'text-danger' : 'text-ink'}`}>
           {formatCurrency(account.balance)}
         </p>
-        {isCreditCard && account.balance > 0 && <p className="text-[9.5px] uppercase tracking-[0.05em] text-ink-muted">Outstanding</p>}
+        {isCreditCard && account.balance > 0 && <p className="text-[10px] uppercase tracking-[0.05em] text-ink-muted">Outstanding</p>}
       </div>
       <div className="flex items-center gap-0.5 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
         <button

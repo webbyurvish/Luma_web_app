@@ -26,7 +26,7 @@ export function NetWorthPanel({ breakdown }: NetWorthPanelProps) {
             variants={fadeUp}
             initial="hidden"
             animate="visible"
-            className="mt-1.5 font-mono-figure text-[36px] font-bold leading-none text-ink sm:text-[42px]"
+            className="mt-1.5 text-hero-value text-ink"
           >
             {formatCurrency(breakdown.netWorth)}
           </motion.p>

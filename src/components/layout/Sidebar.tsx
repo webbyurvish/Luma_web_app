@@ -15,9 +15,9 @@ function NavRow({ item, collapsed, onClick }: { item: NavItem; collapsed: boolea
       onClick={onClick}
       className={({ isActive }) =>
         cn(
-          'group relative flex items-center gap-2.5 py-1.5 text-[13px] transition-colors duration-150',
+          'group relative flex items-center gap-2.5 rounded-xs py-1.5 text-[13px] transition-colors duration-150',
           collapsed ? 'justify-center px-0' : 'pl-3.5 pr-2',
-          isActive ? 'text-paper' : 'text-paper/55 hover:text-paper/85',
+          isActive ? 'text-paper' : 'text-paper/55 hover:bg-paper/[0.06] hover:text-paper/85',
         )
       }
     >

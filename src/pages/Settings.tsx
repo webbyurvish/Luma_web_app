@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import { Bell, CreditCard, Palette, ShieldCheck, User } from 'lucide-react'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Tabs } from '@/components/ui/Tabs'
@@ -8,6 +9,7 @@ import { Switch } from '@/components/ui/Switch'
 import { Button } from '@/components/ui/Button'
 import { Avatar } from '@/components/ui/Avatar'
 import { useToast } from '@/context/ToastContext'
+import { tabContent } from '@/lib/motion'
 
 const sections = [
   { id: 'profile', label: 'Profile' },
@@ -31,8 +33,9 @@ export function Settings() {
 
   return (
     <div className="flex flex-col gap-4 pt-3">
-      <Tabs tabs={sections} active={active} onChange={setActive} className="w-fit" />
+      <Tabs tabs={sections} active={active} onChange={setActive} className="w-fit" layoutId="settings-tabs-indicator" />
 
+      <motion.div key={active} variants={tabContent} initial="hidden" animate="visible" className="flex flex-col gap-4">
       {active === 'profile' && (
         <Card hoverable className="max-w-2xl">
           <CardHeader title="Profile" subtitle="Your personal information" icon={<User size={17} className="text-ink-soft" />} />
@@ -135,6 +138,7 @@ export function Settings() {
           </p>
         </Card>
       )}
+      </motion.div>
     </div>
   )
 }

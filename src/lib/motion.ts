@@ -35,6 +35,11 @@ export const modalTransition: Variants = {
   exit: { opacity: 0, scale: 0.98, transition: { duration: 0.12 } },
 }
 
+export const tabContent: Variants = {
+  hidden: { opacity: 0, y: 4 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.18, ease: [0.16, 1, 0.3, 1] } },
+}
+
 export const slideOverTransition: Variants = {
   hidden: { opacity: 0, x: 24 },
   visible: { opacity: 1, x: 0, transition: { duration: 0.24, ease: [0.16, 1, 0.3, 1] } },

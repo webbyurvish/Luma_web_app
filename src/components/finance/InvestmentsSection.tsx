@@ -53,9 +53,7 @@ export function InvestmentsSection() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-muted">Total Investments</p>
-            <p className="mt-1.5 font-mono-figure text-[32px] font-bold leading-none text-ink sm:text-[38px]">
-              {formatCurrency(totals.current)}
-            </p>
+            <p className="mt-1.5 text-hero-value text-ink">{formatCurrency(totals.current)}</p>
             <p className={cn('mt-2.5 flex items-center gap-1.5 font-mono-figure text-xs font-bold', positive ? 'text-success' : 'text-danger')}>
               {formatCurrency(totals.gain, { signed: true })}
               <span className="font-normal text-ink-muted">({formatPercentage(totals.returnPct, { signed: true })})</span>
