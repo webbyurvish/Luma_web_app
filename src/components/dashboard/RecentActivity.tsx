@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { Inbox } from 'lucide-react'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -8,8 +9,21 @@ import { formatRelativeDate } from '@/lib/formatDate'
 import { mockTransactions } from '@/data/mockTransactions'
 import { cn } from '@/lib/cn'
 
+function timeToMinutes(time: string): number {
+  const match = /(\d{1,2}):(\d{2})\s?(AM|PM)/i.exec(time)
+  if (!match) return 0
+  let hours = Number(match[1]) % 12
+  if (match[3].toUpperCase() === 'PM') hours += 12
+  return hours * 60 + Number(match[2])
+}
+
 export function RecentActivity({ loading }: { loading?: boolean }) {
-  const items = [...mockTransactions].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 7)
+  const items = [...mockTransactions]
+    .sort((a, b) => {
+      if (a.date !== b.date) return a.date < b.date ? 1 : -1
+      return timeToMinutes(b.time) - timeToMinutes(a.time)
+    })
+    .slice(0, 8)
 
   const groups = items.reduce<Record<string, typeof items>>((acc, item) => {
     const key = formatRelativeDate(item.date)
@@ -19,7 +33,15 @@ export function RecentActivity({ loading }: { loading?: boolean }) {
 
   return (
     <Card hoverable className="h-full">
-      <CardHeader title="Recent activity" subtitle="Latest movements across your accounts" />
+      <CardHeader
+        title="Recent activity"
+        subtitle="Latest movements across your accounts"
+        action={
+          <Link to="/transactions" className="text-[10px] font-semibold uppercase tracking-[0.06em] text-rust hover:underline">
+            View all →
+          </Link>
+        }
+      />
 
       {loading ? (
         <div className="divide-y divide-border-soft">
@@ -33,24 +55,37 @@ export function RecentActivity({ loading }: { loading?: boolean }) {
         <div className="space-y-4">
           {Object.entries(groups).map(([day, dayItems]) => (
             <div key={day}>
-              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-muted">{day}</p>
-              <ul className="-mx-1 divide-y divide-border-soft">
+              <div className="mb-1 flex items-center gap-2.5">
+                <p className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-muted">{day}</p>
+                <span className="h-px flex-1 bg-border-soft" aria-hidden="true" />
+              </div>
+              <ul className="-mx-1.5 divide-y divide-border-soft">
                 {dayItems.map((item) => {
                   const meta = CATEGORY_META[item.category]
+                  const Icon = meta.icon
                   const isPositive = item.type === 'income' || item.type === 'udhaar'
                   const signedAmount = item.type === 'expense' ? -item.amount : item.amount
                   return (
-                    <li key={item.id} className="flex items-center gap-2.5 px-1 py-1.5 transition-colors hover:bg-bg-soft">
-                      <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: meta.color }} aria-hidden="true" />
+                    <li key={item.id} className="flex items-center gap-2.5 px-1.5 py-2 transition-colors hover:bg-bg-soft">
+                      <span
+                        className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full"
+                        style={{ backgroundColor: meta.bg, color: meta.color }}
+                        aria-hidden="true"
+                      >
+                        <Icon size={10.5} strokeWidth={2.25} />
+                      </span>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-xs font-medium text-ink">{item.description}</p>
-                        <p className="text-[10px] uppercase tracking-[0.04em] text-ink-muted">
-                          {meta.label} · {item.payment}
+                        <p className="truncate text-[10.5px] text-ink-muted">
+                          <span className="uppercase tracking-[0.03em]">{meta.label}</span> · {item.payment}
                         </p>
                       </div>
-                      <p className={cn('shrink-0 font-mono-figure text-xs', isPositive ? 'text-success' : 'text-ink')}>
+                      <span className="hidden shrink-0 font-mono-figure text-[10.5px] text-ink-muted sm:block">{item.time}</span>
+                      <span
+                        className={cn('w-[78px] shrink-0 text-right font-mono-figure text-xs font-semibold', isPositive ? 'text-success' : 'text-ink')}
+                      >
                         {formatCurrency(signedAmount, { signed: true })}
-                      </p>
+                      </span>
                     </li>
                   )
                 })}

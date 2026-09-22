@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { SlideOver } from '@/components/ui/SlideOver'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Button } from '@/components/ui/Button'
-import { Select } from '@/components/ui/Select'
+import { ThemedSelect } from '@/components/ui/ThemedSelect'
 import { Input } from '@/components/ui/Input'
 import type { NoteCategoryDef } from '@/data/mockNotes'
 import type { Note, NoteInput } from '@/types'
@@ -105,24 +105,16 @@ export function NoteEditor({ open, note, categories, onClose, onSave }: NoteEdit
             {showError('title') && <p className="mt-1 text-[11px] text-danger">{errors.title}</p>}
           </div>
 
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-ink-soft">Category</label>
-            <Select
-              value={form.category}
-              onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-              onBlur={() => setTouched((t) => ({ ...t, category: true }))}
-            >
-              <option value="" disabled>
-                Select category
-              </option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
-            </Select>
-            {showError('category') && <p className="mt-1 text-[11px] text-danger">{errors.category}</p>}
-          </div>
+          <ThemedSelect
+            label="Category"
+            required
+            value={form.category}
+            options={categories.map((cat) => ({ value: cat.id, label: cat.name }))}
+            placeholder="Select category"
+            onChange={(next) => setForm((f) => ({ ...f, category: next }))}
+            onBlur={() => setTouched((t) => ({ ...t, category: true }))}
+            error={showError('category') || undefined}
+          />
 
           <div>
             <label className="mb-1.5 block text-xs font-medium text-ink-soft">Tags</label>

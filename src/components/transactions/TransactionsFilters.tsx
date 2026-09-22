@@ -1,9 +1,21 @@
 import { Download, Search, SlidersHorizontal } from 'lucide-react'
 import { Input } from '@/components/ui/Input'
-import { Select } from '@/components/ui/Select'
+import { ThemedSelect } from '@/components/ui/ThemedSelect'
 import { Button } from '@/components/ui/Button'
 import { CATEGORY_META } from '@/lib/categoryMeta'
 import type { TransactionType } from '@/types'
+
+const typeOptions = [
+  { value: 'all', label: 'All Types' },
+  { value: 'expense', label: 'Expense' },
+  { value: 'income', label: 'Income' },
+  { value: 'udhaar', label: 'Udhaar' },
+]
+
+const categoryOptions = [
+  { value: 'all', label: 'All Categories' },
+  ...Object.values(CATEGORY_META).map((meta) => ({ value: meta.id, label: meta.label })),
+]
 
 interface TransactionsFiltersProps {
   search: string
@@ -39,22 +51,15 @@ export function TransactionsFilters({
           />
         </div>
         <div className="w-full sm:w-40">
-          <Select value={type} onChange={(event) => onTypeChange(event.target.value as TransactionType | 'all')} aria-label="Filter by type">
-            <option value="all">All Types</option>
-            <option value="expense">Expense</option>
-            <option value="income">Income</option>
-            <option value="udhaar">Udhaar</option>
-          </Select>
+          <ThemedSelect
+            value={type}
+            onChange={(next) => onTypeChange(next as TransactionType | 'all')}
+            options={typeOptions}
+            aria-label="Filter by type"
+          />
         </div>
         <div className="w-full sm:w-44">
-          <Select value={category} onChange={(event) => onCategoryChange(event.target.value)} aria-label="Filter by category">
-            <option value="all">All Categories</option>
-            {Object.values(CATEGORY_META).map((meta) => (
-              <option key={meta.id} value={meta.id}>
-                {meta.label}
-              </option>
-            ))}
-          </Select>
+          <ThemedSelect value={category} onChange={onCategoryChange} options={categoryOptions} aria-label="Filter by category" />
         </div>
       </div>
 

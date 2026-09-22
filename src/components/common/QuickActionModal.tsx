@@ -1,7 +1,7 @@
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useEffect, useState } from 'react'
 import { Modal } from '@/components/ui/Modal'
 import { Input } from '@/components/ui/Input'
-import { Select } from '@/components/ui/Select'
+import { ThemedSelect } from '@/components/ui/ThemedSelect'
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/context/ToastContext'
 
@@ -23,9 +23,9 @@ const CONFIG: Record<QuickActionKind, QuickActionConfig> = {
   document: { title: 'Upload Document', subtitle: 'Add a document to your library', submitLabel: 'Upload', successMessage: 'Document upload is coming in a future phase' },
 }
 
-const categoryOptions = ['Food', 'Transport', 'Shopping', 'Bills', 'Entertainment', 'Health', 'Other']
-const priorityOptions = ['Low', 'Medium', 'High']
-const paymentOptions = ['UPI', 'Card', 'Cash', 'Bank Transfer', 'Net Banking']
+const categoryOptions = ['Food', 'Transport', 'Shopping', 'Bills', 'Entertainment', 'Health', 'Other'].map((label) => ({ value: label, label }))
+const priorityOptions = ['Low', 'Medium', 'High'].map((label) => ({ value: label, label }))
+const paymentOptions = ['UPI', 'Card', 'Cash', 'Bank Transfer', 'Net Banking'].map((label) => ({ value: label, label }))
 
 interface QuickActionModalProps {
   open: boolean
@@ -37,6 +37,16 @@ export function QuickActionModal({ open, kind, onClose }: QuickActionModalProps)
   const { showToast } = useToast()
   const config = CONFIG[kind]
   const [submitting, setSubmitting] = useState(false)
+  const [category, setCategory] = useState('')
+  const [payment, setPayment] = useState('')
+  const [priority, setPriority] = useState('')
+
+  useEffect(() => {
+    if (!open) return
+    setCategory('')
+    setPayment('')
+    setPriority('')
+  }, [open, kind])
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
@@ -59,17 +69,7 @@ export function QuickActionModal({ open, kind, onClose }: QuickActionModalProps)
         )}
 
         {(kind === 'expense' || kind === 'income') && (
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-ink-soft">Category</label>
-            <Select defaultValue="">
-              <option value="" disabled>
-                Select category
-              </option>
-              {categoryOptions.map((option) => (
-                <option key={option}>{option}</option>
-              ))}
-            </Select>
-          </div>
+          <ThemedSelect label="Category" value={category} onChange={setCategory} options={categoryOptions} placeholder="Select category" />
         )}
 
         {(kind === 'udhaar' || kind === 'repayment') && (
@@ -80,17 +80,7 @@ export function QuickActionModal({ open, kind, onClose }: QuickActionModalProps)
         )}
 
         {(kind === 'expense' || kind === 'income' || kind === 'udhaar' || kind === 'repayment') && (
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-ink-soft">Payment Method</label>
-            <Select defaultValue="">
-              <option value="" disabled>
-                Select method
-              </option>
-              {paymentOptions.map((option) => (
-                <option key={option}>{option}</option>
-              ))}
-            </Select>
-          </div>
+          <ThemedSelect label="Payment Method" value={payment} onChange={setPayment} options={paymentOptions} placeholder="Select method" />
         )}
 
         {kind === 'task' && (
@@ -99,17 +89,7 @@ export function QuickActionModal({ open, kind, onClose }: QuickActionModalProps)
               <label className="mb-1.5 block text-xs font-medium text-ink-soft">Task Title</label>
               <Input placeholder="e.g. Pay electricity bill" required />
             </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-ink-soft">Priority</label>
-              <Select defaultValue="">
-                <option value="" disabled>
-                  Select priority
-                </option>
-                {priorityOptions.map((option) => (
-                  <option key={option}>{option}</option>
-                ))}
-              </Select>
-            </div>
+            <ThemedSelect label="Priority" value={priority} onChange={setPriority} options={priorityOptions} placeholder="Select priority" />
           </>
         )}
 

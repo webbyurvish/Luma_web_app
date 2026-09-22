@@ -64,6 +64,7 @@
   --shadow-hover: 0 6px 18px -4px rgba(27, 26, 23, 0.16);
   --shadow-gold: 0 6px 18px -4px rgba(181, 72, 42, 0.28);
   --shadow-ai: 0 6px 18px -4px rgba(53, 65, 92, 0.22);
+  --shadow-dropdown: 0 8px 24px rgba(20, 18, 14, 0.1), 0 2px 6px rgba(20, 18, 14, 0.06);
 
   --animate-fade-up: fade-up 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
   --animate-spark: spark-pulse 2.6s ease-in-out infinite;

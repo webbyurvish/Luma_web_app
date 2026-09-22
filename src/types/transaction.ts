@@ -21,6 +21,7 @@ export interface Transaction {
   description: string
   type: TransactionType
   date: string
+  time: string
   payment: PaymentMethod
   amount: number
   status: TransactionStatus

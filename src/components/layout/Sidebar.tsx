@@ -58,7 +58,7 @@ export function Sidebar() {
           <Logo collapsed={collapsed} inverted />
         </div>
 
-        <nav className="flex flex-1 flex-col gap-5 overflow-y-auto">
+        <nav className="flex flex-1 flex-col gap-5">
           {navGroups.map((group) => (
             <div key={group.label}>
               {!collapsed && (

@@ -3,7 +3,7 @@ import { Bell, CreditCard, Palette, ShieldCheck, User } from 'lucide-react'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Tabs } from '@/components/ui/Tabs'
 import { Input } from '@/components/ui/Input'
-import { Select } from '@/components/ui/Select'
+import { ThemedSelect } from '@/components/ui/ThemedSelect'
 import { Switch } from '@/components/ui/Switch'
 import { Button } from '@/components/ui/Button'
 import { Avatar } from '@/components/ui/Avatar'
@@ -23,6 +23,9 @@ export function Settings() {
   const [notifyExpense, setNotifyExpense] = useState(true)
   const [notifyUdhaar, setNotifyUdhaar] = useState(true)
   const [notifyTasks, setNotifyTasks] = useState(false)
+  const [theme, setTheme] = useState('light')
+  const [currency, setCurrency] = useState('INR')
+  const [defaultPayment, setDefaultPayment] = useState('UPI')
 
   const handleSave = () => showToast('Settings saved (demo — not persisted yet)')
 
@@ -59,15 +62,15 @@ export function Settings() {
       {active === 'appearance' && (
         <Card hoverable className="max-w-2xl">
           <CardHeader title="Appearance" subtitle="Personalize how Luma looks" icon={<Palette size={17} className="text-ink-soft" />} />
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-ink-soft">Theme</label>
-            <Select defaultValue="light">
-              <option value="light">Light</option>
-              <option value="dark" disabled>
-                Dark (coming soon)
-              </option>
-            </Select>
-          </div>
+          <ThemedSelect
+            label="Theme"
+            value={theme}
+            onChange={setTheme}
+            options={[
+              { value: 'light', label: 'Light' },
+              { value: 'dark', label: 'Dark (coming soon)', disabled: true },
+            ]}
+          />
         </Card>
       )}
 
@@ -104,22 +107,19 @@ export function Settings() {
         <Card hoverable className="max-w-2xl">
           <CardHeader title="Finance Preferences" subtitle="Defaults used across the app" icon={<CreditCard size={17} className="text-ink-soft" />} />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-ink-soft">Currency</label>
-              <Select defaultValue="INR">
-                <option value="INR">INR ₹</option>
-              </Select>
-            </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-ink-soft">Default Payment Method</label>
-              <Select defaultValue="UPI">
-                <option value="UPI">UPI</option>
-                <option value="Card">Card</option>
-                <option value="Cash">Cash</option>
-                <option value="Bank Transfer">Bank Transfer</option>
-                <option value="Net Banking">Net Banking</option>
-              </Select>
-            </div>
+            <ThemedSelect label="Currency" value={currency} onChange={setCurrency} options={[{ value: 'INR', label: 'INR ₹' }]} />
+            <ThemedSelect
+              label="Default Payment Method"
+              value={defaultPayment}
+              onChange={setDefaultPayment}
+              options={[
+                { value: 'UPI', label: 'UPI' },
+                { value: 'Card', label: 'Card' },
+                { value: 'Cash', label: 'Cash' },
+                { value: 'Bank Transfer', label: 'Bank Transfer' },
+                { value: 'Net Banking', label: 'Net Banking' },
+              ]}
+            />
           </div>
           <Button className="mt-5" onClick={handleSave}>
             Save Preferences
