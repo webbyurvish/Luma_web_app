@@ -1,20 +1,28 @@
-import { OverviewBand } from '@/components/dashboard/OverviewBand'
-import { CategoryDonut } from '@/components/dashboard/CategoryDonut'
-import { IncomeExpenseChart } from '@/components/finance/IncomeExpenseChart'
-import { PaymentMethodChart } from '@/components/finance/PaymentMethodChart'
-import { mockFinanceSummary } from '@/data/mockExpenses'
+import { useState } from 'react'
+import { Tabs } from '@/components/ui/Tabs'
+import { FinanceOverview } from '@/components/finance/FinanceOverview'
+import { AccountsSection } from '@/components/finance/AccountsSection'
+import { LiabilitiesSection } from '@/components/finance/LiabilitiesSection'
+import { InvestmentsSection } from '@/components/finance/InvestmentsSection'
+import { SipsSection } from '@/components/finance/SipsSection'
+import { FINANCE_TABS, type FinanceTab } from '@/components/finance/financeTabs'
 
 export function Finance() {
+  const [tab, setTab] = useState<FinanceTab>('overview')
+
   return (
     <div className="flex flex-col gap-4 pt-3">
-      <OverviewBand summary={mockFinanceSummary} />
+      <Tabs tabs={FINANCE_TABS} active={tab} onChange={(id) => setTab(id as FinanceTab)} className="w-fit" />
 
-      <IncomeExpenseChart />
-
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <CategoryDonut />
-        <PaymentMethodChart />
-      </div>
+      {tab === 'overview' && <FinanceOverview onSelectTab={setTab} />}
+      {tab === 'accounts' && (
+        <div className="flex flex-col gap-4">
+          <AccountsSection />
+          <LiabilitiesSection />
+        </div>
+      )}
+      {tab === 'investments' && <InvestmentsSection />}
+      {tab === 'sips' && <SipsSection />}
     </div>
   )
 }

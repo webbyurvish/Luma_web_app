@@ -10,6 +10,7 @@ import { AIInsightCard } from '@/components/dashboard/AIInsightCard'
 import { RecentActivity } from '@/components/dashboard/RecentActivity'
 import { UdhaarPreview } from '@/components/dashboard/UdhaarPreview'
 import { RecentTransactions } from '@/components/dashboard/RecentTransactions'
+import { FinanceSnapshotCard } from '@/components/dashboard/FinanceSnapshotCard'
 import { QuickActionModal } from '@/components/common/QuickActionModal'
 import { ChartCardSkeleton } from '@/components/ui/Skeleton'
 import { mockFinanceSummary } from '@/data/mockExpenses'
@@ -63,6 +64,8 @@ export function Dashboard() {
         </div>
         <UdhaarPreview />
       </div>
+
+      <FinanceSnapshotCard />
 
       <QuickActionModal open={addExpenseOpen} kind="expense" onClose={() => setAddExpenseOpen(false)} />
     </div>

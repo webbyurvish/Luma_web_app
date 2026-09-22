@@ -18,3 +18,12 @@ export function formatCurrency(amount: number, options?: { compact?: boolean; si
   }
   return amount < 0 ? `-${base}` : base
 }
+
+export function formatPercentage(value: number, options?: { signed?: boolean; digits?: number }): string {
+  const digits = options?.digits ?? 1
+  const base = `${Math.abs(value).toFixed(digits)}%`
+  if (options?.signed) {
+    return value < 0 ? `-${base}` : `+${base}`
+  }
+  return base
+}
