@@ -1,29 +1,11 @@
 import { useState } from 'react'
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
+import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts'
 import type { PieProps } from 'recharts'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { ChartCardSkeleton } from '@/components/ui/Skeleton'
 import { formatCurrency } from '@/lib/formatCurrency'
 import { mockCategoryBreakdown, mockFinanceSummary } from '@/data/mockExpenses'
 import { cn } from '@/lib/cn'
-import type { CategoryBreakdown } from '@/types'
-
-interface DonutTooltipPayload {
-  payload: CategoryBreakdown
-}
-
-function DonutTooltip({ active, payload }: { active?: boolean; payload?: DonutTooltipPayload[] }) {
-  if (!active || !payload?.length) return null
-  const entry = payload[0].payload
-  const percentage = ((entry.amount / mockFinanceSummary.totalExpense) * 100).toFixed(1)
-  return (
-    <div className="min-w-[128px] rounded-sm bg-ink-rail px-3 py-2 shadow-hover">
-      <p className="text-[11px] font-medium text-paper">{entry.label}</p>
-      <p className="mt-0.5 font-mono-figure text-sm font-bold text-paper">{formatCurrency(entry.amount)}</p>
-      <p className="text-[10px] text-paper/55">{percentage}% of spending</p>
-    </div>
-  )
-}
 
 export function CategoryDonut({ loading }: { loading?: boolean }) {
   const [hovered, setHovered] = useState<number | null>(null)
@@ -31,6 +13,7 @@ export function CategoryDonut({ loading }: { loading?: boolean }) {
   if (loading) return <ChartCardSkeleton />
 
   const activeEntry = hovered !== null ? mockCategoryBreakdown[hovered] : null
+  const activePercentage = activeEntry ? (activeEntry.amount / mockFinanceSummary.totalExpense) * 100 : null
 
   const handleEnter: NonNullable<PieProps['onMouseEnter']> = (_, index) => setHovered(index)
   const handleLeave = () => setHovered(null)
@@ -67,14 +50,14 @@ export function CategoryDonut({ loading }: { loading?: boolean }) {
                   />
                 ))}
               </Pie>
-              <Tooltip content={<DonutTooltip />} />
             </PieChart>
           </ResponsiveContainer>
-          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-4 text-center">
             <p className="font-mono-figure text-lg font-bold text-ink">
               {formatCurrency(activeEntry ? activeEntry.amount : mockFinanceSummary.totalExpense, { compact: true })}
             </p>
-            <p className="text-[10px] uppercase tracking-[0.05em] text-ink-muted">{activeEntry ? activeEntry.label : 'Total spent'}</p>
+            <p className="truncate text-[10px] uppercase tracking-[0.05em] text-ink-muted">{activeEntry ? activeEntry.label : 'Total spent'}</p>
+            {activePercentage !== null && <p className="mt-0.5 font-mono-figure text-[10px] text-ink-muted/80">{activePercentage.toFixed(1)}%</p>}
           </div>
         </div>
 

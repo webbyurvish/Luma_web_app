@@ -1,27 +1,10 @@
 import { useState } from 'react'
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
+import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts'
 import type { PieProps } from 'recharts'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { formatCurrency, formatPercentage } from '@/lib/formatCurrency'
 import { cn } from '@/lib/cn'
 import type { AllocationSlice } from '@/lib/financeCalculations'
-
-interface DonutTooltipPayload {
-  payload: AllocationSlice
-}
-
-function DonutTooltip({ active, payload, total }: { active?: boolean; payload?: DonutTooltipPayload[]; total: number }) {
-  if (!active || !payload?.length) return null
-  const entry = payload[0].payload
-  const percentage = total > 0 ? (entry.value / total) * 100 : 0
-  return (
-    <div className="min-w-[128px] rounded-sm bg-ink-rail px-3 py-2 shadow-hover">
-      <p className="text-[11px] font-medium text-paper">{entry.label}</p>
-      <p className="mt-0.5 font-mono-figure text-sm font-bold text-paper">{formatCurrency(entry.value)}</p>
-      <p className="text-[10px] text-paper/55">{formatPercentage(percentage)} of total</p>
-    </div>
-  )
-}
 
 interface AllocationDonutProps {
   title: string
@@ -34,6 +17,7 @@ export function AllocationDonut({ title, subtitle, data, centerLabel }: Allocati
   const [hovered, setHovered] = useState<number | null>(null)
   const total = data.reduce((sum, d) => sum + d.value, 0)
   const activeEntry = hovered !== null ? data[hovered] : null
+  const activePercentage = activeEntry && total > 0 ? (activeEntry.value / total) * 100 : null
 
   const handleEnter: NonNullable<PieProps['onMouseEnter']> = (_, index) => setHovered(index)
   const handleLeave = () => setHovered(null)
@@ -73,14 +57,14 @@ export function AllocationDonut({ title, subtitle, data, centerLabel }: Allocati
                     />
                   ))}
                 </Pie>
-                <Tooltip content={<DonutTooltip total={total} />} />
               </PieChart>
             </ResponsiveContainer>
-            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-4 text-center">
               <p className="font-mono-figure text-lg font-bold text-ink">
                 {formatCurrency(activeEntry ? activeEntry.value : total, { compact: true })}
               </p>
-              <p className="text-[10px] uppercase tracking-[0.05em] text-ink-muted">{activeEntry ? activeEntry.label : centerLabel}</p>
+              <p className="truncate text-[10px] uppercase tracking-[0.05em] text-ink-muted">{activeEntry ? activeEntry.label : centerLabel}</p>
+              {activePercentage !== null && <p className="mt-0.5 font-mono-figure text-[10px] text-ink-muted/80">{formatPercentage(activePercentage)}</p>}
             </div>
           </div>
 

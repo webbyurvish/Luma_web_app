@@ -50,7 +50,7 @@ export function Sidebar() {
     <>
       <aside
         className={cn(
-          'sticky top-0 hidden h-screen shrink-0 flex-col bg-ink-rail py-5 transition-[width] duration-200 md:flex',
+          'sticky top-0 z-30 hidden h-screen shrink-0 flex-col bg-ink-rail py-5 transition-[width] duration-200 md:flex',
           collapsed ? 'w-[72px] px-0' : 'w-[224px]',
         )}
       >
