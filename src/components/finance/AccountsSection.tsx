@@ -2,24 +2,29 @@ import { useMemo, useState } from 'react'
 import { Landmark, Plus } from 'lucide-react'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { ErrorState } from '@/components/ui/ErrorState'
+import { ChartCardSkeleton } from '@/components/ui/Skeleton'
 import { AccountRow } from './AccountRow'
 import { AccountEditor } from './AccountEditor'
-import { useAccounts } from '@/hooks/useFinanceCollections'
+import type { UseAccountsResult } from '@/hooks/useFinanceCollections'
 import { useToast } from '@/context/ToastContext'
 import { ACCOUNT_TYPE_META } from '@/lib/accountMeta'
 import { formatCurrency } from '@/lib/formatCurrency'
-import type { AccountInput, AccountType, FinancialAccount } from '@/types'
+import type { AccountInput, AccountType } from '@/types'
 
 const GROUP_ORDER: AccountType[] = ['bank', 'cash', 'wallet', 'credit_card', 'demat', 'other']
 
-export function AccountsSection() {
-  const { accounts, createAccount, updateAccount, deleteAccount } = useAccounts()
+interface AccountsSectionProps {
+  /** Owned by the Finance page so Accounts/Investments/SIPs tabs share one fetch instead of each calling useAccounts(). */
+  accountsState: UseAccountsResult
+}
+
+export function AccountsSection({ accountsState }: AccountsSectionProps) {
+  const { accounts, loading, error, refetch, createAccount, creating } = accountsState
   const { showToast } = useToast()
 
-  const [editorTarget, setEditorTarget] = useState<FinancialAccount | 'new' | null>(null)
-  const [deletingAccount, setDeletingAccount] = useState<FinancialAccount | null>(null)
+  const [editorOpen, setEditorOpen] = useState(false)
 
   const groups = useMemo(() => {
     return GROUP_ORDER.map((type) => {
@@ -29,26 +34,30 @@ export function AccountsSection() {
     }).filter((g) => g.items.length > 0)
   }, [accounts])
 
-  const totalAssets = accounts
-    .filter((a) => a.isActive && a.type !== 'credit_card')
-    .reduce((sum, a) => sum + a.balance, 0)
+  const totalAssets = accounts.filter((a) => a.isActive && a.type !== 'credit_card').reduce((sum, a) => sum + a.balance, 0)
 
-  const handleSave = (input: AccountInput) => {
-    if (editorTarget && editorTarget !== 'new') {
-      updateAccount(editorTarget.id, input)
-      showToast('Account updated')
-    } else {
-      createAccount(input)
-      showToast('Account added')
-    }
-    setEditorTarget(null)
+  const handleSave = async (input: AccountInput) => {
+    await createAccount(input)
+    showToast('Account added')
+    setEditorOpen(false)
   }
 
-  const handleConfirmDelete = () => {
-    if (!deletingAccount) return
-    deleteAccount(deletingAccount.id)
-    showToast('Account deleted')
-    setDeletingAccount(null)
+  if (error) {
+    return (
+      <Card variant="panel">
+        <CardHeader title="Your Accounts" subtitle="Everything you own, in one place" />
+        <ErrorState title="Couldn't load your accounts." description={error} onRetry={refetch} />
+      </Card>
+    )
+  }
+
+  if (loading) {
+    return (
+      <Card variant="panel">
+        <CardHeader title="Your Accounts" subtitle="Everything you own, in one place" />
+        <ChartCardSkeleton />
+      </Card>
+    )
   }
 
   return (
@@ -57,7 +66,7 @@ export function AccountsSection() {
         title="Your Accounts"
         subtitle={`${accounts.filter((a) => a.isActive).length} accounts · ${formatCurrency(totalAssets, { compact: true })} in assets`}
         action={
-          <Button size="sm" icon={<Plus size={13} />} onClick={() => setEditorTarget('new')}>
+          <Button size="sm" icon={<Plus size={13} />} onClick={() => setEditorOpen(true)}>
             Add Account
           </Button>
         }
@@ -79,7 +88,7 @@ export function AccountsSection() {
                 </div>
                 <div className="divide-y divide-border-soft">
                   {group.items.map((account) => (
-                    <AccountRow key={account.id} account={account} onEdit={(a) => setEditorTarget(a)} onDelete={setDeletingAccount} />
+                    <AccountRow key={account.id} account={account} />
                   ))}
                 </div>
               </div>
@@ -88,21 +97,7 @@ export function AccountsSection() {
         </div>
       )}
 
-      <AccountEditor
-        open={editorTarget !== null}
-        account={editorTarget && editorTarget !== 'new' ? editorTarget : null}
-        onClose={() => setEditorTarget(null)}
-        onSave={handleSave}
-      />
-
-      <ConfirmDialog
-        open={deletingAccount !== null}
-        title="Delete this account?"
-        description="This action cannot be undone. Any investments or SIPs linked to this account will keep their history but lose the platform reference."
-        confirmLabel="Delete"
-        onConfirm={handleConfirmDelete}
-        onCancel={() => setDeletingAccount(null)}
-      />
+      <AccountEditor open={editorOpen} onClose={() => setEditorOpen(false)} onSave={handleSave} saving={creating} />
     </Card>
   )
 }

@@ -2,54 +2,52 @@ import { useState } from 'react'
 import { PiggyBank, Plus } from 'lucide-react'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { ErrorState } from '@/components/ui/ErrorState'
+import { ChartCardSkeleton } from '@/components/ui/Skeleton'
 import { SipRow } from './SipRow'
 import { SipEditor } from './SipEditor'
 import { SipContributionBars } from './SipContributionBars'
 import { UpcomingSipsList } from './UpcomingSipsList'
-import { useAccounts, useSips } from '@/hooks/useFinanceCollections'
+import { useSips } from '@/hooks/useFinanceCollections'
 import { useToast } from '@/context/ToastContext'
 import { formatCurrency } from '@/lib/formatCurrency'
+import { todayIstDateKey } from '@/lib/formatDate'
 import { getActiveSipCount, getMonthlySipTotal, getSipsByFund, getSipsByPlatform, getUpcomingSips } from '@/lib/financeCalculations'
-import type { SIP, SIPInput } from '@/types'
+import type { FinancialAccount, SIPInput } from '@/types'
 
-const TODAY = '2026-09-22'
+interface SipsSectionProps {
+  accounts: FinancialAccount[]
+}
 
-export function SipsSection() {
-  const { sips, createSip, updateSip, deleteSip } = useSips()
-  const { accounts } = useAccounts()
+export function SipsSection({ accounts }: SipsSectionProps) {
+  const { sips, loading, error, refetch, createSip, creating } = useSips()
   const { showToast } = useToast()
 
-  const [editorTarget, setEditorTarget] = useState<SIP | 'new' | null>(null)
-  const [deletingSip, setDeletingSip] = useState<SIP | null>(null)
+  const [editorOpen, setEditorOpen] = useState(false)
 
   const monthlyTotal = getMonthlySipTotal(sips)
   const activeCount = getActiveSipCount(sips)
   const byFund = getSipsByFund(sips)
   const byPlatform = getSipsByPlatform(sips, accounts)
-  const upcoming = getUpcomingSips(sips, TODAY, 5)
+  const upcoming = getUpcomingSips(sips, todayIstDateKey(), 5)
 
   const activeSips = sips.filter((s) => s.isActive)
   const pausedSips = sips.filter((s) => !s.isActive)
   const platformFor = (id?: string) => accounts.find((a) => a.id === id)
 
-  const handleSave = (input: SIPInput) => {
-    if (editorTarget && editorTarget !== 'new') {
-      updateSip(editorTarget.id, input)
-      showToast('SIP updated')
-    } else {
-      createSip(input)
-      showToast('SIP added')
-    }
-    setEditorTarget(null)
+  const handleSave = async (input: SIPInput) => {
+    await createSip(input)
+    showToast('SIP added')
+    setEditorOpen(false)
   }
 
-  const handleConfirmDelete = () => {
-    if (!deletingSip) return
-    deleteSip(deletingSip.id)
-    showToast('SIP deleted')
-    setDeletingSip(null)
+  if (error) {
+    return <ErrorState title="Couldn't load your SIPs." description={error} onRetry={refetch} />
+  }
+
+  if (loading) {
+    return <ChartCardSkeleton />
   }
 
   return (
@@ -83,7 +81,7 @@ export function SipsSection() {
           title="Your SIPs"
           subtitle={`${sips.length} total · ${activeCount} active`}
           action={
-            <Button size="sm" icon={<Plus size={13} />} onClick={() => setEditorTarget('new')}>
+            <Button size="sm" icon={<Plus size={13} />} onClick={() => setEditorOpen(true)}>
               Add SIP
             </Button>
           }
@@ -96,7 +94,7 @@ export function SipsSection() {
             {activeSips.length > 0 && (
               <div className="divide-y divide-border-soft">
                 {activeSips.map((sip) => (
-                  <SipRow key={sip.id} sip={sip} platform={platformFor(sip.platformAccountId)} onEdit={setEditorTarget} onDelete={setDeletingSip} />
+                  <SipRow key={sip.id} sip={sip} platform={platformFor(sip.platformAccountId)} />
                 ))}
               </div>
             )}
@@ -105,7 +103,7 @@ export function SipsSection() {
                 <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">Paused</p>
                 <div className="divide-y divide-border-soft">
                   {pausedSips.map((sip) => (
-                    <SipRow key={sip.id} sip={sip} platform={platformFor(sip.platformAccountId)} onEdit={setEditorTarget} onDelete={setDeletingSip} />
+                    <SipRow key={sip.id} sip={sip} platform={platformFor(sip.platformAccountId)} />
                   ))}
                 </div>
               </div>
@@ -114,22 +112,7 @@ export function SipsSection() {
         )}
       </Card>
 
-      <SipEditor
-        open={editorTarget !== null}
-        sip={editorTarget && editorTarget !== 'new' ? editorTarget : null}
-        accounts={accounts}
-        onClose={() => setEditorTarget(null)}
-        onSave={handleSave}
-      />
-
-      <ConfirmDialog
-        open={deletingSip !== null}
-        title="Delete this SIP?"
-        description="Consider pausing it instead if you just want to stop new debits while keeping its history. This action cannot be undone."
-        confirmLabel="Delete"
-        onConfirm={handleConfirmDelete}
-        onCancel={() => setDeletingSip(null)}
-      />
+      <SipEditor open={editorOpen} accounts={accounts} onClose={() => setEditorOpen(false)} onSave={handleSave} saving={creating} />
     </div>
   )
 }

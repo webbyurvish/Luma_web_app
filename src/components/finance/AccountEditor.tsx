@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { ThemedSelect } from '@/components/ui/ThemedSelect'
 import { ACCOUNT_TYPE_OPTIONS } from '@/lib/accountMeta'
-import type { AccountInput, AccountType, FinancialAccount } from '@/types'
+import type { AccountInput, AccountType } from '@/types'
 
 interface FormState {
   name: string
@@ -18,25 +18,15 @@ interface FormState {
 
 const EMPTY_FORM: FormState = { name: '', type: '', institution: '', accountNumberLast4: '', balance: '', notes: '' }
 
-function accountToForm(account: FinancialAccount): FormState {
-  return {
-    name: account.name,
-    type: account.type,
-    institution: account.institution ?? '',
-    accountNumberLast4: account.accountNumberLast4 ?? '',
-    balance: String(account.balance),
-    notes: account.notes ?? '',
-  }
-}
-
 interface AccountEditorProps {
   open: boolean
-  account: FinancialAccount | null
   onClose: () => void
   onSave: (input: AccountInput) => void
+  /** True while the create request is in flight — disables Save and prevents double submission. */
+  saving?: boolean
 }
 
-export function AccountEditor({ open, account, onClose, onSave }: AccountEditorProps) {
+export function AccountEditor({ open, onClose, onSave, saving }: AccountEditorProps) {
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
   const [initialForm, setInitialForm] = useState<FormState>(EMPTY_FORM)
   const [touched, setTouched] = useState<Record<string, boolean>>({})
@@ -45,12 +35,11 @@ export function AccountEditor({ open, account, onClose, onSave }: AccountEditorP
 
   useEffect(() => {
     if (!open) return
-    const next = account ? accountToForm(account) : EMPTY_FORM
-    setForm(next)
-    setInitialForm(next)
+    setForm(EMPTY_FORM)
+    setInitialForm(EMPTY_FORM)
     setTouched({})
     setAttemptedSave(false)
-  }, [open, account])
+  }, [open])
 
   const isDirty = JSON.stringify(form) !== JSON.stringify(initialForm)
   const balanceNumber = Number(form.balance)
@@ -87,15 +76,15 @@ export function AccountEditor({ open, account, onClose, onSave }: AccountEditorP
       <SlideOver
         open={open}
         onClose={requestClose}
-        title={account ? 'Edit Account' : 'Add Account'}
-        subtitle={account ? 'Update this account' : 'Track where your money lives'}
+        title="Add Account"
+        subtitle="Track where your money lives"
         footer={
           <div className="flex items-center justify-end gap-2">
-            <Button type="button" variant="secondary" size="sm" onClick={requestClose}>
+            <Button type="button" variant="secondary" size="sm" onClick={requestClose} disabled={saving}>
               Cancel
             </Button>
-            <Button type="button" size="sm" onClick={handleSave} disabled={attemptedSave && !isValid}>
-              Save Account
+            <Button type="button" size="sm" onClick={handleSave} disabled={saving || (attemptedSave && !isValid)}>
+              {saving ? 'Saving…' : 'Save Account'}
             </Button>
           </div>
         }

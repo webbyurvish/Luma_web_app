@@ -22,9 +22,11 @@ interface LiabilityEditorProps {
   open: boolean
   onClose: () => void
   onSave: (input: LiabilityInput) => void
+  /** True while the create request is in flight — disables Save and prevents double submission. */
+  saving?: boolean
 }
 
-export function LiabilityEditor({ open, onClose, onSave }: LiabilityEditorProps) {
+export function LiabilityEditor({ open, onClose, onSave, saving }: LiabilityEditorProps) {
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
   const [attemptedSave, setAttemptedSave] = useState(false)
 
@@ -57,11 +59,11 @@ export function LiabilityEditor({ open, onClose, onSave }: LiabilityEditorProps)
       subtitle="Loans and other amounts you owe"
       footer={
         <div className="flex items-center justify-end gap-2">
-          <Button type="button" variant="secondary" size="sm" onClick={onClose}>
+          <Button type="button" variant="secondary" size="sm" onClick={onClose} disabled={saving}>
             Cancel
           </Button>
-          <Button type="button" size="sm" onClick={handleSave} disabled={attemptedSave && !isValid}>
-            Save Liability
+          <Button type="button" size="sm" onClick={handleSave} disabled={saving || (attemptedSave && !isValid)}>
+            {saving ? 'Saving…' : 'Save Liability'}
           </Button>
         </div>
       }

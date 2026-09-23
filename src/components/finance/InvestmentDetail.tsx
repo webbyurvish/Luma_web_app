@@ -1,7 +1,5 @@
-import { Pencil, Trash2 } from 'lucide-react'
 import { Area, AreaChart, ResponsiveContainer } from 'recharts'
 import { SlideOver } from '@/components/ui/SlideOver'
-import { Button } from '@/components/ui/Button'
 import { formatCurrency, formatPercentage } from '@/lib/formatCurrency'
 import { formatFullDate } from '@/lib/formatDate'
 import { INVESTMENT_TYPE_META } from '@/lib/investmentMeta'
@@ -13,11 +11,9 @@ interface InvestmentDetailProps {
   investment: Investment | null
   accounts: FinancialAccount[]
   onClose: () => void
-  onEdit: (investment: Investment) => void
-  onDelete: (investment: Investment) => void
 }
 
-export function InvestmentDetail({ open, investment, accounts, onClose, onEdit, onDelete }: InvestmentDetailProps) {
+export function InvestmentDetail({ open, investment, accounts, onClose }: InvestmentDetailProps) {
   const platformName = investment ? accounts.find((a) => a.id === investment.platformAccountId)?.name : undefined
   const meta = investment ? INVESTMENT_TYPE_META[investment.type] : null
   const gain = investment ? investment.currentValue - investment.investedAmount : 0
@@ -26,24 +22,7 @@ export function InvestmentDetail({ open, investment, accounts, onClose, onEdit, 
   const chartData = investment?.history?.map((value, index) => ({ index, value })) ?? []
 
   return (
-    <SlideOver
-      open={open && investment !== null}
-      onClose={onClose}
-      title={investment?.name ?? ''}
-      subtitle={[meta?.label, platformName].filter(Boolean).join(' · ')}
-      footer={
-        investment && (
-          <div className="flex items-center justify-end gap-2">
-            <Button type="button" variant="danger" size="sm" icon={<Trash2 size={13} />} onClick={() => onDelete(investment)}>
-              Delete
-            </Button>
-            <Button type="button" size="sm" icon={<Pencil size={13} />} onClick={() => onEdit(investment)}>
-              Edit
-            </Button>
-          </div>
-        )
-      }
-    >
+    <SlideOver open={open && investment !== null} onClose={onClose} title={investment?.name ?? ''} subtitle={[meta?.label, platformName].filter(Boolean).join(' · ')}>
       {investment && (
         <div className="flex flex-col gap-5">
           <div>

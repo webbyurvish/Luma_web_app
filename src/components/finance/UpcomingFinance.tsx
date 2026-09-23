@@ -2,13 +2,11 @@ import { CalendarClock } from 'lucide-react'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { formatCurrency } from '@/lib/formatCurrency'
-import { formatFullDate } from '@/lib/formatDate'
+import { formatFullDate, todayIstDateKey } from '@/lib/formatDate'
 import { getUpcomingSips } from '@/lib/financeCalculations'
 import { mockUdhaarPeople } from '@/data/mockUdhaar'
 import { useAccounts, useSips } from '@/hooks/useFinanceCollections'
 import { cn } from '@/lib/cn'
-
-const TODAY = '2026-09-22'
 
 interface UpcomingItem {
   date: string
@@ -23,8 +21,9 @@ export function UpcomingFinance() {
   const { accounts } = useAccounts()
 
   const platformName = (id?: string) => accounts.find((a) => a.id === id)?.name ?? 'Unassigned'
+  const today = todayIstDateKey()
 
-  const sipItems: UpcomingItem[] = getUpcomingSips(sips, TODAY, 3).map(({ sip, nextDate }) => ({
+  const sipItems: UpcomingItem[] = getUpcomingSips(sips, today, 3).map(({ sip, nextDate }) => ({
     date: nextDate,
     label: sip.fundName,
     detail: `${platformName(sip.platformAccountId)} SIP`,
@@ -33,7 +32,7 @@ export function UpcomingFinance() {
   }))
 
   const udhaarItems: UpcomingItem[] = mockUdhaarPeople
-    .filter((p) => p.outstanding > 0 && p.dueDate >= TODAY)
+    .filter((p) => p.outstanding > 0 && p.dueDate >= today)
     .map((p) => ({ date: p.dueDate, label: p.name, detail: 'Udhaar due', amount: p.outstanding, kind: 'udhaar' }))
 
   const items = [...sipItems, ...udhaarItems].sort((a, b) => (a.date < b.date ? -1 : 1)).slice(0, 6)

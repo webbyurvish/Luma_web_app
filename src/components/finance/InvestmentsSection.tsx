@@ -2,49 +2,46 @@ import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { ErrorState } from '@/components/ui/ErrorState'
+import { ChartCardSkeleton } from '@/components/ui/Skeleton'
 import { AllocationDonut } from './AllocationDonut'
 import { HoldingsTable } from './HoldingsTable'
 import { InvestmentEditor } from './InvestmentEditor'
 import { InvestmentDetail } from './InvestmentDetail'
-import { useAccounts, useInvestments } from '@/hooks/useFinanceCollections'
+import { useInvestments } from '@/hooks/useFinanceCollections'
 import { useToast } from '@/context/ToastContext'
 import { formatCurrency, formatPercentage } from '@/lib/formatCurrency'
 import { getInvestmentTotals, getInvestmentTypeAllocation } from '@/lib/financeCalculations'
 import { cn } from '@/lib/cn'
-import type { Investment, InvestmentInput } from '@/types'
+import type { FinancialAccount, Investment, InvestmentInput } from '@/types'
 
-export function InvestmentsSection() {
-  const { investments, createInvestment, updateInvestment, deleteInvestment } = useInvestments()
-  const { accounts } = useAccounts()
+interface InvestmentsSectionProps {
+  accounts: FinancialAccount[]
+}
+
+export function InvestmentsSection({ accounts }: InvestmentsSectionProps) {
+  const { investments, loading, error, refetch, createInvestment, creating } = useInvestments()
   const { showToast } = useToast()
 
   const [viewingInvestment, setViewingInvestment] = useState<Investment | null>(null)
-  const [editorTarget, setEditorTarget] = useState<Investment | 'new' | null>(null)
-  const [deletingInvestment, setDeletingInvestment] = useState<Investment | null>(null)
+  const [editorOpen, setEditorOpen] = useState(false)
 
   const totals = getInvestmentTotals(investments)
   const allocation = getInvestmentTypeAllocation(investments)
   const positive = totals.gain >= 0
 
-  const handleSave = (input: InvestmentInput) => {
-    if (editorTarget && editorTarget !== 'new') {
-      updateInvestment(editorTarget.id, input)
-      showToast('Investment updated')
-      if (viewingInvestment?.id === editorTarget.id) setViewingInvestment(null)
-    } else {
-      createInvestment(input)
-      showToast('Investment added')
-    }
-    setEditorTarget(null)
+  const handleSave = async (input: InvestmentInput) => {
+    await createInvestment(input)
+    showToast('Investment added')
+    setEditorOpen(false)
   }
 
-  const handleConfirmDelete = () => {
-    if (!deletingInvestment) return
-    deleteInvestment(deletingInvestment.id)
-    showToast('Investment deleted')
-    if (viewingInvestment?.id === deletingInvestment.id) setViewingInvestment(null)
-    setDeletingInvestment(null)
+  if (error) {
+    return <ErrorState title="Couldn't load your investments." description={error} onRetry={refetch} />
+  }
+
+  if (loading) {
+    return <ChartCardSkeleton />
   }
 
   return (
@@ -77,9 +74,9 @@ export function InvestmentsSection() {
       <Card variant="panel">
         <CardHeader
           title="Holdings"
-          subtitle="Manually maintained demo values — not live market prices"
+          subtitle="Manually maintained values — not live market prices"
           action={
-            <Button size="sm" icon={<Plus size={13} />} onClick={() => setEditorTarget('new')}>
+            <Button size="sm" icon={<Plus size={13} />} onClick={() => setEditorOpen(true)}>
               Add Investment
             </Button>
           }
@@ -87,34 +84,9 @@ export function InvestmentsSection() {
         <HoldingsTable investments={investments} accounts={accounts} onSelect={setViewingInvestment} />
       </Card>
 
-      <InvestmentDetail
-        open={viewingInvestment !== null}
-        investment={viewingInvestment}
-        accounts={accounts}
-        onClose={() => setViewingInvestment(null)}
-        onEdit={(inv) => {
-          setViewingInvestment(null)
-          setEditorTarget(inv)
-        }}
-        onDelete={setDeletingInvestment}
-      />
+      <InvestmentDetail open={viewingInvestment !== null} investment={viewingInvestment} accounts={accounts} onClose={() => setViewingInvestment(null)} />
 
-      <InvestmentEditor
-        open={editorTarget !== null}
-        investment={editorTarget && editorTarget !== 'new' ? editorTarget : null}
-        accounts={accounts}
-        onClose={() => setEditorTarget(null)}
-        onSave={handleSave}
-      />
-
-      <ConfirmDialog
-        open={deletingInvestment !== null}
-        title="Delete this investment?"
-        description="This action cannot be undone."
-        confirmLabel="Delete"
-        onConfirm={handleConfirmDelete}
-        onCancel={() => setDeletingInvestment(null)}
-      />
+      <InvestmentEditor open={editorOpen} accounts={accounts} onClose={() => setEditorOpen(false)} onSave={handleSave} saving={creating} />
     </div>
   )
 }

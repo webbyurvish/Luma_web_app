@@ -1,39 +1,53 @@
 import { useState } from 'react'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { ErrorState } from '@/components/ui/ErrorState'
+import { ChartCardSkeleton } from '@/components/ui/Skeleton'
 import { LiabilityEditor } from './LiabilityEditor'
-import { useAccounts, useLiabilities } from '@/hooks/useFinanceCollections'
+import { useLiabilities } from '@/hooks/useFinanceCollections'
 import { useToast } from '@/context/ToastContext'
 import { formatCurrency } from '@/lib/formatCurrency'
 import { getCreditCardOutstanding } from '@/lib/financeCalculations'
-import type { Liability, LiabilityInput } from '@/types'
+import type { FinancialAccount, LiabilityInput } from '@/types'
 
-export function LiabilitiesSection() {
-  const { accounts } = useAccounts()
-  const { liabilities, createLiability, deleteLiability } = useLiabilities()
+interface LiabilitiesSectionProps {
+  accounts: FinancialAccount[]
+}
+
+export function LiabilitiesSection({ accounts }: LiabilitiesSectionProps) {
+  const { liabilities, loading, error, refetch, createLiability, creating } = useLiabilities()
   const { showToast } = useToast()
 
   const [editorOpen, setEditorOpen] = useState(false)
-  const [deletingLiability, setDeletingLiability] = useState<Liability | null>(null)
 
   const creditCards = accounts.filter((a) => a.isActive && a.type === 'credit_card')
   const creditCardTotal = getCreditCardOutstanding(accounts)
   const manualTotal = liabilities.reduce((sum, l) => sum + l.amount, 0)
   const total = creditCardTotal + manualTotal
 
-  const handleSave = (input: LiabilityInput) => {
-    createLiability(input)
+  const handleSave = async (input: LiabilityInput) => {
+    await createLiability(input)
     showToast('Liability added')
     setEditorOpen(false)
   }
 
-  const handleConfirmDelete = () => {
-    if (!deletingLiability) return
-    deleteLiability(deletingLiability.id)
-    showToast('Liability removed')
-    setDeletingLiability(null)
+  if (error) {
+    return (
+      <Card variant="panel">
+        <CardHeader title="Liabilities" subtitle="What you owe" />
+        <ErrorState title="Couldn't load your liabilities." description={error} onRetry={refetch} />
+      </Card>
+    )
+  }
+
+  if (loading) {
+    return (
+      <Card variant="panel">
+        <CardHeader title="Liabilities" subtitle="What you owe" />
+        <ChartCardSkeleton />
+      </Card>
+    )
   }
 
   return (
@@ -56,18 +70,9 @@ export function LiabilitiesSection() {
           </li>
         ))}
         {liabilities.map((liability) => (
-          <li key={liability.id} className="group flex items-center justify-between gap-3 px-1.5 py-2 text-xs">
+          <li key={liability.id} className="flex items-center justify-between gap-3 px-1.5 py-2 text-xs">
             <span className="text-ink-soft">{liability.name}</span>
-            <div className="flex items-center gap-2">
-              <span className="font-mono-figure font-semibold text-ink">{formatCurrency(liability.amount)}</span>
-              <button
-                onClick={() => setDeletingLiability(liability)}
-                aria-label={`Delete ${liability.name}`}
-                className="rounded-xs p-1 text-ink-muted opacity-0 transition-opacity hover:text-danger group-hover:opacity-100"
-              >
-                <Trash2 size={12} />
-              </button>
-            </div>
+            <span className="font-mono-figure font-semibold text-ink">{formatCurrency(liability.amount)}</span>
           </li>
         ))}
         {creditCards.length === 0 && liabilities.length === 0 && (
@@ -75,16 +80,7 @@ export function LiabilitiesSection() {
         )}
       </ul>
 
-      <LiabilityEditor open={editorOpen} onClose={() => setEditorOpen(false)} onSave={handleSave} />
-
-      <ConfirmDialog
-        open={deletingLiability !== null}
-        title="Remove this liability?"
-        description="This action cannot be undone."
-        confirmLabel="Remove"
-        onConfirm={handleConfirmDelete}
-        onCancel={() => setDeletingLiability(null)}
-      />
+      <LiabilityEditor open={editorOpen} onClose={() => setEditorOpen(false)} onSave={handleSave} saving={creating} />
     </Card>
   )
 }
