@@ -1,4 +1,4 @@
-import type { CategoryId, PaymentMethod } from './transaction'
+import type { PaymentMethod } from './transaction'
 
 export interface FinanceSummary {
   currentBalance: number
@@ -19,7 +19,8 @@ export interface SpendingPoint {
 }
 
 export interface CategoryBreakdown {
-  category: CategoryId
+  /** The real category text from the data source — not forced into the fixed CategoryId set. */
+  category: string
   label: string
   amount: number
   color: string
@@ -29,6 +30,7 @@ export interface PaymentMethodBreakdown {
   method: PaymentMethod
   amount: number
   percentage: number
+  color: string
 }
 
 export interface SpendingInsight {

@@ -6,24 +6,17 @@ import { ListRowSkeleton } from '@/components/ui/Skeleton'
 import { CATEGORY_META } from '@/lib/categoryMeta'
 import { formatCurrency } from '@/lib/formatCurrency'
 import { formatRelativeDate } from '@/lib/formatDate'
-import { mockTransactions } from '@/data/mockTransactions'
+import { getRecentTransactions } from '@/lib/transactionCalculations'
 import { cn } from '@/lib/cn'
+import type { Transaction } from '@/types'
 
-function timeToMinutes(time: string): number {
-  const match = /(\d{1,2}):(\d{2})\s?(AM|PM)/i.exec(time)
-  if (!match) return 0
-  let hours = Number(match[1]) % 12
-  if (match[3].toUpperCase() === 'PM') hours += 12
-  return hours * 60 + Number(match[2])
+interface RecentActivityProps {
+  loading?: boolean
+  transactions: Transaction[]
 }
 
-export function RecentActivity({ loading }: { loading?: boolean }) {
-  const items = [...mockTransactions]
-    .sort((a, b) => {
-      if (a.date !== b.date) return a.date < b.date ? 1 : -1
-      return timeToMinutes(b.time) - timeToMinutes(a.time)
-    })
-    .slice(0, 8)
+export function RecentActivity({ loading, transactions }: RecentActivityProps) {
+  const items = getRecentTransactions(transactions, 8)
 
   const groups = items.reduce<Record<string, typeof items>>((acc, item) => {
     const key = formatRelativeDate(item.date)

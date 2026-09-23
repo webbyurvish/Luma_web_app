@@ -4,7 +4,6 @@ import { Card, CardHeader } from '@/components/ui/Card'
 import { ChartCardSkeleton } from '@/components/ui/Skeleton'
 import { formatCurrency } from '@/lib/formatCurrency'
 import { formatFullDate, formatMonthYear, formatWeekday } from '@/lib/formatDate'
-import { mockMonthlySpending, mockWeeklySpending } from '@/data/mockExpenses'
 import { cn } from '@/lib/cn'
 import type { SpendingPoint } from '@/types'
 
@@ -34,9 +33,15 @@ function EndDot(props: { cx?: number; cy?: number; index?: number; dataLength: n
   )
 }
 
-export function SpendingChart({ loading }: { loading?: boolean }) {
+interface SpendingChartProps {
+  loading?: boolean
+  weeklyData: SpendingPoint[]
+  monthlyData: SpendingPoint[]
+}
+
+export function SpendingChart({ loading, weeklyData, monthlyData }: SpendingChartProps) {
   const [period, setPeriod] = useState<Period>('weekly')
-  const data = period === 'weekly' ? mockWeeklySpending : mockMonthlySpending
+  const data = period === 'weekly' ? weeklyData : monthlyData
   const lastLabel = data[data.length - 1]?.label
 
   if (loading) return <ChartCardSkeleton />

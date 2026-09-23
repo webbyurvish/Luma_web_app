@@ -3,13 +3,17 @@
 // so account-aware transactions can be introduced later without a breaking change.
 export type TransactionType = 'expense' | 'income' | 'udhaar' | 'transfer'
 
-export type PaymentMethod = 'UPI' | 'Card' | 'Cash' | 'Bank Transfer' | 'Net Banking'
+// Widened from a closed union to plain strings: real transactions come from a Google
+// Sheet where the payment method column is free text, so the app must render whatever
+// value the sheet actually contains rather than force-fitting it into a fixed list.
+export type PaymentMethod = string
 
 export type CategoryId =
   | 'food'
   | 'transport'
   | 'shopping'
   | 'bills'
+  | 'home'
   | 'entertainment'
   | 'health'
   | 'income'
@@ -30,4 +34,13 @@ export interface Transaction {
   status: TransactionStatus
   /** Which financial account this movement belongs to — optional so existing mock rows keep working. */
   accountId?: string
+  /** Original, un-mapped category text from the data source — used for grouping so a real
+   *  category the fixed CategoryId set doesn't recognize isn't lost inside "other". */
+  rawCategory?: string
+  rawSubcategory?: string
+  merchant?: string
+  note?: string
+  /** Source-provided month bucket (e.g. "Sep-2026"), when available — avoids re-deriving
+   *  month boundaries from a date string. */
+  month?: string
 }

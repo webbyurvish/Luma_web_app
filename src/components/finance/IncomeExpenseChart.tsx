@@ -1,7 +1,7 @@
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { formatCurrency } from '@/lib/formatCurrency'
-import { mockMonthlySpending } from '@/data/mockExpenses'
+import type { SpendingPoint } from '@/types'
 
 function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number; name: string; color: string }[]; label?: string }) {
   if (!active || !payload?.length) return null
@@ -18,7 +18,11 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
   )
 }
 
-export function IncomeExpenseChart() {
+interface IncomeExpenseChartProps {
+  data: SpendingPoint[]
+}
+
+export function IncomeExpenseChart({ data }: IncomeExpenseChartProps) {
   return (
     <Card hoverable>
       <CardHeader
@@ -37,7 +41,7 @@ export function IncomeExpenseChart() {
       />
       <div className="h-44 w-full sm:h-48">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={mockMonthlySpending} margin={{ top: 4, right: 4, left: 0, bottom: 0 }} barGap={4}>
+          <BarChart data={data} margin={{ top: 4, right: 4, left: 0, bottom: 0 }} barGap={4}>
             <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--color-ink-muted)' }} dy={6} />
             <YAxis hide domain={[0, 'dataMax']} />
             <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--color-bg-soft)' }} />

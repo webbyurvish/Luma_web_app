@@ -5,11 +5,16 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { CATEGORY_META } from '@/lib/categoryMeta'
 import { formatCurrency } from '@/lib/formatCurrency'
 import { formatDate } from '@/lib/formatDate'
-import { mockTransactions } from '@/data/mockTransactions'
+import { getRecentTransactions } from '@/lib/transactionCalculations'
 import { cn } from '@/lib/cn'
+import type { Transaction } from '@/types'
 
-export function RecentTransactions() {
-  const items = [...mockTransactions].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 7)
+interface RecentTransactionsProps {
+  transactions: Transaction[]
+}
+
+export function RecentTransactions({ transactions }: RecentTransactionsProps) {
+  const items = getRecentTransactions(transactions, 7)
 
   return (
     <Card hoverable>

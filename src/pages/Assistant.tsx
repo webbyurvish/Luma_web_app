@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ConversationList } from '@/components/assistant/ConversationList'
 import { ChatWindow } from '@/components/assistant/ChatWindow'
 import { ChatInput } from '@/components/assistant/ChatInput'
@@ -6,20 +6,25 @@ import { AssistantEmptyState } from '@/components/assistant/AssistantEmptyState'
 import { Card } from '@/components/ui/Card'
 import { mockChatMessages, mockConversations } from '@/data/mockAssistant'
 import { formatCurrency } from '@/lib/formatCurrency'
-import { mockFinanceSummary } from '@/data/mockExpenses'
 import { mockUdhaarSummary } from '@/data/mockUdhaar'
+import { useTransactions } from '@/hooks/useTransactions'
+import { calculateBalance, calculateTodayExpense } from '@/lib/transactionCalculations'
 import type { ChatMessage } from '@/types'
-
-const contextRows = [
-  { label: 'Spent today', value: formatCurrency(2850, { compact: true }) },
-  { label: 'Udhaar to receive', value: formatCurrency(mockUdhaarSummary.toReceive, { compact: true }) },
-  { label: 'Tasks today', value: '3 open' },
-  { label: 'Documents', value: '1 needs review' },
-]
 
 export function Assistant() {
   const [activeId, setActiveId] = useState(mockConversations[0].id)
   const [messages, setMessages] = useState<ChatMessage[]>(mockChatMessages)
+  const { transactions, loading } = useTransactions()
+
+  const spentToday = useMemo(() => calculateTodayExpense(transactions), [transactions])
+  const balance = useMemo(() => calculateBalance(transactions), [transactions])
+
+  const contextRows = [
+    { label: 'Spent today', value: loading ? '—' : formatCurrency(spentToday, { compact: true }) },
+    { label: 'Udhaar to receive', value: formatCurrency(mockUdhaarSummary.toReceive, { compact: true }) },
+    { label: 'Tasks today', value: '3 open' },
+    { label: 'Documents', value: '1 needs review' },
+  ]
 
   const handleSend = (content: string) => {
     const userMessage: ChatMessage = {
@@ -76,7 +81,7 @@ export function Assistant() {
         </div>
         <div className="mt-4 border-t border-border-soft pt-3">
           <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-muted">Balance</p>
-          <p className="mt-1.5 font-mono-figure text-sm font-bold text-ink">{formatCurrency(mockFinanceSummary.currentBalance)}</p>
+          <p className="mt-1.5 font-mono-figure text-sm font-bold text-ink">{loading ? '—' : formatCurrency(balance)}</p>
         </div>
       </div>
     </div>
