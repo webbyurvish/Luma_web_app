@@ -15,7 +15,7 @@ export function AccountRow({ account, onEdit, onDelete }: AccountRowProps) {
   const isCreditCard = account.type === 'credit_card'
 
   return (
-    <div className="group flex items-center gap-3 py-2.5 transition-colors hover:bg-bg-soft">
+    <div className="group flex items-center gap-3 rounded-xs px-2 py-2.5 transition-colors hover:bg-bg-soft">
       <span className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full bg-bg-soft text-ink-soft">
         <Icon size={13} />
       </span>

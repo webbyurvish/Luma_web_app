@@ -31,12 +31,12 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
       {items.length === 0 ? (
         <EmptyState icon={<Receipt size={20} />} title="No transactions yet" description="Your financial journey starts here." />
       ) : (
-        <ul className="-mx-1 divide-y divide-border-soft">
+        <ul className="divide-y divide-border-soft">
           {items.map((item) => {
             const meta = CATEGORY_META[item.category]
             const signedAmount = item.type === 'expense' ? -item.amount : item.amount
             return (
-              <li key={item.id} className="flex items-center gap-3 px-1 py-2 transition-colors hover:bg-bg-soft">
+              <li key={item.id} className="flex items-center gap-3 rounded-xs px-1 py-2 transition-colors hover:bg-bg-soft">
                 <span className="w-16 shrink-0 text-[10px] font-semibold uppercase tracking-[0.05em]" style={{ color: meta.color }}>
                   {meta.label}
                 </span>

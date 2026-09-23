@@ -12,7 +12,7 @@ interface SipRowProps {
 
 export function SipRow({ sip, platform, onEdit, onDelete }: SipRowProps) {
   return (
-    <div className="group flex items-center gap-3 py-2.5 transition-colors hover:bg-bg-soft">
+    <div className="group flex items-center gap-3 rounded-xs px-2 py-2.5 transition-colors hover:bg-ink/[0.04]">
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <p className="truncate text-xs font-medium text-ink">{sip.fundName}</p>

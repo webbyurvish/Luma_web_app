@@ -94,7 +94,7 @@ export function SipsSection() {
         ) : (
           <>
             {activeSips.length > 0 && (
-              <div className="-mx-1.5 divide-y divide-border-soft">
+              <div className="divide-y divide-border-soft">
                 {activeSips.map((sip) => (
                   <SipRow key={sip.id} sip={sip} platform={platformFor(sip.platformAccountId)} onEdit={setEditorTarget} onDelete={setDeletingSip} />
                 ))}
@@ -103,7 +103,7 @@ export function SipsSection() {
             {pausedSips.length > 0 && (
               <div className="mt-4 border-t border-border-soft pt-4">
                 <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">Paused</p>
-                <div className="-mx-1.5 divide-y divide-border-soft">
+                <div className="divide-y divide-border-soft">
                   {pausedSips.map((sip) => (
                     <SipRow key={sip.id} sip={sip} platform={platformFor(sip.platformAccountId)} onEdit={setEditorTarget} onDelete={setDeletingSip} />
                   ))}

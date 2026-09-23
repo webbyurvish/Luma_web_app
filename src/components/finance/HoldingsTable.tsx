@@ -23,12 +23,12 @@ export function HoldingsTable({ investments, accounts, onSelect }: HoldingsTable
       <table className="w-full min-w-[520px] border-collapse text-sm">
         <thead>
           <tr className="border-b border-border text-left text-[10px] font-semibold uppercase tracking-[0.06em] text-ink-muted">
-            <th className="py-2 pr-3 font-semibold">Investment</th>
+            <th className="py-2 pl-2 pr-3 font-semibold">Investment</th>
             <th className="py-2 pr-3 font-semibold">Type</th>
             <th className="py-2 pr-3 font-semibold">Platform</th>
             <th className="py-2 pr-3 text-right font-semibold">Invested</th>
             <th className="py-2 pr-3 text-right font-semibold">Current</th>
-            <th className="py-2 text-right font-semibold">Gain</th>
+            <th className="py-2 pr-2 text-right font-semibold">Gain</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border-soft">
@@ -50,14 +50,14 @@ export function HoldingsTable({ investments, accounts, onSelect }: HoldingsTable
                 aria-label={`View ${investment.name}`}
                 className="cursor-pointer transition-colors hover:bg-bg-soft focus-visible:bg-bg-soft"
               >
-                <td className="py-2.5 pr-3 font-medium text-ink">{investment.name}</td>
+                <td className="py-2.5 pl-2 pr-3 font-medium text-ink">{investment.name}</td>
                 <td className="py-2.5 pr-3 text-[10px] font-semibold uppercase tracking-[0.05em]" style={{ color: meta.color }}>
                   {meta.label}
                 </td>
                 <td className="py-2.5 pr-3 text-ink-soft">{platformName(investment.platformAccountId)}</td>
                 <td className="py-2.5 pr-3 text-right font-mono-figure text-ink-soft">{formatCurrency(investment.investedAmount)}</td>
                 <td className="py-2.5 pr-3 text-right font-mono-figure font-semibold text-ink">{formatCurrency(investment.currentValue)}</td>
-                <td className={cn('py-2.5 text-right font-mono-figure font-semibold', gain >= 0 ? 'text-success' : 'text-danger')}>
+                <td className={cn('py-2.5 pr-2 text-right font-mono-figure font-semibold', gain >= 0 ? 'text-success' : 'text-danger')}>
                   {formatCurrency(gain, { signed: true })}
                 </td>
               </tr>

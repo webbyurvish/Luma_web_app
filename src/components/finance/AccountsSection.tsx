@@ -77,7 +77,7 @@ export function AccountsSection() {
                   </p>
                   <p className="font-mono-figure text-xs text-ink-soft">{formatCurrency(group.subtotal, { compact: true })}</p>
                 </div>
-                <div className="-mx-1.5 divide-y divide-border-soft">
+                <div className="divide-y divide-border-soft">
                   {group.items.map((account) => (
                     <AccountRow key={account.id} account={account} onEdit={(a) => setEditorTarget(a)} onDelete={setDeletingAccount} />
                   ))}

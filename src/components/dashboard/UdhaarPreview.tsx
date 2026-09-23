@@ -34,11 +34,11 @@ export function UdhaarPreview() {
       {people.length === 0 ? (
         <EmptyState icon={<HandCoins size={20} />} title="All settled up" description="No pending udhaar right now." />
       ) : (
-        <ul className="-mx-1 divide-y divide-border-soft">
+        <ul className="divide-y divide-border-soft">
           {people.map((person) => {
             const status = statusConfig[person.status]
             return (
-              <li key={person.id} className="group flex items-center gap-2.5 px-1 py-2 transition-colors hover:bg-bg-soft">
+              <li key={person.id} className="group flex items-center gap-2.5 rounded-xs px-1 py-2 transition-colors hover:bg-bg-soft">
                 <Avatar name={person.name} size={26} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-xs font-medium text-ink">{person.name}</p>

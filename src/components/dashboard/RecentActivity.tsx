@@ -52,14 +52,14 @@ export function RecentActivity({ loading, transactions }: RecentActivityProps) {
                 <p className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-muted">{day}</p>
                 <span className="h-px flex-1 bg-border-soft" aria-hidden="true" />
               </div>
-              <ul className="-mx-1.5 divide-y divide-border-soft">
+              <ul className="divide-y divide-border-soft">
                 {dayItems.map((item) => {
                   const meta = CATEGORY_META[item.category]
                   const Icon = meta.icon
                   const isPositive = item.type === 'income' || item.type === 'udhaar'
                   const signedAmount = item.type === 'expense' ? -item.amount : item.amount
                   return (
-                    <li key={item.id} className="flex items-center gap-2.5 px-1.5 py-2 transition-colors hover:bg-bg-soft">
+                    <li key={item.id} className="flex items-center gap-2.5 rounded-xs px-1.5 py-2 transition-colors hover:bg-bg-soft">
                       <span
                         className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full"
                         style={{ backgroundColor: meta.bg, color: meta.color }}

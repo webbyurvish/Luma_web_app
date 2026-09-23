@@ -19,7 +19,7 @@ export function TaskCard({ task, onToggle }: TaskCardProps) {
   const priority = priorityConfig[task.priority]
 
   return (
-    <div className="flex items-center gap-3 py-2.5 transition-colors hover:bg-bg-soft">
+    <div className="flex items-center gap-3 rounded-xs px-2 py-2.5 transition-colors hover:bg-ink/[0.04]">
       <button
         onClick={() => onToggle(task.id)}
         aria-label={task.completed ? 'Mark task as not completed' : 'Mark task as completed'}

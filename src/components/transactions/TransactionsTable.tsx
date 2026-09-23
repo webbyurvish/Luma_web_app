@@ -25,43 +25,45 @@ export function TransactionsTable({ transactions, page, pageSize, onPageChange }
         <EmptyState icon={<Receipt size={20} />} title="No transactions found" description="Try adjusting your search or filters." />
       ) : (
         <>
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-[10px] font-semibold uppercase tracking-[0.06em] text-ink-muted">
-                <th className="py-2 pr-3 font-semibold">Category</th>
-                <th className="py-2 pr-3 font-semibold">Description</th>
-                <th className="py-2 pr-3 font-semibold">Type</th>
-                <th className="py-2 pr-3 font-semibold">Date</th>
-                <th className="py-2 pr-3 font-semibold">Payment</th>
-                <th className="py-2 text-right font-semibold">Amount</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border-soft">
-              {pageItems.map((item) => {
-                const meta = CATEGORY_META[item.category]
-                const signedAmount = item.type === 'expense' ? -item.amount : item.amount
-                return (
-                  <tr key={item.id} className="transition-colors hover:bg-bg-soft">
-                    <td className="py-2.5 pr-3 text-[10px] font-semibold uppercase tracking-[0.05em]" style={{ color: meta.color }}>
-                      {meta.label}
-                    </td>
-                    <td className="py-2.5 pr-3 text-xs font-medium text-ink">{item.description}</td>
-                    <td className="py-2.5 pr-3 text-xs capitalize text-ink-soft">{item.type}</td>
-                    <td className="py-2.5 pr-3 font-mono-figure text-xs text-ink-muted">{formatDate(item.date)}</td>
-                    <td className="py-2.5 pr-3 text-xs text-ink-soft">{item.payment}</td>
-                    <td
-                      className={cn(
-                        'py-2.5 text-right font-mono-figure text-xs font-bold',
-                        signedAmount < 0 ? 'text-ink' : 'text-success',
-                      )}
-                    >
-                      {formatCurrency(signedAmount, { signed: true })}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+          <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+            <table className="w-full min-w-[560px] border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-[10px] font-semibold uppercase tracking-[0.06em] text-ink-muted">
+                  <th className="py-2 pl-2 pr-3 font-semibold">Category</th>
+                  <th className="py-2 pr-3 font-semibold">Description</th>
+                  <th className="py-2 pr-3 font-semibold">Type</th>
+                  <th className="py-2 pr-3 font-semibold">Date</th>
+                  <th className="py-2 pr-3 font-semibold">Payment</th>
+                  <th className="py-2 pr-2 text-right font-semibold">Amount</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border-soft">
+                {pageItems.map((item) => {
+                  const meta = CATEGORY_META[item.category]
+                  const signedAmount = item.type === 'expense' ? -item.amount : item.amount
+                  return (
+                    <tr key={item.id} className="transition-colors hover:bg-bg-soft">
+                      <td className="py-2.5 pl-2 pr-3 text-[10px] font-semibold uppercase tracking-[0.05em]" style={{ color: meta.color }}>
+                        {meta.label}
+                      </td>
+                      <td className="py-2.5 pr-3 text-xs font-medium text-ink">{item.description}</td>
+                      <td className="py-2.5 pr-3 text-xs capitalize text-ink-soft">{item.type}</td>
+                      <td className="py-2.5 pr-3 font-mono-figure text-xs text-ink-muted">{formatDate(item.date)}</td>
+                      <td className="py-2.5 pr-3 text-xs text-ink-soft">{item.payment}</td>
+                      <td
+                        className={cn(
+                          'py-2.5 pr-2 text-right font-mono-figure text-xs font-bold',
+                          signedAmount < 0 ? 'text-ink' : 'text-success',
+                        )}
+                      >
+                        {formatCurrency(signedAmount, { signed: true })}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
           <Pagination page={page} pageCount={pageCount} onPageChange={onPageChange} />
         </>
       )}
