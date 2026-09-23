@@ -17,10 +17,19 @@ interface ModalProps {
 export function Modal({ open, onClose, title, subtitle, children, className }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
 
+  // Callers typically pass an inline onClose, which gets a new identity on every render
+  // — including every keystroke in a field inside this modal. Reading it via a ref keeps
+  // the effect below scoped to `open` only, so typing doesn't re-run it and steal focus
+  // back to the dialog.
+  const onCloseRef = useRef(onClose)
+  useEffect(() => {
+    onCloseRef.current = onClose
+  })
+
   useEffect(() => {
     if (!open) return
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
+      if (event.key === 'Escape') onCloseRef.current()
     }
     document.addEventListener('keydown', handleKeyDown)
     dialogRef.current?.focus()
@@ -30,7 +39,7 @@ export function Modal({ open, onClose, title, subtitle, children, className }: M
       document.removeEventListener('keydown', handleKeyDown)
       document.body.style.overflow = previousOverflow
     }
-  }, [open, onClose])
+  }, [open])
 
   return createPortal(
     <AnimatePresence>
