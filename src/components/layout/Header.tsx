@@ -15,6 +15,7 @@ export function Header() {
     <header className="flex items-center justify-between gap-4 border-b border-border px-4 py-4 sm:px-7 md:py-5">
       <div className="flex min-w-0 items-center gap-3">
         <button
+          type="button"
           onClick={openMobile}
           aria-label="Open navigation"
           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border border-border text-ink-soft md:hidden"
@@ -29,14 +30,16 @@ export function Header() {
 
       <div className="flex shrink-0 items-center gap-2 sm:gap-3">
         <button
+          type="button"
           aria-label="Search"
-          className="hidden items-center gap-2 rounded-sm border border-border bg-surface px-3 py-1.5 text-[11px] text-ink-muted transition-colors hover:border-ink-soft lg:flex lg:w-52 xl:w-64"
+          className="hidden items-center gap-2 rounded-sm border border-border bg-surface px-3 py-1.5 text-[11px] text-ink-muted transition-colors hover:border-ink-soft hover:text-ink lg:flex lg:w-52 xl:w-64"
         >
           <Search size={13} className="shrink-0" />
           <span className="flex-1 text-left">Search</span>
           <kbd className="shrink-0 rounded-xs border border-border px-1 py-0.5 font-mono-figure text-[9px] text-ink-muted">⌘K</kbd>
         </button>
         <button
+          type="button"
           aria-label="Notifications"
           className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border border-border text-ink-soft transition-colors hover:border-ink-soft hover:text-ink"
         >

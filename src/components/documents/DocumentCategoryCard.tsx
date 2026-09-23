@@ -13,7 +13,9 @@ interface DocumentCategoryCardProps {
 export function DocumentCategoryCard({ name, count, icon: Icon, color, active, onClick }: DocumentCategoryCardProps) {
   return (
     <button
+      type="button"
       onClick={onClick}
+      aria-pressed={active}
       className={cn(
         'flex items-center gap-2.5 border bg-card px-3 py-2.5 text-left transition-colors duration-150 hover:bg-bg-soft',
         active ? 'border-ink' : 'border-border-soft',

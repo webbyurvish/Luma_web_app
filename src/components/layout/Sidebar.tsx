@@ -89,6 +89,7 @@ export function Sidebar() {
             ))}
           </div>
           <button
+            type="button"
             onClick={toggleCollapsed}
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             className={cn(
@@ -104,7 +105,7 @@ export function Sidebar() {
 
       {mobileOpen && (
         <div className="fixed inset-0 z-50 flex md:hidden">
-          <button aria-label="Close navigation" className="absolute inset-0 bg-ink/40" onClick={closeMobile} />
+          <button type="button" aria-label="Close navigation" className="absolute inset-0 bg-ink/40" onClick={closeMobile} />
           <div className="relative z-10 flex h-full w-[240px] flex-col bg-ink-rail py-5 shadow-hover animate-fade-up">
             <div className="mb-6 flex items-center justify-between px-5">
               <div className="flex items-center gap-2.5">
@@ -115,6 +116,7 @@ export function Sidebar() {
                 </div>
               </div>
               <button
+                type="button"
                 onClick={closeMobile}
                 aria-label="Close navigation"
                 className="rounded-sm p-1.5 text-paper/50 hover:bg-paper/10 hover:text-paper"

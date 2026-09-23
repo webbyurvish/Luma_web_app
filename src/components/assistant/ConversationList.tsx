@@ -14,6 +14,7 @@ export function ConversationList({ conversations, activeId, onSelect, onNew }: C
   return (
     <div className="flex h-full flex-col">
       <button
+        type="button"
         onClick={onNew}
         className="mb-3 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-soft transition-colors hover:text-ai"
       >
@@ -26,7 +27,9 @@ export function ConversationList({ conversations, activeId, onSelect, onNew }: C
           return (
             <button
               key={conversation.id}
+              type="button"
               onClick={() => onSelect(conversation.id)}
+              aria-current={isActive ? 'true' : undefined}
               className={cn(
                 'relative w-full py-2 pl-3 pr-1 text-left transition-colors duration-150',
                 isActive ? 'bg-bg-soft' : 'hover:bg-bg-soft/60',

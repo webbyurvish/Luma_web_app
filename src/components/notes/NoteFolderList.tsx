@@ -15,7 +15,9 @@ export function NoteFolderList({ folders, active, onSelect }: NoteFolderListProp
         return (
           <button
             key={folder.id}
+            type="button"
             onClick={() => onSelect(folder.id)}
+            aria-pressed={isActive}
             className={cn(
               'relative flex shrink-0 items-center justify-between gap-3 py-1.5 pl-3 pr-1 text-left text-xs transition-colors lg:w-full',
               isActive ? 'text-ink' : 'text-ink-soft hover:text-ink',

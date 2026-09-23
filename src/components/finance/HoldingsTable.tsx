@@ -39,7 +39,16 @@ export function HoldingsTable({ investments, accounts, onSelect }: HoldingsTable
               <tr
                 key={investment.id}
                 onClick={() => onSelect(investment)}
-                className="cursor-pointer transition-colors hover:bg-bg-soft"
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    onSelect(investment)
+                  }
+                }}
+                tabIndex={0}
+                role="button"
+                aria-label={`View ${investment.name}`}
+                className="cursor-pointer transition-colors hover:bg-bg-soft focus-visible:bg-bg-soft"
               >
                 <td className="py-2.5 pr-3 font-medium text-ink">{investment.name}</td>
                 <td className="py-2.5 pr-3 text-[10px] font-semibold uppercase tracking-[0.05em]" style={{ color: meta.color }}>

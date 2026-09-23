@@ -151,6 +151,47 @@
     outline-offset: 2px;
     border-radius: 2px;
   }
+
+  /* Buttons don't get a pointer cursor from the browser by default — this is the one
+     place that's fixed for the whole app, rather than adding cursor-pointer to every
+     button individually. Scoped to real interactive elements only, never a global `*`. */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  [role='switch']:not([aria-disabled='true']),
+  [role='tab']:not([aria-disabled='true']),
+  [role='option']:not([aria-disabled='true']),
+  summary {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [role='button'][aria-disabled='true'],
+  [role='switch'][aria-disabled='true'] {
+    cursor: not-allowed;
+  }
+
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not(:disabled),
+  textarea:not(:disabled) {
+    cursor: text;
+  }
+
+  input:disabled,
+  textarea:disabled,
+  select:disabled {
+    cursor: not-allowed;
+  }
+
+  input[type='checkbox']:not(:disabled),
+  input[type='radio']:not(:disabled) {
+    cursor: pointer;
+  }
+
+  /* Subtle pressed feedback for plain buttons. Uses `filter`, not `transform`, so it
+     never fights the Button component's own whileTap scale animation. */
+  button:not(:disabled):active,
+  [role='button']:not([aria-disabled='true']):active {
+    filter: brightness(0.96);
+  }
 }
 
 @layer utilities {
