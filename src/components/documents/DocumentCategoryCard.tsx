@@ -24,7 +24,7 @@ export function DocumentCategoryCard({ name, count, icon: Icon, color, active, o
       <Icon size={15} style={{ color }} className="shrink-0" />
       <div className="min-w-0">
         <p className="truncate text-xs font-medium text-ink">{name}</p>
-        <p className="font-mono-figure text-[10px] text-ink-muted">{count} files</p>
+        <p className="font-mono-figure text-[10px] text-ink-muted">{count} {count === 1 ? "document" : "documents"}</p>
       </div>
     </button>
   )

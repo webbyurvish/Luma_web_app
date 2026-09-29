@@ -49,3 +49,17 @@ export interface Transaction {
    *  be voided from the UI since void is id-based only. */
   sourceId?: string
 }
+
+/** Editable fields of a sheet transaction, in the backend's update payload shape. */
+export interface TransactionUpdateInput {
+  /** yyyy-MM-dd */
+  date: string
+  amount: number
+  /** Sheet text: "Expense" | "Income" */
+  type: string
+  category: string
+  subcategory: string
+  paymentMethod: string
+  merchant: string
+  note: string
+}

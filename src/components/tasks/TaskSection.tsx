@@ -8,10 +8,16 @@ interface TaskSectionProps {
   title: string
   emptyText: string
   tasks: Task[]
-  onToggle: (id: string) => void
+  togglingId: string | null
+  /** Due-date cut-off (yyyy-MM-dd): open tasks due before it are flagged overdue. */
+  today: string
+  onToggle: (task: Task) => void
+  onEdit: (task: Task) => void
+  onArchive: (task: Task) => void
+  onDelete: (task: Task) => void
 }
 
-export function TaskSection({ title, emptyText, tasks, onToggle }: TaskSectionProps) {
+export function TaskSection({ title, emptyText, tasks, togglingId, today, onToggle, onEdit, onArchive, onDelete }: TaskSectionProps) {
   return (
     <section>
       <div className="mb-2 flex items-baseline gap-2">
@@ -22,9 +28,18 @@ export function TaskSection({ title, emptyText, tasks, onToggle }: TaskSectionPr
         <EmptyState icon={<ListChecks size={20} />} title="Nothing here" description={emptyText} />
       ) : (
         <Card>
-          <div className="-mt-2.5 divide-y divide-border-soft">
+          <div className="-my-1.5 divide-y divide-border-soft">
             {tasks.map((task) => (
-              <TaskCard key={task.id} task={task} onToggle={onToggle} />
+              <TaskCard
+                key={task.id}
+                task={task}
+                toggling={togglingId === task.id}
+                overdue={!task.completed && !!task.dueDate && task.dueDate < today}
+                onToggle={onToggle}
+                onEdit={onEdit}
+                onArchive={onArchive}
+                onDelete={onDelete}
+              />
             ))}
           </div>
         </Card>

@@ -13,6 +13,7 @@ import { UdhaarPreview } from '@/components/dashboard/UdhaarPreview'
 import { RecentTransactions } from '@/components/dashboard/RecentTransactions'
 import { FinanceSnapshotCard } from '@/components/dashboard/FinanceSnapshotCard'
 import { QuickActionModal } from '@/components/common/QuickActionModal'
+import { QuickAddBar } from '@/components/ai/QuickAddBar'
 import { ChartCardSkeleton } from '@/components/ui/Skeleton'
 import { useTransactions } from '@/hooks/useTransactions'
 import { currentIstMonth } from '@/lib/formatDate'
@@ -22,7 +23,7 @@ import {
   calculateMonthlySpending,
   calculateWeeklySpending,
 } from '@/lib/transactionCalculations'
-import { mockUdhaarSummary } from '@/data/mockUdhaar'
+import { useUdhaar } from '@/hooks/useLifeCollections'
 
 function previousMonth({ monthIndex, year }: MonthValue): MonthValue {
   return monthIndex === 0 ? { monthIndex: 11, year: year - 1 } : { monthIndex: monthIndex - 1, year }
@@ -30,6 +31,7 @@ function previousMonth({ monthIndex, year }: MonthValue): MonthValue {
 
 export function Dashboard() {
   const { transactions, loading, error, refetch } = useTransactions()
+  const { summary: udhaarSummary } = useUdhaar()
   const [selectedMonth, setSelectedMonth] = useState<MonthValue>(() => currentIstMonth())
   const [addExpenseOpen, setAddExpenseOpen] = useState(false)
 
@@ -43,8 +45,8 @@ export function Dashboard() {
   )
 
   const summary = useMemo(
-    () => buildFinanceSummary(monthTransactions, previousMonthTransactions, { udhaarReceivable: mockUdhaarSummary.toReceive }),
-    [monthTransactions, previousMonthTransactions],
+    () => buildFinanceSummary(monthTransactions, previousMonthTransactions, { udhaarReceivable: udhaarSummary.toReceive }),
+    [monthTransactions, previousMonthTransactions, udhaarSummary.toReceive],
   )
   const categorySpending = useMemo(() => calculateCategorySpending(monthTransactions), [monthTransactions])
   const weeklySpending = useMemo(() => calculateWeeklySpending(transactions), [transactions])
@@ -69,6 +71,8 @@ export function Dashboard() {
         <ErrorState title="Couldn't load your financial data." description={error} onRetry={refetch} />
       ) : (
         <>
+          <QuickAddBar />
+
           {loading ? <ChartCardSkeleton /> : <OverviewBand summary={summary} />}
 
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">

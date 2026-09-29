@@ -7,6 +7,7 @@ import { ListSkeleton, NetWorthPanelSkeleton } from '@/components/ui/Skeleton'
 import { SlowLoadHint, SyncBadge, SyncBar } from '@/components/ui/Loader'
 import { getErrorMessage } from '@/lib/errors'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { DeleteRecordDialog } from '@/components/ui/DeleteRecordDialog'
 import { AllocationDonut } from './AllocationDonut'
 import { HoldingsTable } from './HoldingsTable'
 import { InvestmentEditor } from './InvestmentEditor'
@@ -23,12 +24,13 @@ interface InvestmentsSectionProps {
 }
 
 export function InvestmentsSection({ accounts }: InvestmentsSectionProps) {
-  const { investments, loading, refreshing, error, refetch, createInvestment, creating, updateInvestment, updating, archiveInvestment, archiving } = useInvestments()
+  const { investments, loading, refreshing, error, refetch, createInvestment, creating, updateInvestment, updating, archiveInvestment, archiving, deleteInvestment, deleting } = useInvestments()
   const { showToast } = useToast()
 
   const [viewingInvestment, setViewingInvestment] = useState<Investment | null>(null)
   const [editorTarget, setEditorTarget] = useState<Investment | 'new' | null>(null)
   const [archiveTarget, setArchiveTarget] = useState<Investment | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Investment | null>(null)
 
   const totals = getInvestmentTotals(investments)
   const allocation = getInvestmentTypeAllocation(investments)
@@ -57,6 +59,17 @@ export function InvestmentsSection({ accounts }: InvestmentsSectionProps) {
       setArchiveTarget(null)
     } catch (err) {
       showToast(getErrorMessage(err, "Couldn't archive the investment. Please try again."), 'error')
+    }
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return
+    try {
+      await deleteInvestment(deleteTarget.id)
+      showToast('Investment deleted')
+      setDeleteTarget(null)
+    } catch (err) {
+      showToast(getErrorMessage(err, "Couldn't delete the investment. Please try again."), 'error')
     }
   }
 
@@ -133,6 +146,10 @@ export function InvestmentsSection({ accounts }: InvestmentsSectionProps) {
           setViewingInvestment(null)
           setArchiveTarget(investment)
         }}
+        onDelete={(investment) => {
+          setViewingInvestment(null)
+          setDeleteTarget(investment)
+        }}
       />
 
       <InvestmentEditor
@@ -153,6 +170,16 @@ export function InvestmentsSection({ accounts }: InvestmentsSectionProps) {
         loadingLabel="Archiving…"
         onConfirm={handleArchiveConfirm}
         onCancel={() => setArchiveTarget(null)}
+      />
+
+      <DeleteRecordDialog
+        open={deleteTarget !== null}
+        recordType="investment"
+        recordName={deleteTarget?.name}
+        softActionLabel="Archive"
+        loading={deleting}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteTarget(null)}
       />
     </div>
   )

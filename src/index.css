@@ -333,6 +333,10 @@
     width: 3px;
     background: var(--color-rust);
   }
+  /* Luma's own answers carry the assistant's navy rule instead of the ledger rust. */
+  .ledger-marker-ai::before {
+    background: var(--color-ai);
+  }
 
   /* Skeleton loading sweep — a soft rust-tinted highlight drifts across the base
      tone rather than a flat pulse, so a screenful of skeletons reads as one

@@ -13,7 +13,7 @@ import { getBootstrap } from '@/services/googleSheetsApi'
  *    renders at once and only the background re-sync is waited on.
  */
 
-export type RemoteKey = 'accounts' | 'investments' | 'sips' | 'liabilities' | 'transactions' | 'notes'
+export type RemoteKey = 'accounts' | 'investments' | 'sips' | 'liabilities' | 'transactions' | 'notes' | 'udhaar' | 'tasks' | 'documents'
 
 export interface EntrySnapshot {
   /** Raw API rows, or null until something (cache or network) has provided them. */
@@ -36,8 +36,8 @@ interface Entry {
   generation: number
 }
 
-type BootstrapKey = 'accounts' | 'investments' | 'sips' | 'liabilities' | 'transactions'
-const BOOTSTRAP_KEYS: BootstrapKey[] = ['accounts', 'investments', 'sips', 'liabilities', 'transactions']
+type BootstrapKey = 'accounts' | 'investments' | 'sips' | 'liabilities' | 'transactions' | 'udhaar'
+const BOOTSTRAP_KEYS: BootstrapKey[] = ['accounts', 'investments', 'sips', 'liabilities', 'transactions', 'udhaar']
 const CACHE_PREFIX = 'luma:cache:v1:'
 const CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000
 /** Data younger than this is reused as-is when another page mounts; older data is re-synced in the background. */
@@ -213,4 +213,10 @@ export function ensureLoaded(key: RemoteKey, fetchFn: () => Promise<unknown[]>, 
  */
 export function refetch(key: RemoteKey, fetchFn: () => Promise<unknown[]>, fallbackError: string): Promise<void> {
   return runFetch(key, fetchFn, fallbackError)
+}
+
+/** Whether the current rows for `key` still contain a record whose `idField` equals `id`. */
+export function hasRecord(key: RemoteKey, idField: string, id: string): boolean {
+  const raw = getEntry(key).snapshot.raw as Record<string, unknown>[] | null
+  return !!raw?.some((row) => String(row[idField] ?? '').trim() === id)
 }

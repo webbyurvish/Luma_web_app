@@ -22,7 +22,7 @@ import {
   calculateMonthlySpending,
   calculatePaymentMethodSpending,
 } from '@/lib/transactionCalculations'
-import { mockUdhaarSummary } from '@/data/mockUdhaar'
+import { useUdhaar } from '@/hooks/useLifeCollections'
 import type { FinanceTab } from './financeTabs'
 
 interface FinanceOverviewProps {
@@ -45,7 +45,8 @@ export function FinanceOverview({ onSelectTab }: FinanceOverviewProps) {
     refetchLiabilities()
   }
 
-  const udhaarReceivable = mockUdhaarSummary.toReceive
+  const { summary: udhaarSummary } = useUdhaar()
+  const udhaarReceivable = udhaarSummary.toReceive
   const netWorth = getNetWorth({ accounts, investments, liabilities, udhaarReceivable })
   const allocation = getAssetAllocation({ accounts, investments, liabilities, udhaarReceivable })
   const investmentTotals = getInvestmentTotals(investments)

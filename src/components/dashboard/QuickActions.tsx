@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowLeftRight, CircleMinus, CirclePlus, HandCoins, ListChecks, Upload } from 'lucide-react'
+import { ArrowLeftRight, CircleMinus, CirclePlus, FilePlus2, HandCoins, ListChecks } from 'lucide-react'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { QuickActionModal, type QuickActionKind } from '@/components/common/QuickActionModal'
 import { cn } from '@/lib/cn'
@@ -17,7 +17,7 @@ const actions: QuickActionDef[] = [
   { kind: 'udhaar', label: 'Add udhaar', icon: HandCoins, color: 'text-ai' },
   { kind: 'repayment', label: 'Add repayment', icon: ArrowLeftRight, color: 'text-pink' },
   { kind: 'task', label: 'Add task', icon: ListChecks, color: 'text-ink-soft' },
-  { kind: 'document', label: 'Upload document', icon: Upload, color: 'text-cyan' },
+  { kind: 'document', label: 'Add document', icon: FilePlus2, color: 'text-cyan' },
 ]
 
 export function QuickActions() {

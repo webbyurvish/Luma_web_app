@@ -1,122 +1,151 @@
-import { type FormEvent, useEffect, useState } from 'react'
-import { Modal } from '@/components/ui/Modal'
-import { Input } from '@/components/ui/Input'
-import { ThemedSelect } from '@/components/ui/ThemedSelect'
-import { Button } from '@/components/ui/Button'
+import { useMemo } from 'react'
+import { TransactionEditor } from '@/components/transactions/TransactionEditor'
+import { UdhaarEntryEditor } from '@/components/udhaar/UdhaarEntryEditor'
+import { TaskEditor } from '@/components/tasks/TaskEditor'
+import { DocumentEditor } from '@/components/documents/DocumentEditor'
+import { useTransactions } from '@/hooks/useTransactions'
+import { useDocuments, useTasks, useUdhaar } from '@/hooks/useLifeCollections'
 import { useToast } from '@/context/ToastContext'
+import { getErrorMessage } from '@/lib/errors'
+import type { QuickAddDraft } from '@/services/googleSheetsApi'
+import type { DocumentInput, TaskInput, TransactionUpdateInput, UdhaarEntryInput } from '@/types'
 
 export type QuickActionKind = 'expense' | 'income' | 'udhaar' | 'repayment' | 'task' | 'document'
-
-interface QuickActionConfig {
-  title: string
-  subtitle: string
-  submitLabel: string
-  successMessage: string
-}
-
-const CONFIG: Record<QuickActionKind, QuickActionConfig> = {
-  expense: { title: 'Add Expense', subtitle: 'Log a new expense', submitLabel: 'Add Expense', successMessage: 'Expense added (demo — not saved yet)' },
-  income: { title: 'Add Income', subtitle: 'Log a new income entry', submitLabel: 'Add Income', successMessage: 'Income added (demo — not saved yet)' },
-  udhaar: { title: 'Add Udhaar', subtitle: 'Record money given to someone', submitLabel: 'Add Udhaar', successMessage: 'Udhaar recorded (demo — not saved yet)' },
-  repayment: { title: 'Add Repayment', subtitle: 'Record a repayment received', submitLabel: 'Add Repayment', successMessage: 'Repayment recorded (demo — not saved yet)' },
-  task: { title: 'Add Task', subtitle: 'Create a new task or reminder', submitLabel: 'Add Task', successMessage: 'Task added (demo — not saved yet)' },
-  document: { title: 'Upload Document', subtitle: 'Add a document to your library', submitLabel: 'Upload', successMessage: 'Document upload is coming in a future phase' },
-}
-
-const categoryOptions = ['Food', 'Transport', 'Shopping', 'Bills', 'Entertainment', 'Health', 'Other'].map((label) => ({ value: label, label }))
-const priorityOptions = ['Low', 'Medium', 'High'].map((label) => ({ value: label, label }))
-const paymentOptions = ['UPI', 'Card', 'Cash', 'Bank Transfer', 'Net Banking'].map((label) => ({ value: label, label }))
 
 interface QuickActionModalProps {
   open: boolean
   kind: QuickActionKind
   onClose: () => void
+  /** AI-parsed values to pre-fill (quick-add); the user still reviews and saves. */
+  draft?: QuickAddDraft | null
 }
 
-export function QuickActionModal({ open, kind, onClose }: QuickActionModalProps) {
+/**
+ * The Dashboard's quick "Add …" entry point. Opens the same real editor each page uses, so
+ * anything added here is saved to the sheet exactly like it would be from its own page.
+ */
+export function QuickActionModal({ open, kind, onClose, draft }: QuickActionModalProps) {
+  const d = draft ?? undefined
+  if (kind === 'expense' || kind === 'income') return <QuickTransaction open={open} type={kind === 'income' ? 'Income' : 'Expense'} onClose={onClose} draft={d} />
+  if (kind === 'udhaar' || kind === 'repayment') return <QuickUdhaar open={open} type={kind === 'udhaar' ? 'given' : 'repayment'} onClose={onClose} draft={d} />
+  if (kind === 'task') return <QuickTask open={open} onClose={onClose} draft={d} />
+  return <QuickDocument open={open} onClose={onClose} />
+}
+
+function useSaveHandler(onClose: () => void) {
   const { showToast } = useToast()
-  const config = CONFIG[kind]
-  const [submitting, setSubmitting] = useState(false)
-  const [category, setCategory] = useState('')
-  const [payment, setPayment] = useState('')
-  const [priority, setPriority] = useState('')
-
-  useEffect(() => {
-    if (!open) return
-    setCategory('')
-    setPayment('')
-    setPriority('')
-  }, [open, kind])
-
-  const handleSubmit = (event: FormEvent) => {
-    event.preventDefault()
-    setSubmitting(true)
-    setTimeout(() => {
-      setSubmitting(false)
-      showToast(config.successMessage)
+  return async (action: () => Promise<void>, success: string, failure: string) => {
+    try {
+      await action()
+      showToast(success)
       onClose()
-    }, 450)
+    } catch (err) {
+      showToast(getErrorMessage(err, failure), 'error')
+    }
   }
+}
 
+function QuickTransaction({ open, type, onClose, draft }: { open: boolean; type: 'Expense' | 'Income'; onClose: () => void; draft?: QuickAddDraft }) {
+  const txDraft = useMemo(
+    () =>
+      draft && {
+        type,
+        amount: draft.amount ?? undefined,
+        date: draft.date ?? undefined,
+        category: draft.category ?? undefined,
+        subcategory: draft.subcategory ?? undefined,
+        merchant: draft.merchant ?? undefined,
+        paymentMethod: draft.paymentMethod ?? undefined,
+        note: draft.note ?? undefined,
+      },
+    [draft, type],
+  )
+  const { transactions, createTransaction, creating } = useTransactions()
+  const save = useSaveHandler(onClose)
   return (
-    <Modal open={open} onClose={onClose} title={config.title} subtitle={config.subtitle} busy={submitting}>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        {(kind === 'expense' || kind === 'income' || kind === 'udhaar' || kind === 'repayment') && (
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-ink-soft">Amount (₹)</label>
-            <Input type="number" min={0} placeholder="0" required />
-          </div>
-        )}
+    <TransactionEditor
+      open={open}
+      transaction={null}
+      newType={type}
+      draft={txDraft ?? undefined}
+      allTransactions={transactions}
+      onClose={onClose}
+      onSave={(input) => save(() => createTransaction(input as TransactionUpdateInput), `${input.type ?? type} added`, "Couldn't add the transaction. Please try again.")}
+      saving={creating}
+    />
+  )
+}
 
-        {(kind === 'expense' || kind === 'income') && (
-          <ThemedSelect label="Category" value={category} onChange={setCategory} options={categoryOptions} placeholder="Select category" />
-        )}
+function QuickUdhaar({ open, type, onClose, draft }: { open: boolean; type: 'given' | 'repayment'; onClose: () => void; draft?: QuickAddDraft }) {
+  const udhaarDraft = useMemo(
+    () =>
+      draft && {
+        type,
+        person: draft.person ?? undefined,
+        amount: draft.amount ?? undefined,
+        date: draft.date ?? undefined,
+        dueDate: draft.dueDate ?? undefined,
+        paymentMethod: draft.paymentMethod ?? undefined,
+        note: draft.note ?? undefined,
+      },
+    [draft, type],
+  )
+  const { people, createEntry, creating } = useUdhaar()
+  const save = useSaveHandler(onClose)
+  return (
+    <UdhaarEntryEditor
+      open={open}
+      entry={null}
+      draft={udhaarDraft ?? undefined}
+      newType={type}
+      knownPeople={people.map((p) => p.name)}
+      onClose={onClose}
+      onSave={(input: UdhaarEntryInput) =>
+        save(
+          () => createEntry(input),
+          input.type === 'given' ? `Udhaar to ${input.person} added` : `Repayment from ${input.person} recorded`,
+          "Couldn't save the udhaar entry. Please try again.",
+        )
+      }
+      saving={creating}
+    />
+  )
+}
 
-        {(kind === 'udhaar' || kind === 'repayment') && (
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-ink-soft">Person</label>
-            <Input placeholder="e.g. Rahul Mehta" required />
-          </div>
-        )}
+function QuickTask({ open, onClose, draft }: { open: boolean; onClose: () => void; draft?: QuickAddDraft }) {
+  const taskDraft = useMemo(
+    () =>
+      draft && {
+        title: draft.title ?? draft.note ?? undefined,
+        dueDate: draft.dueDate ?? draft.date ?? undefined,
+        priority: draft.priority ?? undefined,
+      },
+    [draft],
+  )
+  const { createTask, creating } = useTasks()
+  const save = useSaveHandler(onClose)
+  return (
+    <TaskEditor
+      open={open}
+      task={null}
+      draft={taskDraft ?? undefined}
+      onClose={onClose}
+      onSave={(input: TaskInput) => save(() => createTask(input), 'Task added', "Couldn't add the task. Please try again.")}
+      saving={creating}
+    />
+  )
+}
 
-        {(kind === 'expense' || kind === 'income' || kind === 'udhaar' || kind === 'repayment') && (
-          <ThemedSelect label="Payment Method" value={payment} onChange={setPayment} options={paymentOptions} placeholder="Select method" />
-        )}
-
-        {kind === 'task' && (
-          <>
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-ink-soft">Task Title</label>
-              <Input placeholder="e.g. Pay electricity bill" required />
-            </div>
-            <ThemedSelect label="Priority" value={priority} onChange={setPriority} options={priorityOptions} placeholder="Select priority" />
-          </>
-        )}
-
-        {kind === 'document' && (
-          <div className="flex flex-col items-center justify-center gap-2 rounded-btn border border-dashed border-border bg-bg-soft px-4 py-8 text-center">
-            <p className="text-xs text-ink-soft">File uploads arrive in a future phase</p>
-          </div>
-        )}
-
-        {kind !== 'document' && (
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-ink-soft">
-              {kind === 'task' ? 'Due Date' : 'Date'}
-            </label>
-            <Input type="date" defaultValue="2026-09-22" required />
-          </div>
-        )}
-
-        <div className="mt-2 flex items-center justify-end gap-2">
-          <Button type="button" variant="secondary" onClick={onClose} disabled={submitting}>
-            Cancel
-          </Button>
-          <Button type="submit" loading={submitting} loadingText="Saving…">
-            {config.submitLabel}
-          </Button>
-        </div>
-      </form>
-    </Modal>
+function QuickDocument({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { createDocument, creating } = useDocuments()
+  const save = useSaveHandler(onClose)
+  return (
+    <DocumentEditor
+      open={open}
+      document={null}
+      onClose={onClose}
+      onSave={(input: DocumentInput) => save(() => createDocument(input), 'Document added', "Couldn't add the document. Please try again.")}
+      saving={creating}
+    />
   )
 }

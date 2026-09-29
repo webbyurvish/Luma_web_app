@@ -8,6 +8,8 @@ import { ListSkeleton } from '@/components/ui/Skeleton'
 import { SlowLoadHint, SyncBadge, SyncBar } from '@/components/ui/Loader'
 import { getErrorMessage } from '@/lib/errors'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { DeleteRecordDialog } from '@/components/ui/DeleteRecordDialog'
+import { useInvestments, useSips } from '@/hooks/useFinanceCollections'
 import { AccountRow } from './AccountRow'
 import { AccountEditor } from './AccountEditor'
 import type { UseAccountsResult } from '@/hooks/useFinanceCollections'
@@ -24,11 +26,15 @@ interface AccountsSectionProps {
 }
 
 export function AccountsSection({ accountsState }: AccountsSectionProps) {
-  const { accounts, loading, refreshing, error, refetch, createAccount, creating, updateAccount, updating, archiveAccount, archiving } = accountsState
+  const { accounts, loading, refreshing, error, refetch, createAccount, creating, updateAccount, updating, archiveAccount, archiving, deleteAccount, deleting } = accountsState
   const { showToast } = useToast()
 
   const [editorTarget, setEditorTarget] = useState<FinancialAccount | 'new' | null>(null)
   const [archiveTarget, setArchiveTarget] = useState<FinancialAccount | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<FinancialAccount | null>(null)
+  // Shared store: these reuse the Investments/SIPs tabs' data, no extra requests.
+  const { investments } = useInvestments()
+  const { sips } = useSips()
 
   const groups = useMemo(() => {
     return GROUP_ORDER.map((type) => {
@@ -63,6 +69,30 @@ export function AccountsSection({ accountsState }: AccountsSectionProps) {
       setArchiveTarget(null)
     } catch (err) {
       showToast(getErrorMessage(err, "Couldn't archive the account. Please try again."), 'error')
+    }
+  }
+
+  // Checked up front from data already on screen; the backend re-checks (incl. transactions/udhaar).
+  const deleteBlockedReason = useMemo(() => {
+    if (!deleteTarget) return null
+    const linked = [
+      [investments.filter((i) => i.platformAccountId === deleteTarget.id).length, 'investment'],
+      [sips.filter((s) => s.isActive && s.platformAccountId === deleteTarget.id).length, 'active SIP'],
+    ] as const
+    const parts = linked.filter(([count]) => count > 0).map(([count, label]) => `${count} ${label}${count > 1 ? 's' : ''}`)
+    return parts.length
+      ? `"${deleteTarget.name}" is still linked to ${parts.join(' and ')}. Delete or archive those first, or archive this account instead.`
+      : null
+  }, [deleteTarget, investments, sips])
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return
+    try {
+      await deleteAccount(deleteTarget.id)
+      showToast('Account deleted')
+      setDeleteTarget(null)
+    } catch (err) {
+      showToast(getErrorMessage(err, "Couldn't delete the account. Please try again."), 'error')
     }
   }
 
@@ -117,7 +147,7 @@ export function AccountsSection({ accountsState }: AccountsSectionProps) {
                 </div>
                 <div className="divide-y divide-border-soft">
                   {group.items.map((account) => (
-                    <AccountRow key={account.id} account={account} onEdit={setEditorTarget} onArchive={setArchiveTarget} />
+                    <AccountRow key={account.id} account={account} onEdit={setEditorTarget} onArchive={setArchiveTarget} onDelete={setDeleteTarget} />
                   ))}
                 </div>
               </div>
@@ -143,6 +173,17 @@ export function AccountsSection({ accountsState }: AccountsSectionProps) {
         loadingLabel="Archiving…"
         onConfirm={handleArchiveConfirm}
         onCancel={() => setArchiveTarget(null)}
+      />
+
+      <DeleteRecordDialog
+        open={deleteTarget !== null}
+        recordType="account"
+        recordName={deleteTarget?.name}
+        blockedReason={deleteBlockedReason}
+        softActionLabel="Archive"
+        loading={deleting}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteTarget(null)}
       />
     </Card>
   )

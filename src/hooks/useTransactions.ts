@@ -1,8 +1,13 @@
-import { getTransactions, voidTransaction as voidTransactionApi } from '@/services/googleSheetsApi'
+import {
+  createTransaction as createTransactionApi,
+  deleteTransaction as deleteTransactionApi,
+  getTransactions,
+  updateTransaction as updateTransactionApi,
+  voidTransaction as voidTransactionApi,
+} from '@/services/googleSheetsApi'
 import { normalizeTransactions } from '@/lib/transactionAdapter'
-import { useRemoteList, useSyncedAction } from './useRemoteData'
-import type { Transaction } from '@/types'
-import type { RawTransaction } from '@/types/googleSheets'
+import { useDeleteAction, useRemoteList, useSyncedAction } from './useRemoteData'
+import type { RawTransaction, Transaction, TransactionUpdateInput } from '@/types'
 
 export interface UseTransactionsResult {
   transactions: Transaction[]
@@ -10,8 +15,14 @@ export interface UseTransactionsResult {
   refreshing: boolean
   error: string | null
   refetch: () => Promise<void>
+  createTransaction: (input: TransactionUpdateInput) => Promise<void>
+  creating: boolean
   voidTransaction: (sourceId: string) => Promise<void>
   voiding: boolean
+  updateTransaction: (sourceId: string, input: Partial<TransactionUpdateInput>) => Promise<void>
+  updating: boolean
+  deleteTransaction: (sourceId: string) => Promise<void>
+  deleting: boolean
 }
 
 function transformRows(rows: RawTransaction[]): Transaction[] {
@@ -27,7 +38,13 @@ function transformRows(rows: RawTransaction[]): Transaction[] {
  */
 export function useTransactions(): UseTransactionsResult {
   const { items, loading, refreshing, error, refetch } = useRemoteList('transactions', getTransactions, transformRows, 'Failed to load transactions.')
+  const [createTransaction, creating] = useSyncedAction((input: TransactionUpdateInput) => createTransactionApi({ ...input }), refetch)
   const [voidTransaction, voiding] = useSyncedAction((sourceId: string) => voidTransactionApi(sourceId), refetch)
+  const [updateTransaction, updating] = useSyncedAction(
+    (sourceId: string, input: Partial<TransactionUpdateInput>) => updateTransactionApi(sourceId, { ...input }),
+    refetch,
+  )
+  const [deleteTransaction, deleting] = useDeleteAction('transactions', 'id', deleteTransactionApi, refetch)
 
-  return { transactions: items, loading, refreshing, error, refetch, voidTransaction, voiding }
+  return { transactions: items, loading, refreshing, error, refetch, createTransaction, creating, voidTransaction, voiding, updateTransaction, updating, deleteTransaction, deleting }
 }

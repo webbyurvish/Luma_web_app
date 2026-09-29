@@ -1,33 +1,57 @@
-import { motion } from 'framer-motion'
-import { fadeUp } from '@/lib/motion'
-import { cn } from '@/lib/cn'
+import { useEffect, useRef } from 'react'
+import { ArrowRight } from 'lucide-react'
+import { ChatMessageItem } from './ChatMessageItem'
+import { ThinkingIndicator } from './ThinkingIndicator'
 import type { ChatMessage } from '@/types'
 
-export function ChatWindow({ messages }: { messages: ChatMessage[] }) {
+interface ChatWindowProps {
+  messages: ChatMessage[]
+  thinking: boolean
+  /** Ids of answers that arrived in this session — only these type themselves out. */
+  freshIds: Set<string>
+  followUps: string[]
+  onRetry: (assistantMessageId: string) => void
+  onFollowUp: (prompt: string) => void
+}
+
+export function ChatWindow({ messages, thinking, freshIds, followUps, onRetry, onFollowUp }: ChatWindowProps) {
+  const endRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+  }, [messages.length, thinking])
+
+  const last = messages.at(-1)
+  const showFollowUps = !thinking && last?.role === 'assistant' && !last.error && followUps.length > 0
+
   return (
-    <div className="flex flex-1 flex-col gap-5 overflow-y-auto py-2">
-      {messages.map((message, index) => {
-        const isAssistant = message.role === 'assistant'
-        return (
-          <motion.div
-            key={message.id}
-            custom={index}
-            variants={fadeUp}
-            initial="hidden"
-            animate="visible"
-            className={cn(isAssistant ? 'max-w-[85%]' : 'ml-auto max-w-[75%] text-right')}
-          >
-            <p className={cn('mb-1 text-[10px] font-semibold uppercase tracking-[0.1em]', isAssistant ? 'text-ai' : 'text-ink-muted')}>
-              {isAssistant ? 'Luma' : 'You'}
-            </p>
-            {isAssistant ? (
-              <p className="ledger-marker pl-3 text-sm leading-relaxed text-ink [&::before]:bg-ai">{message.content}</p>
-            ) : (
-              <p className="font-display text-[15px] italic leading-relaxed text-ink">{message.content}</p>
-            )}
-          </motion.div>
-        )
-      })}
+    <div className="flex flex-col gap-6 px-1 py-4" aria-live="polite">
+      {messages.map((message) => (
+        <ChatMessageItem
+          key={message.id}
+          message={message}
+          animate={freshIds.has(message.id)}
+          onRetry={message.role === 'assistant' && (message.error || message.id === last?.id) ? () => onRetry(message.id) : undefined}
+        />
+      ))}
+
+      {thinking && <ThinkingIndicator />}
+
+      {showFollowUps && (
+        <div className="flex flex-wrap gap-2 pl-[38px]">
+          {followUps.map((prompt) => (
+            <button
+              key={prompt}
+              type="button"
+              onClick={() => onFollowUp(prompt)}
+              className="group inline-flex items-center gap-1.5 rounded-pill border border-border bg-card px-3 py-1.5 text-[11px] text-ink-soft transition-colors hover:border-ai/50 hover:text-ai"
+            >
+              {prompt}
+              <ArrowRight size={11} className="transition-transform group-hover:translate-x-0.5" />
+            </button>
+          ))}
+        </div>
+      )}
+      <div ref={endRef} />
     </div>
   )
 }

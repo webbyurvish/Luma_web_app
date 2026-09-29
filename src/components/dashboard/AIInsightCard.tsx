@@ -2,7 +2,7 @@ import { type FormEvent, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
-import { mockSuggestedPrompts } from '@/data/mockAssistant'
+import { SUGGESTED_PROMPTS } from '@/lib/assistantPrompts'
 
 export function AIInsightCard() {
   const navigate = useNavigate()
@@ -10,7 +10,8 @@ export function AIInsightCard() {
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
-    navigate('/assistant')
+    if (query.trim()) navigate('/assistant', { state: { ask: query.trim() } })
+    else navigate('/assistant')
   }
 
   return (
@@ -34,13 +35,13 @@ export function AIInsightCard() {
       </form>
 
       <ul className="mt-4 space-y-1.5">
-        {mockSuggestedPrompts.slice(0, 3).map((prompt) => (
-          <li key={prompt.id}>
+        {SUGGESTED_PROMPTS.slice(0, 3).map((prompt) => (
+          <li key={prompt}>
             <button
-              onClick={() => navigate('/assistant')}
+              onClick={() => navigate('/assistant', { state: { ask: prompt } })}
               className="text-left text-[11px] text-ink-soft transition-colors hover:text-ai"
             >
-              {prompt.label}
+              {prompt}
             </button>
           </li>
         ))}

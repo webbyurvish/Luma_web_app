@@ -8,6 +8,7 @@ import { ListSkeleton, StatTileSkeleton } from '@/components/ui/Skeleton'
 import { SlowLoadHint, SyncBadge, SyncBar } from '@/components/ui/Loader'
 import { getErrorMessage } from '@/lib/errors'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { DeleteRecordDialog } from '@/components/ui/DeleteRecordDialog'
 import { SipRow } from './SipRow'
 import { SipEditor } from './SipEditor'
 import { SipContributionBars } from './SipContributionBars'
@@ -24,11 +25,12 @@ interface SipsSectionProps {
 }
 
 export function SipsSection({ accounts }: SipsSectionProps) {
-  const { sips, loading, refreshing, error, refetch, createSip, creating, updateSip, updating, deactivateSip, deactivating } = useSips()
+  const { sips, loading, refreshing, error, refetch, createSip, creating, updateSip, updating, deactivateSip, deactivating, deleteSip, deleting } = useSips()
   const { showToast } = useToast()
 
   const [editorTarget, setEditorTarget] = useState<SIP | 'new' | null>(null)
   const [deactivateTarget, setDeactivateTarget] = useState<SIP | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<SIP | null>(null)
 
   const monthlyTotal = getMonthlySipTotal(sips)
   const activeCount = getActiveSipCount(sips)
@@ -63,6 +65,17 @@ export function SipsSection({ accounts }: SipsSectionProps) {
       setDeactivateTarget(null)
     } catch (err) {
       showToast(getErrorMessage(err, "Couldn't deactivate the SIP. Please try again."), 'error')
+    }
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return
+    try {
+      await deleteSip(deleteTarget.id)
+      showToast('SIP deleted')
+      setDeleteTarget(null)
+    } catch (err) {
+      showToast(getErrorMessage(err, "Couldn't delete the SIP. Please try again."), 'error')
     }
   }
 
@@ -134,7 +147,7 @@ export function SipsSection({ accounts }: SipsSectionProps) {
             {activeSips.length > 0 && (
               <div className="divide-y divide-border-soft">
                 {activeSips.map((sip) => (
-                  <SipRow key={sip.id} sip={sip} platform={platformFor(sip.platformAccountId)} onEdit={setEditorTarget} onDeactivate={setDeactivateTarget} />
+                  <SipRow key={sip.id} sip={sip} platform={platformFor(sip.platformAccountId)} onEdit={setEditorTarget} onDeactivate={setDeactivateTarget} onDelete={setDeleteTarget} />
                 ))}
               </div>
             )}
@@ -143,7 +156,7 @@ export function SipsSection({ accounts }: SipsSectionProps) {
                 <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">Paused</p>
                 <div className="divide-y divide-border-soft">
                   {pausedSips.map((sip) => (
-                    <SipRow key={sip.id} sip={sip} platform={platformFor(sip.platformAccountId)} onEdit={setEditorTarget} onDeactivate={setDeactivateTarget} />
+                    <SipRow key={sip.id} sip={sip} platform={platformFor(sip.platformAccountId)} onEdit={setEditorTarget} onDeactivate={setDeactivateTarget} onDelete={setDeleteTarget} />
                   ))}
                 </div>
               </div>
@@ -170,6 +183,16 @@ export function SipsSection({ accounts }: SipsSectionProps) {
         loadingLabel="Deactivating…"
         onConfirm={handleDeactivateConfirm}
         onCancel={() => setDeactivateTarget(null)}
+      />
+
+      <DeleteRecordDialog
+        open={deleteTarget !== null}
+        recordType="SIP"
+        recordName={deleteTarget?.fundName}
+        softActionLabel={deleteTarget?.isActive ? 'Deactivate' : undefined}
+        loading={deleting}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteTarget(null)}
       />
     </div>
   )

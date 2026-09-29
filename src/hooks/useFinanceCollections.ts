@@ -1,6 +1,10 @@
 import { useCallback } from 'react'
 import {
   archiveAccount as archiveAccountApi,
+  deleteAccount as deleteAccountApi,
+  deleteInvestment as deleteInvestmentApi,
+  deleteLiability as deleteLiabilityApi,
+  deleteSip as deleteSipApi,
   archiveInvestment as archiveInvestmentApi,
   closeLiability as closeLiabilityApi,
   createAccount as createAccountApi,
@@ -27,7 +31,7 @@ import {
   normalizeLiability,
   normalizeSip,
 } from '@/lib/financeAdapters'
-import { type RemoteListResult, useRemoteList, useSyncedAction } from './useRemoteData'
+import { type RemoteListResult, useDeleteAction, useRemoteList, useSyncedAction } from './useRemoteData'
 import type { RemoteKey } from '@/lib/remoteStore'
 import type { AccountInput, FinancialAccount, Investment, InvestmentInput, Liability, LiabilityInput, SIP, SIPInput } from '@/types'
 
@@ -54,6 +58,8 @@ export interface UseAccountsResult {
   updating: boolean
   archiveAccount: (id: string) => Promise<void>
   archiving: boolean
+  deleteAccount: (id: string) => Promise<void>
+  deleting: boolean
 }
 
 export function useAccounts(): UseAccountsResult {
@@ -64,8 +70,9 @@ export function useAccounts(): UseAccountsResult {
     refetch,
   )
   const [archiveAccount, archiving] = useSyncedAction((id: string) => archiveAccountApi(id), refetch)
+  const [deleteAccount, deleting] = useDeleteAction('accounts', 'accountId', deleteAccountApi, refetch)
 
-  return { accounts: items, loading, refreshing, error, refetch, createAccount, creating, updateAccount, updating, archiveAccount, archiving }
+  return { accounts: items, loading, refreshing, error, refetch, createAccount, creating, updateAccount, updating, archiveAccount, archiving, deleteAccount, deleting }
 }
 
 export interface UseInvestmentsResult {
@@ -80,6 +87,8 @@ export interface UseInvestmentsResult {
   updating: boolean
   archiveInvestment: (id: string) => Promise<void>
   archiving: boolean
+  deleteInvestment: (id: string) => Promise<void>
+  deleting: boolean
 }
 
 export function useInvestments(): UseInvestmentsResult {
@@ -93,6 +102,7 @@ export function useInvestments(): UseInvestmentsResult {
     refetch,
   )
   const [archiveInvestment, archiving] = useSyncedAction((id: string) => archiveInvestmentApi(id), refetch)
+  const [deleteInvestment, deleting] = useDeleteAction('investments', 'investmentId', deleteInvestmentApi, refetch)
 
   return {
     investments: items,
@@ -106,6 +116,8 @@ export function useInvestments(): UseInvestmentsResult {
     updating,
     archiveInvestment,
     archiving,
+    deleteInvestment,
+    deleting,
   }
 }
 
@@ -121,6 +133,8 @@ export interface UseSipsResult {
   updating: boolean
   deactivateSip: (id: string) => Promise<void>
   deactivating: boolean
+  deleteSip: (id: string) => Promise<void>
+  deleting: boolean
 }
 
 export function useSips(): UseSipsResult {
@@ -128,8 +142,9 @@ export function useSips(): UseSipsResult {
   const [createSip, creating] = useSyncedAction((input: SIPInput) => createSipApi(buildSipPayload(input)), refetch)
   const [updateSip, updating] = useSyncedAction((id: string, input: SIPInput) => updateSipApi(id, buildSipPayload(input)), refetch)
   const [deactivateSip, deactivating] = useSyncedAction((id: string) => deactivateSipApi(id), refetch)
+  const [deleteSip, deleting] = useDeleteAction('sips', 'sipId', deleteSipApi, refetch)
 
-  return { sips: items, loading, refreshing, error, refetch, createSip, creating, updateSip, updating, deactivateSip, deactivating }
+  return { sips: items, loading, refreshing, error, refetch, createSip, creating, updateSip, updating, deactivateSip, deactivating, deleteSip, deleting }
 }
 
 export interface UseLiabilitiesResult {
@@ -144,6 +159,8 @@ export interface UseLiabilitiesResult {
   updating: boolean
   closeLiability: (id: string) => Promise<void>
   closing: boolean
+  deleteLiability: (id: string) => Promise<void>
+  deleting: boolean
 }
 
 export function useLiabilities(): UseLiabilitiesResult {
@@ -157,6 +174,7 @@ export function useLiabilities(): UseLiabilitiesResult {
     refetch,
   )
   const [closeLiability, closing] = useSyncedAction((id: string) => closeLiabilityApi(id), refetch)
+  const [deleteLiability, deleting] = useDeleteAction('liabilities', 'liabilityId', deleteLiabilityApi, refetch)
 
-  return { liabilities: items, loading, refreshing, error, refetch, createLiability, creating, updateLiability, updating, closeLiability, closing }
+  return { liabilities: items, loading, refreshing, error, refetch, createLiability, creating, updateLiability, updating, closeLiability, closing, deleteLiability, deleting }
 }

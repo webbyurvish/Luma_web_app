@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { DeleteRecordDialog } from '@/components/ui/DeleteRecordDialog'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { SlowLoadHint, SyncBar } from '@/components/ui/Loader'
 import { getErrorMessage } from '@/lib/errors'
@@ -19,7 +20,7 @@ import type { Note, NoteInput } from '@/types'
 
 export function Notes() {
   const { showToast } = useToast()
-  const { notes, loading, refreshing, error, refetch, createNote, creating, updateNote, updating, archiveNote, archiving } = useNotes()
+  const { notes, loading, refreshing, error, refetch, createNote, creating, updateNote, updating, archiveNote, archiving, deleteNote, deleting } = useNotes()
 
   const [activeFolder, setActiveFolder] = useState('all')
   const [search, setSearch] = useState('')
@@ -27,6 +28,7 @@ export function Notes() {
   const [viewingNote, setViewingNote] = useState<Note | null>(null)
   const [editorTarget, setEditorTarget] = useState<Note | 'new' | null>(null)
   const [archiveTarget, setArchiveTarget] = useState<Note | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Note | null>(null)
 
   const folders = useMemo(() => {
     return [
@@ -74,6 +76,18 @@ export function Notes() {
       setArchiveTarget(null)
     } catch (err) {
       showToast(getErrorMessage(err, "Couldn't archive the note. Please try again."), 'error')
+    }
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return
+    try {
+      await deleteNote(deleteTarget.id)
+      showToast('Note deleted')
+      if (editorTarget !== 'new' && editorTarget?.id === deleteTarget.id) setEditorTarget(null)
+      setDeleteTarget(null)
+    } catch (err) {
+      showToast(getErrorMessage(err, "Couldn't delete the note. Please try again."), 'error')
     }
   }
 
@@ -149,6 +163,7 @@ export function Notes() {
                 onView={setViewingNote}
                 onEdit={(n) => setEditorTarget(n)}
                 onArchive={setArchiveTarget}
+                onDelete={setDeleteTarget}
               />
             ))}
           </div>
@@ -165,6 +180,10 @@ export function Notes() {
           setEditorTarget(n)
         }}
         onArchive={setArchiveTarget}
+        onDelete={(n) => {
+          setViewingNote(null)
+          setDeleteTarget(n)
+        }}
       />
 
       <NoteEditor
@@ -185,6 +204,16 @@ export function Notes() {
         loadingLabel="Archiving…"
         onConfirm={handleConfirmArchive}
         onCancel={() => setArchiveTarget(null)}
+      />
+
+      <DeleteRecordDialog
+        open={deleteTarget !== null}
+        recordType="note"
+        recordName={deleteTarget?.title}
+        softActionLabel="Archive"
+        loading={deleting}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteTarget(null)}
       />
     </div>
   )

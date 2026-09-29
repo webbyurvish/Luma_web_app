@@ -1,5 +1,8 @@
 import type {
   BootstrapApiResponse,
+  RawDocument,
+  RawTask,
+  RawUdhaar,
   CreateApiResponse,
   HealthCheckResponse,
   ListApiResponse,
@@ -35,21 +38,123 @@ function buildEndpoint(action: string): string {
   return url.toString()
 }
 
-async function fetchJson<T>(action: string, signal?: AbortSignal): Promise<T> {
-  let response: Response
+/** Apps Script intermittently answers a healthy read with 404/429/5xx under load; those are worth retrying. */
+const TRANSIENT_STATUS = new Set([404, 408, 429, 500, 502, 503, 504])
+const READ_RETRY_DELAYS_MS = [700, 1800]
+
+/**
+ * Apps Script answers in two hops (302 → googleusercontent "echo"). Under parallel load Google
+ * sometimes leaves the second hop hanging ~30s and then 404s, although the script already
+ * finished. A healthy read lands in 2–6s, so an attempt that runs past its budget is abandoned
+ * and retried instead of waited out.
+ */
+const READ_TIMEOUT_MS = 20_000
+const SLOW_READ_TIMEOUT_MS: Record<string, number> = { bootstrap: 45_000, transactions: 35_000 }
+
+class AttemptTimeout extends Error {}
+
+/*
+ * Google's second hop jams when several requests from one page are in flight at once, while
+ * one or two at a time come back in seconds. So background re-syncs share 2 slots (counting
+ * urgent work in flight too) and queue beyond that, while what the user is waiting on — saves,
+ * AI answers — has its own lanes and never queues behind a hung background read.
+ */
+const MAX_BACKGROUND = 2
+const MAX_URGENT = 3
+let urgentInFlight = 0
+let backgroundInFlight = 0
+const urgentQueue: (() => void)[] = []
+const backgroundQueue: (() => void)[] = []
+
+function pump() {
+  while (urgentQueue.length && urgentInFlight < MAX_URGENT) {
+    urgentInFlight++
+    urgentQueue.shift()!()
+  }
+  while (backgroundQueue.length && backgroundInFlight + urgentInFlight < MAX_BACKGROUND) {
+    backgroundInFlight++
+    backgroundQueue.shift()!()
+  }
+}
+
+async function withSlot<T>(urgent: boolean, task: () => Promise<T>): Promise<T> {
+  await new Promise<void>((run) => {
+    ;(urgent ? urgentQueue : backgroundQueue).push(run)
+    pump()
+  })
   try {
-    response = await fetch(buildEndpoint(action), { method: 'GET', signal })
+    return await task()
+  } finally {
+    if (urgent) urgentInFlight--
+    else backgroundInFlight--
+    pump()
+  }
+}
+
+/** fetch + full body read under one time budget; the caller's own abort still wins. */
+function fetchTextWithin(
+  url: string,
+  init: RequestInit,
+  timeoutMs: number,
+  outer?: AbortSignal,
+  urgent = false,
+): Promise<{ status: number; ok: boolean; text: string }> {
+  // The time budget starts once a slot is free, not while queued.
+  return withSlot(urgent, () => fetchTextNow(url, init, timeoutMs, outer))
+}
+
+async function fetchTextNow(url: string, init: RequestInit, timeoutMs: number, outer?: AbortSignal): Promise<{ status: number; ok: boolean; text: string }> {
+  const controller = new AbortController()
+  let timedOut = false
+  const timer = setTimeout(() => {
+    timedOut = true
+    controller.abort()
+  }, timeoutMs)
+  const forwardAbort = () => controller.abort()
+  outer?.addEventListener('abort', forwardAbort)
+  try {
+    const response = await fetch(url, { ...init, signal: controller.signal })
+    const text = await response.text()
+    return { status: response.status, ok: response.ok, text }
   } catch (cause) {
-    if (cause instanceof DOMException && cause.name === 'AbortError') throw cause
-    throw new GoogleSheetsApiError(`Could not reach the Google Sheets API. Check your network connection and try again.`)
+    if (timedOut) throw new AttemptTimeout()
+    throw cause
+  } finally {
+    clearTimeout(timer)
+    outer?.removeEventListener('abort', forwardAbort)
+  }
+}
+
+// Reads only — writes (postEntity) are never retried, so nothing can be saved twice.
+async function fetchJson<T>(action: string, signal?: AbortSignal): Promise<T> {
+  const timeoutMs = SLOW_READ_TIMEOUT_MS[action] ?? READ_TIMEOUT_MS
+  let result: { status: number; ok: boolean; text: string } | null = null
+  for (let attempt = 0; ; attempt++) {
+    const canRetry = attempt < READ_RETRY_DELAYS_MS.length
+    try {
+      result = await fetchTextWithin(buildEndpoint(action), { method: 'GET' }, timeoutMs, signal)
+    } catch (cause) {
+      if (cause instanceof DOMException && cause.name === 'AbortError' && signal?.aborted) throw cause
+      if (canRetry) {
+        await new Promise((resolve) => setTimeout(resolve, READ_RETRY_DELAYS_MS[attempt]))
+        continue
+      }
+      throw new GoogleSheetsApiError(
+        cause instanceof AttemptTimeout
+          ? 'Google Sheets is taking too long to respond. Please try again in a moment.'
+          : 'Could not reach the Google Sheets API. Check your network connection and try again.',
+      )
+    }
+    if (result.ok || !TRANSIENT_STATUS.has(result.status) || !canRetry) break
+    await new Promise((resolve) => setTimeout(resolve, READ_RETRY_DELAYS_MS[attempt]))
   }
 
-  if (!response.ok) {
-    throw new GoogleSheetsApiError(`Google Sheets API returned an unexpected status (${response.status}).`)
+  if (!result.ok) {
+    throw new GoogleSheetsApiError(`Google Sheets API returned an unexpected status (${result.status}). Please try again in a moment.`)
   }
 
   try {
-    return (await response.json()) as T
+    return JSON.parse(result.text) as T
   } catch {
     throw new GoogleSheetsApiError('Google Sheets API returned a response that was not valid JSON.')
   }
@@ -93,7 +198,12 @@ async function fetchList<T>(action: string, signal?: AbortSignal): Promise<T[]> 
  * a definite failure; only an explicit `{success:false}` is. Everything else resolves and
  * the caller re-fetches the list afterward to get the real, persisted state.
  */
-async function postEntity(action: string, payload: Record<string, unknown>): Promise<void> {
+function postEntity(action: string, payload: Record<string, unknown>): Promise<void> {
+  // Saves the user is waiting on jump ahead of background reads. Never retried, never timed out.
+  return withSlot(true, () => postEntityNow(action, payload))
+}
+
+async function postEntityNow(action: string, payload: Record<string, unknown>): Promise<void> {
   let response: Response
   try {
     response = await fetch(buildEndpoint(action), {
@@ -222,4 +332,274 @@ export async function getBootstrap(signal?: AbortSignal): Promise<NonNullable<Bo
     console.warn('[getBootstrap] Some collections failed server-side:', payload.errors)
   }
   return payload.data
+}
+
+/* Permanent delete — removes the sheet row. The backend first copies it to its
+ * "Deleted Records" sheet, and refuses to delete an account other records still use. */
+
+export function deleteAccount(id: string): Promise<void> {
+  return postEntity('account', { operation: 'delete', id })
+}
+
+export function deleteInvestment(id: string): Promise<void> {
+  return postEntity('investment', { operation: 'delete', id })
+}
+
+export function deleteSip(id: string): Promise<void> {
+  return postEntity('sip', { operation: 'delete', id })
+}
+
+export function deleteLiability(id: string): Promise<void> {
+  return postEntity('liability', { operation: 'delete', id })
+}
+
+export function deleteNote(id: string): Promise<void> {
+  return postEntity('note', { operation: 'delete', id })
+}
+
+export function deleteTransaction(id: string): Promise<void> {
+  return postEntity('transaction', { operation: 'delete', id })
+}
+
+/** Partial update of a transaction's editable fields (date, amount, type, category, subcategory, paymentMethod, merchant, note). */
+export function updateTransaction(id: string, payload: Record<string, unknown>): Promise<void> {
+  return postEntity('transaction', { operation: 'update', id, ...payload })
+}
+
+/* Udhaar — a ledger: each row is one "Given" or "Repayment". Creates go through Udhaar.gs
+ * (routed by `recordType`), edits/deletes through the lifecycle router like everything else. */
+
+export async function getUdhaar(signal?: AbortSignal): Promise<RawUdhaar[]> {
+  return fetchList<RawUdhaar>('udhaar', signal)
+}
+
+export function createUdhaarEntry(payload: Record<string, unknown>): Promise<void> {
+  return postEntity('udhaar', payload)
+}
+
+export function updateUdhaarEntry(id: string, payload: Record<string, unknown>): Promise<void> {
+  return postEntity('udhaar', { operation: 'update', id, ...payload })
+}
+
+export function deleteUdhaarEntry(id: string): Promise<void> {
+  return postEntity('udhaar', { operation: 'delete', id })
+}
+
+/* Tasks */
+
+export async function getTasks(signal?: AbortSignal): Promise<RawTask[]> {
+  return fetchList<RawTask>('tasks', signal)
+}
+
+export function createTask(payload: Record<string, unknown>): Promise<void> {
+  return postEntity('task', payload)
+}
+
+export function updateTask(id: string, payload: Record<string, unknown>): Promise<void> {
+  return postEntity('task', { operation: 'update', id, ...payload })
+}
+
+export function archiveTask(id: string): Promise<void> {
+  return postEntity('task', { operation: 'archive', id })
+}
+
+export function deleteTask(id: string): Promise<void> {
+  return postEntity('task', { operation: 'delete', id })
+}
+
+/* Documents — records with a link to the file (e.g. Google Drive); no file upload. */
+
+export async function getDocuments(signal?: AbortSignal): Promise<RawDocument[]> {
+  return fetchList<RawDocument>('documents', signal)
+}
+
+export function createDocument(payload: Record<string, unknown>): Promise<void> {
+  return postEntity('document', payload)
+}
+
+export function updateDocument(id: string, payload: Record<string, unknown>): Promise<void> {
+  return postEntity('document', { operation: 'update', id, ...payload })
+}
+
+export function archiveDocument(id: string): Promise<void> {
+  return postEntity('document', { operation: 'archive', id })
+}
+
+export function deleteDocument(id: string): Promise<void> {
+  return postEntity('document', { operation: 'delete', id })
+}
+
+/**
+ * New transaction. Deliberately sent with no action/operation in the body so it takes the
+ * exact same path as the iPhone Shortcut (which also assigns the new Transaction ID).
+ */
+export function createTransaction(payload: Record<string, unknown>): Promise<void> {
+  return postEntity('transaction', payload)
+}
+
+/**
+ * POST whose response body IS the result (AI answers), unlike postEntity's fire-and-refetch
+ * writes. Verified in the browser: Apps Script's redirect is followed and the JSON is readable.
+ */
+async function postForResult<T extends { success: boolean; error?: string }>(action: string, payload: Record<string, unknown>): Promise<T> {
+  // Only used for AI requests, which read data and never write — so, unlike postEntity, it's
+  // safe to send the same request twice. A healthy answer takes 3–5s, but Google's second hop
+  // randomly hangs for 20–30s. So if the first attempt is still out after HEDGE_AFTER_MS, a
+  // second identical request goes out in parallel and whichever answers first wins.
+  const HEDGE_AFTER_MS = 9_000
+  const ATTEMPT_TIMEOUT_MS = 40_000
+  const init: RequestInit = { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) }
+
+  const attempt = async (): Promise<T> => {
+    const result = await fetchTextWithin(buildEndpoint(action), init, ATTEMPT_TIMEOUT_MS, undefined, true)
+    // When the hop jams, Google can fall back to re-running the URL as a GET, which answers
+    // "Unknown action" — proof this attempt was never processed.
+    if (/Unknown action/.test(result.text)) throw new GoogleSheetsApiError("Google didn't pass the question through. Please try again.")
+    if (!result.ok) throw new GoogleSheetsApiError(`The assistant didn't return a readable answer (${result.status}). Please try again.`)
+    let body: T
+    try {
+      body = JSON.parse(result.text) as T
+    } catch {
+      throw new GoogleSheetsApiError(`The assistant didn't return a readable answer (${result.status}). Please try again.`)
+    }
+    // An error the script itself reports (not configured, rate limit…) is final, not retryable.
+    if (!body.success) throw Object.assign(new GoogleSheetsApiError(body.error || 'The assistant reported an error.'), { final: true })
+    return body
+  }
+
+  return new Promise<T>((resolve, reject) => {
+    let settled = false
+    let failures = 0
+    let started = 0
+
+    const launch = () => {
+      started++
+      attempt().then(
+        (body) => {
+          if (settled) return
+          settled = true
+          clearTimeout(hedgeTimer)
+          resolve(body)
+        },
+        (err: unknown) => {
+          if (settled) return
+          failures++
+          const final = typeof err === 'object' && err !== null && 'final' in err
+          if (final || failures >= 2) {
+            settled = true
+            clearTimeout(hedgeTimer)
+            reject(err instanceof GoogleSheetsApiError ? err : new GoogleSheetsApiError('Could not reach the assistant. Please try again.'))
+            return
+          }
+          // First attempt failed outright: send the backup now instead of waiting for the hedge.
+          if (started < 2) {
+            clearTimeout(hedgeTimer)
+            launch()
+          }
+        },
+      )
+    }
+
+    const hedgeTimer = setTimeout(() => {
+      if (!settled && started < 2) launch()
+    }, HEDGE_AFTER_MS)
+    launch()
+  })
+}
+
+/* AI (Azure OpenAI via Apps Script — the key never reaches the browser) */
+
+export interface AiChatTurn {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+export async function askAssistant(messages: AiChatTurn[], context: string): Promise<string> {
+  await requireAiChat()
+  const body = await postForResult<{ success: boolean; error?: string; reply: string }>('ai', { aiTask: 'chat', messages, context })
+  return body.reply
+}
+
+export interface QuickAddDraft {
+  kind: 'expense' | 'income' | 'udhaar_given' | 'udhaar_repayment' | 'task' | 'unknown'
+  amount: number | null
+  date: string | null
+  category: string | null
+  subcategory: string | null
+  merchant: string | null
+  paymentMethod: string | null
+  note: string | null
+  person: string | null
+  dueDate: string | null
+  title: string | null
+  priority: 'low' | 'medium' | 'high' | 'urgent' | null
+  confidence: number
+}
+
+export async function parseQuickAdd(
+  text: string,
+  today: string,
+  hints: { categories: string[]; paymentMethods: string[]; people: string[] },
+): Promise<QuickAddDraft> {
+  await requireAiChat()
+  const body = await postForResult<{ success: boolean; error?: string; draft: QuickAddDraft }>('ai', { aiTask: 'parse', text, today, hints })
+  return body.draft
+}
+
+/** Short-lived (10 min) Azure Speech token + region; the Speech key itself stays in Apps Script. */
+export async function getSpeechToken(): Promise<{ token: string; region: string; expiresAt?: number }> {
+  const status = await getAiStatus()
+  if (!status.speech) throw new GoogleSheetsApiError("Azure Speech isn't set up yet. Add AZURE_SPEECH_KEY and AZURE_SPEECH_REGION in Apps Script.")
+  const body = await fetchJson<{ success: boolean; error?: string; token?: string; region?: string; expiresAt?: number }>('speechtoken')
+  if (!body.success || !body.token || !body.region) throw new GoogleSheetsApiError(body.error || 'Voice input is not available right now.')
+  return { token: body.token, region: body.region, expiresAt: typeof body.expiresAt === 'number' ? body.expiresAt : undefined }
+}
+
+/*
+ * Safety gate: an older script deployment doesn't know aiTask and would treat an AI POST
+ * as an iPhone-Shortcut transaction (appending a ₹0 row). So before the first AI POST we
+ * ask, read-only, whether the deployed script supports AI at all — once per session.
+ */
+let aiStatusPromise: Promise<{ chat: boolean; speech: boolean }> | null = null
+
+// A confirmed "available" is remembered for a while, so each chat doesn't pay for another
+// round trip. Only a positive answer is cached; "not deployed"/"not configured" re-checks.
+const AI_STATUS_KEY = 'luma:ai-status'
+const AI_STATUS_TTL_MS = 6 * 60 * 60 * 1000
+
+function readCachedAiStatus(): { chat: boolean; speech: boolean } | null {
+  try {
+    const cached = JSON.parse(localStorage.getItem(AI_STATUS_KEY) ?? 'null') as { at: number; chat: boolean; speech: boolean } | null
+    return cached && cached.chat && Date.now() - cached.at < AI_STATUS_TTL_MS ? { chat: cached.chat, speech: cached.speech } : null
+  } catch {
+    return null
+  }
+}
+
+export function getAiStatus(): Promise<{ chat: boolean; speech: boolean }> {
+  const cached = readCachedAiStatus()
+  if (cached) return Promise.resolve(cached)
+  aiStatusPromise ??= fetchJson<{ success: boolean; error?: string; chat?: boolean; speech?: boolean }>('aistatus')
+    .then((body) => {
+      if (!body.success) throw new GoogleSheetsApiError('AI features need the latest Apps Script deployment. Deploy it, then reload.')
+      const status = { chat: !!body.chat, speech: !!body.speech }
+      if (status.chat) {
+        try {
+          localStorage.setItem(AI_STATUS_KEY, JSON.stringify({ at: Date.now(), ...status }))
+        } catch {
+          // Storage blocked — we'll simply check again next time.
+        }
+      }
+      return status
+    })
+    .catch((err: unknown) => {
+      aiStatusPromise = null // let a later attempt re-check (e.g. after deploying)
+      throw err
+    })
+  return aiStatusPromise
+}
+
+async function requireAiChat() {
+  const status = await getAiStatus()
+  if (!status.chat) throw new GoogleSheetsApiError('Azure OpenAI isn\'t set up yet. Add the AZURE_OPENAI_* Script Properties in Apps Script.')
 }

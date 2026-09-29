@@ -1,4 +1,4 @@
-import { Ban, Receipt } from 'lucide-react'
+import { Ban, Pencil, Receipt, Trash2 } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Pagination } from '@/components/ui/Pagination'
@@ -14,9 +14,11 @@ interface TransactionsTableProps {
   pageSize: number
   onPageChange: (page: number) => void
   onVoid: (transaction: Transaction) => void
+  onEdit: (transaction: Transaction) => void
+  onDelete: (transaction: Transaction) => void
 }
 
-export function TransactionsTable({ transactions, page, pageSize, onPageChange, onVoid }: TransactionsTableProps) {
+export function TransactionsTable({ transactions, page, pageSize, onPageChange, onVoid, onEdit, onDelete }: TransactionsTableProps) {
   const pageCount = Math.max(1, Math.ceil(transactions.length / pageSize))
   const pageItems = transactions.slice((page - 1) * pageSize, page * pageSize)
 
@@ -27,7 +29,7 @@ export function TransactionsTable({ transactions, page, pageSize, onPageChange, 
       ) : (
         <>
           <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-            <table className="w-full min-w-[560px] border-collapse text-sm">
+            <table className="w-full min-w-[600px] border-collapse text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-[10px] font-semibold uppercase tracking-[0.06em] text-ink-muted">
                   <th className="py-2 pl-2 pr-3 font-semibold">Category</th>
@@ -62,14 +64,34 @@ export function TransactionsTable({ transactions, page, pageSize, onPageChange, 
                       </td>
                       <td className="py-2.5 pl-2 pr-2 text-right">
                         {item.sourceId && (
-                          <button
-                            type="button"
-                            onClick={() => onVoid(item)}
-                            aria-label={`Void ${item.description}`}
-                            className="rounded-full p-1.5 text-ink-muted opacity-0 transition-colors hover:bg-danger-soft hover:text-danger group-hover:opacity-100 group-focus-within:opacity-100"
-                          >
-                            <Ban size={13} />
-                          </button>
+                          <div className="flex items-center justify-end gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                            <button
+                              type="button"
+                              onClick={() => onEdit(item)}
+                              aria-label={`Edit ${item.description}`}
+                              className="rounded-full p-1.5 text-ink-muted transition-colors hover:bg-card hover:text-ink"
+                            >
+                              <Pencil size={13} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => onVoid(item)}
+                              aria-label={`Void ${item.description}`}
+                              title="Void (reversible in the sheet)"
+                              className="rounded-full p-1.5 text-ink-muted transition-colors hover:bg-warning-soft hover:text-warning"
+                            >
+                              <Ban size={13} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => onDelete(item)}
+                              aria-label={`Delete ${item.description} permanently`}
+                              title="Delete permanently"
+                              className="rounded-full p-1.5 text-ink-muted transition-colors hover:bg-danger-soft hover:text-danger"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>

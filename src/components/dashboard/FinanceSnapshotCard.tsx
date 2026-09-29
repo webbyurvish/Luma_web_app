@@ -6,7 +6,7 @@ import { FinanceStatTile } from '@/components/finance/FinanceStatTile'
 import { useAccounts, useInvestments, useLiabilities, useSips } from '@/hooks/useFinanceCollections'
 import { formatCurrency } from '@/lib/formatCurrency'
 import { getInvestmentTotals, getMonthlySipTotal, getNetWorth } from '@/lib/financeCalculations'
-import { mockUdhaarSummary } from '@/data/mockUdhaar'
+import { useUdhaar } from '@/hooks/useLifeCollections'
 
 export function FinanceSnapshotCard() {
   const { accounts, loading: accountsLoading, error: accountsError, refetch: refetchAccounts } = useAccounts()
@@ -23,7 +23,8 @@ export function FinanceSnapshotCard() {
     refetchLiabilities()
   }
 
-  const udhaarReceivable = mockUdhaarSummary.toReceive
+  const { summary: udhaarSummary } = useUdhaar()
+  const udhaarReceivable = udhaarSummary.toReceive
   const netWorth = getNetWorth({ accounts, investments, liabilities, udhaarReceivable })
   const investmentTotals = getInvestmentTotals(investments)
   const monthlySip = getMonthlySipTotal(sips)

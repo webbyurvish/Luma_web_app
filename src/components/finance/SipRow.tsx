@@ -1,4 +1,4 @@
-import { Archive, Pencil } from 'lucide-react'
+import { Archive, Pencil, Trash2 } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { formatCurrency } from '@/lib/formatCurrency'
 import type { FinancialAccount, SIP } from '@/types'
@@ -8,9 +8,10 @@ interface SipRowProps {
   platform?: FinancialAccount
   onEdit: (sip: SIP) => void
   onDeactivate: (sip: SIP) => void
+  onDelete: (sip: SIP) => void
 }
 
-export function SipRow({ sip, platform, onEdit, onDeactivate }: SipRowProps) {
+export function SipRow({ sip, platform, onEdit, onDeactivate, onDelete }: SipRowProps) {
   return (
     <div className="group flex items-center gap-3 rounded-xs px-2 py-2.5 transition-colors hover:bg-ink/[0.04]">
       <div className="min-w-0 flex-1">
@@ -42,11 +43,20 @@ export function SipRow({ sip, platform, onEdit, onDeactivate }: SipRowProps) {
             type="button"
             onClick={() => onDeactivate(sip)}
             aria-label={`Deactivate ${sip.fundName}`}
-            className="rounded-full p-1.5 text-ink-muted transition-colors hover:bg-danger-soft hover:text-danger"
+            className="rounded-full p-1.5 text-ink-muted transition-colors hover:bg-warning-soft hover:text-warning"
           >
             <Archive size={13} />
           </button>
         )}
+        <button
+          type="button"
+          onClick={() => onDelete(sip)}
+          aria-label={`Delete ${sip.fundName} permanently`}
+          title="Delete permanently"
+          className="rounded-full p-1.5 text-ink-muted transition-colors hover:bg-danger-soft hover:text-danger"
+        >
+          <Trash2 size={13} />
+        </button>
       </div>
     </div>
   )

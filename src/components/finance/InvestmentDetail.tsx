@@ -1,5 +1,5 @@
 import { Area, AreaChart, ResponsiveContainer } from 'recharts'
-import { Archive, Pencil } from 'lucide-react'
+import { Archive, Pencil, Trash2 } from 'lucide-react'
 import { SlideOver } from '@/components/ui/SlideOver'
 import { Button } from '@/components/ui/Button'
 import { formatCurrency, formatPercentage } from '@/lib/formatCurrency'
@@ -15,9 +15,10 @@ interface InvestmentDetailProps {
   onClose: () => void
   onEdit: (investment: Investment) => void
   onArchive: (investment: Investment) => void
+  onDelete: (investment: Investment) => void
 }
 
-export function InvestmentDetail({ open, investment, accounts, onClose, onEdit, onArchive }: InvestmentDetailProps) {
+export function InvestmentDetail({ open, investment, accounts, onClose, onEdit, onArchive, onDelete }: InvestmentDetailProps) {
   const platformName = investment ? accounts.find((a) => a.id === investment.platformAccountId)?.name : undefined
   const meta = investment ? INVESTMENT_TYPE_META[investment.type] : null
   const gain = investment ? investment.currentValue - investment.investedAmount : 0
@@ -33,7 +34,15 @@ export function InvestmentDetail({ open, investment, accounts, onClose, onEdit, 
       subtitle={[meta?.label, platformName].filter(Boolean).join(' · ')}
       footer={
         investment && (
-          <div className="flex items-center justify-end gap-2">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onDelete(investment)}
+              className="mr-auto inline-flex items-center gap-1.5 rounded-btn px-2 py-1.5 text-[11px] font-medium uppercase tracking-[0.04em] text-ink-muted transition-colors hover:bg-danger-soft hover:text-danger"
+            >
+              <Trash2 size={13} />
+              Delete
+            </button>
             <Button type="button" variant="secondary" size="sm" icon={<Archive size={13} />} onClick={() => onArchive(investment)}>
               Archive
             </Button>

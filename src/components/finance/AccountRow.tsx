@@ -1,4 +1,4 @@
-import { Archive, Pencil } from 'lucide-react'
+import { Archive, Pencil, Trash2 } from 'lucide-react'
 import { ACCOUNT_TYPE_META } from '@/lib/accountMeta'
 import { formatCurrency } from '@/lib/formatCurrency'
 import type { FinancialAccount } from '@/types'
@@ -7,9 +7,10 @@ interface AccountRowProps {
   account: FinancialAccount
   onEdit: (account: FinancialAccount) => void
   onArchive: (account: FinancialAccount) => void
+  onDelete: (account: FinancialAccount) => void
 }
 
-export function AccountRow({ account, onEdit, onArchive }: AccountRowProps) {
+export function AccountRow({ account, onEdit, onArchive, onDelete }: AccountRowProps) {
   const meta = ACCOUNT_TYPE_META[account.type]
   const Icon = meta.icon
   const isCreditCard = account.type === 'credit_card'
@@ -45,9 +46,18 @@ export function AccountRow({ account, onEdit, onArchive }: AccountRowProps) {
           type="button"
           onClick={() => onArchive(account)}
           aria-label={`Archive ${account.name}`}
-          className="rounded-full p-1.5 text-ink-muted transition-colors hover:bg-danger-soft hover:text-danger"
+          className="rounded-full p-1.5 text-ink-muted transition-colors hover:bg-warning-soft hover:text-warning"
         >
           <Archive size={13} />
+        </button>
+        <button
+          type="button"
+          onClick={() => onDelete(account)}
+          aria-label={`Delete ${account.name} permanently`}
+          title="Delete permanently"
+          className="rounded-full p-1.5 text-ink-muted transition-colors hover:bg-danger-soft hover:text-danger"
+        >
+          <Trash2 size={13} />
         </button>
       </div>
     </div>

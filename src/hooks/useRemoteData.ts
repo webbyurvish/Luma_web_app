@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
-import { ensureLoaded, getSnapshot, refetch as refetchKey, type RemoteKey, subscribe } from '@/lib/remoteStore'
+import { ensureLoaded, getSnapshot, hasRecord, refetch as refetchKey, type RemoteKey, subscribe } from '@/lib/remoteStore'
 
 export interface RemoteListResult<T> {
   items: T[]
@@ -53,8 +53,8 @@ export function useRemoteList<TRaw, T>(
 export function useSyncedAction<A extends unknown[]>(
   action: (...args: A) => Promise<unknown>,
   refetch: () => Promise<void>,
-): [run: (...args: A) => Promise<void>, pending: boolean] {
-  const [pending, setPending] = useState(false)
+): [run: (...args: A) => Promise<void>, pending: boolean, pendingArgs: A | null] {
+  const [pendingArgs, setPendingArgs] = useState<A | null>(null)
   const actionRef = useRef(action)
   useEffect(() => {
     actionRef.current = action
@@ -62,16 +62,40 @@ export function useSyncedAction<A extends unknown[]>(
 
   const run = useCallback(
     async (...args: A) => {
-      setPending(true)
+      setPendingArgs(args)
       try {
         await actionRef.current(...args)
         await refetch()
       } finally {
-        setPending(false)
+        setPendingArgs(null)
       }
     },
     [refetch],
   )
 
-  return [run, pending]
+  return [run, pendingArgs !== null, pendingArgs]
+}
+
+/**
+ * Permanent delete for one collection. Apps Script POST responses often can't be read back
+ * (see postEntity), so a refused delete — e.g. an account still linked to SIPs — can look
+ * like success. After the re-sync this checks the record is really gone and throws if not.
+ */
+export function useDeleteAction(
+  key: RemoteKey,
+  idField: string,
+  deleteFn: (id: string) => Promise<unknown>,
+  refetch: () => Promise<void>,
+): [run: (id: string) => Promise<void>, pending: boolean] {
+  const [run, pending] = useSyncedAction(deleteFn, refetch)
+  const runAndVerify = useCallback(
+    async (id: string) => {
+      await run(id)
+      if (hasRecord(key, idField, id)) {
+        throw new Error("Couldn't delete this record — it's still in your sheet. If it's an account, delete or archive what's linked to it first.")
+      }
+    },
+    [run, key, idField],
+  )
+  return [runAndVerify, pending]
 }

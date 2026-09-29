@@ -1,7 +1,13 @@
-import { archiveNote as archiveNoteApi, createNote as createNoteApi, getNotes, updateNote as updateNoteApi } from '@/services/googleSheetsApi'
+import {
+  archiveNote as archiveNoteApi,
+  createNote as createNoteApi,
+  deleteNote as deleteNoteApi,
+  getNotes,
+  updateNote as updateNoteApi,
+} from '@/services/googleSheetsApi'
 import { buildNotePayload, normalizeNote } from '@/lib/noteAdapters'
 import { useRemoteCollection } from './useFinanceCollections'
-import { useSyncedAction } from './useRemoteData'
+import { useDeleteAction, useSyncedAction } from './useRemoteData'
 import type { Note, NoteInput } from '@/types'
 
 export interface UseNotesResult {
@@ -16,6 +22,8 @@ export interface UseNotesResult {
   updating: boolean
   archiveNote: (id: string) => Promise<void>
   archiving: boolean
+  deleteNote: (id: string) => Promise<void>
+  deleting: boolean
 }
 
 export function useNotes(): UseNotesResult {
@@ -23,6 +31,7 @@ export function useNotes(): UseNotesResult {
   const [createNote, creating] = useSyncedAction((input: NoteInput) => createNoteApi(buildNotePayload(input)), refetch)
   const [updateNote, updating] = useSyncedAction((id: string, input: NoteInput) => updateNoteApi(id, buildNotePayload(input)), refetch)
   const [archiveNote, archiving] = useSyncedAction((id: string) => archiveNoteApi(id), refetch)
+  const [deleteNote, deleting] = useDeleteAction('notes', 'noteId', deleteNoteApi, refetch)
 
-  return { notes: items, loading, refreshing, error, refetch, createNote, creating, updateNote, updating, archiveNote, archiving }
+  return { notes: items, loading, refreshing, error, refetch, createNote, creating, updateNote, updating, archiveNote, archiving, deleteNote, deleting }
 }

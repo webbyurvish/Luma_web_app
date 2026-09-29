@@ -5,6 +5,8 @@ export interface ChatMessage {
   role: ChatRole
   content: string
   timestamp: string
+  /** Assistant message that reports a failure rather than an answer. */
+  error?: boolean
 }
 
 export interface Conversation {

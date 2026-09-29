@@ -155,7 +155,51 @@ export interface BootstrapApiResponse {
     sips: RawSip[]
     liabilities: RawLiability[]
     transactions: RawTransaction[]
+    udhaar: RawUdhaar[]
   }>
   errors?: Record<string, string>
   error?: string
+}
+
+/** Sheet row shape for ?action=udhaar — one ledger entry (a "Given" or a "Repayment"). */
+export interface RawUdhaar {
+  udhaarId: string | null
+  timestamp: string | null
+  date: string | null
+  person: string | null
+  type: string | null
+  amount: number | string | null
+  description: string | null
+  dueDate: string | null
+  paymentMethod: string | null
+  note: string | null
+  isArchived?: boolean | null
+}
+
+/** Sheet row shape for ?action=tasks. */
+export interface RawTask {
+  taskId: string
+  title: string | null
+  description: string | null
+  status: string | null
+  priority: string | null
+  dueDate: string | null
+  category: string | null
+  tags: string | null
+  isCompleted: boolean | string | null
+  createdAt: string | null
+  completedAt: string | null
+}
+
+/** Sheet row shape for ?action=documents. */
+export interface RawDocument {
+  documentId: string
+  name: string | null
+  description: string | null
+  category: string | null
+  fileType: string | null
+  driveUrl: string | null
+  tags: string | null
+  size: string | number | null
+  createdAt: string | null
 }

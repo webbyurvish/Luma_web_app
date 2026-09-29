@@ -6,7 +6,8 @@ import { Avatar } from '@/components/ui/Avatar'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { formatCurrency } from '@/lib/formatCurrency'
 import { formatDate } from '@/lib/formatDate'
-import { mockUdhaarPeople } from '@/data/mockUdhaar'
+import { useUdhaar } from '@/hooks/useLifeCollections'
+import { ListRowSkeleton } from '@/components/ui/Skeleton'
 import type { UdhaarStatus } from '@/types'
 
 const statusConfig: Record<UdhaarStatus, { label: string; variant: BadgeVariant }> = {
@@ -17,7 +18,8 @@ const statusConfig: Record<UdhaarStatus, { label: string; variant: BadgeVariant 
 }
 
 export function UdhaarPreview() {
-  const people = mockUdhaarPeople.filter((person) => person.outstanding > 0).slice(0, 4)
+  const { people: allPeople, loading } = useUdhaar()
+  const people = allPeople.filter((person) => person.outstanding > 0).slice(0, 4)
 
   return (
     <Card hoverable className="h-full">
@@ -31,7 +33,13 @@ export function UdhaarPreview() {
         }
       />
 
-      {people.length === 0 ? (
+      {loading ? (
+        <div className="divide-y divide-border-soft">
+          {[0, 1, 2].map((i) => (
+            <ListRowSkeleton key={i} />
+          ))}
+        </div>
+      ) : people.length === 0 ? (
         <EmptyState icon={<HandCoins size={20} />} title="All settled up" description="No pending udhaar right now." />
       ) : (
         <ul className="divide-y divide-border-soft">
@@ -48,7 +56,7 @@ export function UdhaarPreview() {
                 </div>
                 <div className="shrink-0 text-right">
                   <p className="font-mono-figure text-xs font-bold text-ink">{formatCurrency(person.outstanding)}</p>
-                  <p className="hidden text-[9px] font-mono-figure text-ink-muted group-hover:block">Due {formatDate(person.dueDate)}</p>
+                  <p className="hidden text-[9px] font-mono-figure text-ink-muted group-hover:block">{person.dueDate ? `Due ${formatDate(person.dueDate)}` : "No due date"}</p>
                 </div>
               </li>
             )

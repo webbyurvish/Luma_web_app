@@ -6,7 +6,7 @@ import { UpcomingRowSkeleton } from '@/components/ui/Skeleton'
 import { formatCurrency } from '@/lib/formatCurrency'
 import { formatFullDate, todayIstDateKey } from '@/lib/formatDate'
 import { getUpcomingSips } from '@/lib/financeCalculations'
-import { mockUdhaarPeople } from '@/data/mockUdhaar'
+import { useUdhaar } from '@/hooks/useLifeCollections'
 import { useAccounts, useSips } from '@/hooks/useFinanceCollections'
 import { cn } from '@/lib/cn'
 
@@ -21,8 +21,9 @@ interface UpcomingItem {
 export function UpcomingFinance() {
   const { sips, loading: sipsLoading, error: sipsError, refetch: refetchSips } = useSips()
   const { accounts, loading: accountsLoading, error: accountsError, refetch: refetchAccounts } = useAccounts()
+  const { people: udhaarPeople, loading: udhaarLoading } = useUdhaar()
 
-  const loading = sipsLoading || accountsLoading
+  const loading = sipsLoading || accountsLoading || udhaarLoading
   const error = sipsError ?? accountsError
   const retry = () => {
     refetchSips()
@@ -40,8 +41,8 @@ export function UpcomingFinance() {
     kind: 'sip',
   }))
 
-  const udhaarItems: UpcomingItem[] = mockUdhaarPeople
-    .filter((p) => p.outstanding > 0 && p.dueDate >= today)
+  const udhaarItems: UpcomingItem[] = udhaarPeople
+    .filter((p): p is typeof p & { dueDate: string } => p.outstanding > 0 && !!p.dueDate && p.dueDate >= today)
     .map((p) => ({ date: p.dueDate, label: p.name, detail: 'Udhaar due', amount: p.outstanding, kind: 'udhaar' }))
 
   const items = [...sipItems, ...udhaarItems].sort((a, b) => (a.date < b.date ? -1 : 1)).slice(0, 6)

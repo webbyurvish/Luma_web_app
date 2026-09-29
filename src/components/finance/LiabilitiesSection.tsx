@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Archive, Pencil, Plus } from 'lucide-react'
+import { Archive, Pencil, Plus, Trash2 } from 'lucide-react'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { ErrorState } from '@/components/ui/ErrorState'
@@ -7,6 +7,7 @@ import { ListSkeleton } from '@/components/ui/Skeleton'
 import { SlowLoadHint, SyncBadge, SyncBar } from '@/components/ui/Loader'
 import { getErrorMessage } from '@/lib/errors'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { DeleteRecordDialog } from '@/components/ui/DeleteRecordDialog'
 import { LiabilityEditor } from './LiabilityEditor'
 import { useLiabilities } from '@/hooks/useFinanceCollections'
 import { useToast } from '@/context/ToastContext'
@@ -19,11 +20,12 @@ interface LiabilitiesSectionProps {
 }
 
 export function LiabilitiesSection({ accounts }: LiabilitiesSectionProps) {
-  const { liabilities, loading, refreshing, error, refetch, createLiability, creating, updateLiability, updating, closeLiability, closing } = useLiabilities()
+  const { liabilities, loading, refreshing, error, refetch, createLiability, creating, updateLiability, updating, closeLiability, closing, deleteLiability, deleting } = useLiabilities()
   const { showToast } = useToast()
 
   const [editorTarget, setEditorTarget] = useState<Liability | 'new' | null>(null)
   const [closeTarget, setCloseTarget] = useState<Liability | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Liability | null>(null)
 
   const creditCards = accounts.filter((a) => a.isActive && a.type === 'credit_card')
   const creditCardTotal = getCreditCardOutstanding(accounts)
@@ -53,6 +55,17 @@ export function LiabilitiesSection({ accounts }: LiabilitiesSectionProps) {
       setCloseTarget(null)
     } catch (err) {
       showToast(getErrorMessage(err, "Couldn't close the liability. Please try again."), 'error')
+    }
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return
+    try {
+      await deleteLiability(deleteTarget.id)
+      showToast('Liability deleted')
+      setDeleteTarget(null)
+    } catch (err) {
+      showToast(getErrorMessage(err, "Couldn't delete the liability. Please try again."), 'error')
     }
   }
 
@@ -116,9 +129,18 @@ export function LiabilitiesSection({ accounts }: LiabilitiesSectionProps) {
                   type="button"
                   onClick={() => setCloseTarget(liability)}
                   aria-label={`Close ${liability.name}`}
-                  className="rounded-full p-1.5 text-ink-muted transition-colors hover:bg-danger-soft hover:text-danger"
+                  className="rounded-full p-1.5 text-ink-muted transition-colors hover:bg-warning-soft hover:text-warning"
                 >
                   <Archive size={13} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeleteTarget(liability)}
+                  aria-label={`Delete ${liability.name} permanently`}
+                  title="Delete permanently"
+                  className="rounded-full p-1.5 text-ink-muted transition-colors hover:bg-danger-soft hover:text-danger"
+                >
+                  <Trash2 size={13} />
                 </button>
               </div>
             </div>
@@ -146,6 +168,16 @@ export function LiabilitiesSection({ accounts }: LiabilitiesSectionProps) {
         loadingLabel="Closing…"
         onConfirm={handleCloseConfirm}
         onCancel={() => setCloseTarget(null)}
+      />
+
+      <DeleteRecordDialog
+        open={deleteTarget !== null}
+        recordType="liability"
+        recordName={deleteTarget?.name}
+        softActionLabel="Close"
+        loading={deleting}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteTarget(null)}
       />
     </Card>
   )

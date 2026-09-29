@@ -1,4 +1,4 @@
-import { Archive, Pencil } from 'lucide-react'
+import { Archive, Pencil, Trash2 } from 'lucide-react'
 import { SlideOver } from '@/components/ui/SlideOver'
 import { Button } from '@/components/ui/Button'
 import { formatFullDate } from '@/lib/formatDate'
@@ -12,9 +12,10 @@ interface NoteDetailProps {
   onClose: () => void
   onEdit: (note: Note) => void
   onArchive: (note: Note) => void
+  onDelete: (note: Note) => void
 }
 
-export function NoteDetail({ open, note, categories, onClose, onEdit, onArchive }: NoteDetailProps) {
+export function NoteDetail({ open, note, categories, onClose, onEdit, onArchive, onDelete }: NoteDetailProps) {
   const categoryName = note ? categories.find((cat) => cat.id === note.category)?.name ?? note.category : ''
 
   return (
@@ -25,8 +26,16 @@ export function NoteDetail({ open, note, categories, onClose, onEdit, onArchive 
       subtitle={categoryName}
       footer={
         note && (
-          <div className="flex items-center justify-end gap-2">
-            <Button type="button" variant="danger" size="sm" icon={<Archive size={13} />} onClick={() => onArchive(note)}>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onDelete(note)}
+              className="mr-auto inline-flex items-center gap-1.5 rounded-btn px-2 py-1.5 text-[11px] font-medium uppercase tracking-[0.04em] text-ink-muted transition-colors hover:bg-danger-soft hover:text-danger"
+            >
+              <Trash2 size={13} />
+              Delete
+            </button>
+            <Button type="button" variant="secondary" size="sm" icon={<Archive size={13} />} onClick={() => onArchive(note)}>
               Archive
             </Button>
             <Button type="button" size="sm" icon={<Pencil size={13} />} onClick={() => onEdit(note)}>
