@@ -1,6 +1,9 @@
 import type {
   BootstrapApiResponse,
-  RawDocument,
+  DriveFile,
+  DriveFileDetails,
+  DriveFolder,
+  DriveTree,
   RawTask,
   RawUdhaar,
   CreateApiResponse,
@@ -49,7 +52,7 @@ const READ_RETRY_DELAYS_MS = [700, 1800]
  * and retried instead of waited out.
  */
 const READ_TIMEOUT_MS = 20_000
-const SLOW_READ_TIMEOUT_MS: Record<string, number> = { bootstrap: 45_000, transactions: 35_000 }
+const SLOW_READ_TIMEOUT_MS: Record<string, number> = { bootstrap: 45_000, transactions: 35_000, drivetree: 45_000 }
 
 class AttemptTimeout extends Error {}
 
@@ -407,28 +410,6 @@ export function deleteTask(id: string): Promise<void> {
   return postEntity('task', { operation: 'delete', id })
 }
 
-/* Documents — records with a link to the file (e.g. Google Drive); no file upload. */
-
-export async function getDocuments(signal?: AbortSignal): Promise<RawDocument[]> {
-  return fetchList<RawDocument>('documents', signal)
-}
-
-export function createDocument(payload: Record<string, unknown>): Promise<void> {
-  return postEntity('document', payload)
-}
-
-export function updateDocument(id: string, payload: Record<string, unknown>): Promise<void> {
-  return postEntity('document', { operation: 'update', id, ...payload })
-}
-
-export function archiveDocument(id: string): Promise<void> {
-  return postEntity('document', { operation: 'archive', id })
-}
-
-export function deleteDocument(id: string): Promise<void> {
-  return postEntity('document', { operation: 'delete', id })
-}
-
 /**
  * New transaction. Deliberately sent with no action/operation in the body so it takes the
  * exact same path as the iPhone Shortcut (which also assigns the new Transaction ID).
@@ -602,4 +583,72 @@ export function getAiStatus(): Promise<{ chat: boolean; speech: boolean }> {
 async function requireAiChat() {
   const status = await getAiStatus()
   if (!status.chat) throw new GoogleSheetsApiError('Azure OpenAI isn\'t set up yet. Add the AZURE_OPENAI_* Script Properties in Apps Script.')
+}
+
+/* Luma Documents (Google Drive via Apps Script). Writes go through the same kind of gate as AI:
+ * an older deployment would otherwise treat a driveOp POST as an iPhone-Shortcut transaction. */
+
+let driveStatusPromise: Promise<void> | null = null
+
+function requireDrive(): Promise<void> {
+  driveStatusPromise ??= fetchJson<{ success: boolean; error?: string; drive?: boolean }>('drivestatus')
+    .then((body) => {
+      if (!body.success || !body.drive) throw new GoogleSheetsApiError('Documents need the latest Apps Script deployment. Deploy it, then reload.')
+    })
+    .catch((err: unknown) => {
+      driveStatusPromise = null
+      throw err
+    })
+  return driveStatusPromise
+}
+
+export async function getDriveTree(): Promise<DriveTree> {
+  await requireDrive()
+  const body = await fetchJson<{ success: boolean; error?: string } & Partial<DriveTree>>('drivetree')
+  if (!body.success || !body.rootId) throw new GoogleSheetsApiError(body.error || "Couldn't load your documents.")
+  return { rootId: body.rootId, rootUrl: body.rootUrl ?? '', folders: body.folders ?? [], files: body.files ?? [] }
+}
+
+/**
+ * One document operation. Read back (the result matters) but never retried — a second upload
+ * would create a duplicate file. Uploads get a longer budget since the bytes travel in the body.
+ */
+async function driveOp<T = Record<string, unknown>>(payload: Record<string, unknown>, timeoutMs = 60_000): Promise<T> {
+  await requireDrive()
+  let result: { status: number; ok: boolean; text: string }
+  try {
+    result = await fetchTextWithin(
+      buildEndpoint('drive'),
+      { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) },
+      timeoutMs,
+      undefined,
+      true,
+    )
+  } catch (cause) {
+    throw new GoogleSheetsApiError(
+      cause instanceof AttemptTimeout
+        ? "Google is taking too long to confirm. Refresh in a moment to see whether it went through."
+        : 'Could not reach Google. Check your connection and try again.',
+    )
+  }
+  let body: { success?: boolean; error?: string } & T
+  try {
+    body = JSON.parse(result.text)
+  } catch {
+    throw new GoogleSheetsApiError("Google didn't confirm the change. Refresh in a moment to see whether it went through.")
+  }
+  if (!body.success) throw new GoogleSheetsApiError(body.error || 'The change could not be saved.')
+  return body
+}
+
+export const driveApi = {
+  createFolder: (parentId: string, name: string) => driveOp<{ folder: DriveFolder }>({ driveOp: 'createFolder', parentId, name }),
+  renameFolder: (folderId: string, name: string) => driveOp({ driveOp: 'renameFolder', folderId, name }),
+  moveFolder: (folderId: string, targetId: string) => driveOp({ driveOp: 'moveFolder', folderId, targetId }),
+  trashFolder: (folderId: string) => driveOp<{ trashedFiles: number }>({ driveOp: 'trashFolder', folderId }),
+  upload: (folderId: string, file: { name: string; mimeType: string; dataBase64: string }, details?: Partial<DriveFileDetails>) =>
+    driveOp<{ file: DriveFile }>({ driveOp: 'upload', folderId, ...file, ...details }, 120_000),
+  updateFile: (fileId: string, details: Partial<DriveFileDetails>) => driveOp({ driveOp: 'updateFile', fileId, ...details }),
+  moveFile: (fileId: string, folderId: string) => driveOp({ driveOp: 'moveFile', fileId, folderId }),
+  trashFile: (fileId: string) => driveOp({ driveOp: 'trashFile', fileId }),
 }

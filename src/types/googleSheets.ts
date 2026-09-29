@@ -190,16 +190,3 @@ export interface RawTask {
   createdAt: string | null
   completedAt: string | null
 }
-
-/** Sheet row shape for ?action=documents. */
-export interface RawDocument {
-  documentId: string
-  name: string | null
-  description: string | null
-  category: string | null
-  fileType: string | null
-  driveUrl: string | null
-  tags: string | null
-  size: string | number | null
-  createdAt: string | null
-}

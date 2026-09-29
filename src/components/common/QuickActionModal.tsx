@@ -1,14 +1,14 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { TransactionEditor } from '@/components/transactions/TransactionEditor'
 import { UdhaarEntryEditor } from '@/components/udhaar/UdhaarEntryEditor'
 import { TaskEditor } from '@/components/tasks/TaskEditor'
-import { DocumentEditor } from '@/components/documents/DocumentEditor'
 import { useTransactions } from '@/hooks/useTransactions'
-import { useDocuments, useTasks, useUdhaar } from '@/hooks/useLifeCollections'
+import { useTasks, useUdhaar } from '@/hooks/useLifeCollections'
 import { useToast } from '@/context/ToastContext'
 import { getErrorMessage } from '@/lib/errors'
 import type { QuickAddDraft } from '@/services/googleSheetsApi'
-import type { DocumentInput, TaskInput, TransactionUpdateInput, UdhaarEntryInput } from '@/types'
+import type { TaskInput, TransactionUpdateInput, UdhaarEntryInput } from '@/types'
 
 export type QuickActionKind = 'expense' | 'income' | 'udhaar' | 'repayment' | 'task' | 'document'
 
@@ -136,16 +136,13 @@ function QuickTask({ open, onClose, draft }: { open: boolean; onClose: () => voi
   )
 }
 
+/** Documents live in Google Drive now: hand over to the Documents page, which opens the file picker. */
 function QuickDocument({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { createDocument, creating } = useDocuments()
-  const save = useSaveHandler(onClose)
-  return (
-    <DocumentEditor
-      open={open}
-      document={null}
-      onClose={onClose}
-      onSave={(input: DocumentInput) => save(() => createDocument(input), 'Document added', "Couldn't add the document. Please try again.")}
-      saving={creating}
-    />
-  )
+  const navigate = useNavigate()
+  useEffect(() => {
+    if (!open) return
+    onClose()
+    navigate('/documents', { state: { upload: true } })
+  }, [open, onClose, navigate])
+  return null
 }

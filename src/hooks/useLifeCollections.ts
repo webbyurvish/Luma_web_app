@@ -1,35 +1,28 @@
 import { useMemo } from 'react'
 import {
-  archiveDocument as archiveDocumentApi,
   archiveTask as archiveTaskApi,
-  createDocument as createDocumentApi,
   createTask as createTaskApi,
   createUdhaarEntry as createUdhaarEntryApi,
-  deleteDocument as deleteDocumentApi,
   deleteTask as deleteTaskApi,
   deleteUdhaarEntry as deleteUdhaarEntryApi,
-  getDocuments,
   getTasks,
   getUdhaar,
-  updateDocument as updateDocumentApi,
   updateTask as updateTaskApi,
   updateUdhaarEntry as updateUdhaarEntryApi,
 } from '@/services/googleSheetsApi'
 import {
-  buildDocumentPayload,
   buildTaskCompletionPayload,
   buildTaskPayload,
   buildUdhaarCreatePayload,
   buildUdhaarFields,
   groupUdhaarByPerson,
-  normalizeDocument,
   normalizeTask,
   normalizeUdhaarRows,
   summarizeUdhaar,
 } from '@/lib/lifeAdapters'
 import { useRemoteCollection } from './useFinanceCollections'
 import { useDeleteAction, useRemoteList, useSyncedAction } from './useRemoteData'
-import type { AppDocument, DocumentInput, Task, TaskInput, UdhaarEntry, UdhaarEntryInput, UdhaarPerson, UdhaarSummary } from '@/types'
+import type { Task, TaskInput, UdhaarEntry, UdhaarEntryInput, UdhaarPerson, UdhaarSummary } from '@/types'
 
 /* ------------------------------------------------------------------ udhaar */
 
@@ -113,35 +106,4 @@ export function useTasks(): UseTasksResult {
     deleteTask,
     deleting,
   }
-}
-
-/* --------------------------------------------------------------- documents */
-
-export interface UseDocumentsResult {
-  documents: AppDocument[]
-  loading: boolean
-  refreshing: boolean
-  error: string | null
-  refetch: () => Promise<void>
-  createDocument: (input: DocumentInput) => Promise<void>
-  creating: boolean
-  updateDocument: (id: string, input: DocumentInput) => Promise<void>
-  updating: boolean
-  archiveDocument: (id: string) => Promise<void>
-  archiving: boolean
-  deleteDocument: (id: string) => Promise<void>
-  deleting: boolean
-}
-
-export function useDocuments(): UseDocumentsResult {
-  const { items: documents, loading, refreshing, error, refetch } = useRemoteCollection('documents', getDocuments, normalizeDocument)
-  const [createDocument, creating] = useSyncedAction((input: DocumentInput) => createDocumentApi(buildDocumentPayload(input)), refetch)
-  const [updateDocument, updating] = useSyncedAction(
-    (id: string, input: DocumentInput) => updateDocumentApi(id, buildDocumentPayload(input)),
-    refetch,
-  )
-  const [archiveDocument, archiving] = useSyncedAction((id: string) => archiveDocumentApi(id), refetch)
-  const [deleteDocument, deleting] = useDeleteAction('documents', 'documentId', deleteDocumentApi, refetch)
-
-  return { documents, loading, refreshing, error, refetch, createDocument, creating, updateDocument, updating, archiveDocument, archiving, deleteDocument, deleting }
 }

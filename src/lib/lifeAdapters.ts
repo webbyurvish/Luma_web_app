@@ -1,10 +1,5 @@
 import { todayIstDateKey, toIstDateKey } from './formatDate'
 import {
-  DOCUMENT_CATEGORIES,
-  type AppDocument,
-  type DocumentCategory,
-  type DocumentInput,
-  type RawDocument,
   type RawTask,
   type RawUdhaar,
   type Task,
@@ -168,34 +163,5 @@ export function buildTaskCompletionPayload(completed: boolean): Record<string, u
     status: completed ? 'Completed' : 'Todo',
     isCompleted: completed,
     completedAt: completed ? new Date().toISOString() : '',
-  }
-}
-
-/* --------------------------------------------------------------- documents */
-
-export function normalizeDocument(raw: RawDocument): AppDocument {
-  const categoryText = raw.category?.trim() ?? ''
-  const category: DocumentCategory = DOCUMENT_CATEGORIES.find((c) => c.toLowerCase() === categoryText.toLowerCase()) ?? 'Other'
-  return {
-    id: raw.documentId,
-    name: raw.name?.trim() || 'Untitled document',
-    description: textOrUndefined(raw.description),
-    category,
-    date: dateKeyOrUndefined(raw.createdAt) ?? todayIstDateKey(),
-    url: textOrUndefined(raw.driveUrl),
-    fileType: textOrUndefined(raw.fileType),
-    size: textOrUndefined(raw.size),
-    tags: textOrUndefined(raw.tags),
-  }
-}
-
-export function buildDocumentPayload(input: DocumentInput): Record<string, unknown> {
-  return {
-    name: input.name,
-    description: input.description ?? '',
-    category: input.category,
-    driveUrl: input.url ?? '',
-    fileType: input.fileType ?? '',
-    tags: input.tags ?? '',
   }
 }
