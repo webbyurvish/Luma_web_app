@@ -253,23 +253,84 @@ function lumaFileJson_(file, folderId, meta) {
   };
 }
 
-/** Every folder and file under the root, breadth-first. Trashed items are skipped by Drive. */
+var LUMA_DRIVE_FOLDER_MIME = 'application/vnd.google-apps.folder';
+var LUMA_DRIVE_LIST_FIELDS = 'nextPageToken,files(id,name,mimeType,parents,size,createdTime,modifiedTime)';
+
+/**
+ * One Drive API files.list query, all pages. Uses the script's own OAuth token (the Drive
+ * permission DriveApp already requires), so no extra setup. Far faster than DriveApp, whose
+ * iterators cost a round trip per folder — slow enough for Google to drop the response.
+ */
+function lumaDriveList_(q) {
+  var token = ScriptApp.getOAuthToken();
+  var out = [];
+  var pageToken = '';
+  for (var page = 0; page < 20; page++) {
+    var url = 'https://www.googleapis.com/drive/v3/files?pageSize=1000&spaces=drive' +
+      '&fields=' + encodeURIComponent(LUMA_DRIVE_LIST_FIELDS) +
+      '&q=' + encodeURIComponent(q) +
+      (pageToken ? '&pageToken=' + encodeURIComponent(pageToken) : '');
+    var response = UrlFetchApp.fetch(url, { headers: { Authorization: 'Bearer ' + token }, muteHttpExceptions: true });
+    if (response.getResponseCode() !== 200) {
+      Logger.log('[LumaDrive] files.list ' + response.getResponseCode() + ': ' + response.getContentText().slice(0, 300));
+      throw new Error('Google Drive did not return your documents (' + response.getResponseCode() + ').');
+    }
+    var body = JSON.parse(response.getContentText());
+    out = out.concat(body.files || []);
+    pageToken = body.nextPageToken || '';
+    if (!pageToken) break;
+  }
+  return out;
+}
+
+/**
+ * Every folder and file under the root, one Drive query per folder LEVEL (children of all
+ * folders at that depth at once), instead of two DriveApp round trips per folder.
+ */
 function lumaDriveTree_() {
   var root = lumaDriveRoot_();
+  var rootId = root.getId();
   var meta = lumaReadDriveMeta_();
-  var folders = [];
+  var folders = [{ id: rootId, name: root.getName(), parentId: null, createdAt: root.getDateCreated().toISOString() }];
   var files = [];
-  var queue = [{ folder: root, parentId: null }];
-  while (queue.length && folders.length < 2000) {
-    var entry = queue.shift();
-    var f = entry.folder;
-    folders.push({ id: f.getId(), name: f.getName(), parentId: entry.parentId, createdAt: f.getDateCreated().toISOString() });
-    var sub = f.getFolders();
-    while (sub.hasNext()) queue.push({ folder: sub.next(), parentId: f.getId() });
-    var it = f.getFiles();
-    while (it.hasNext() && files.length < 5000) files.push(lumaFileJson_(it.next(), f.getId(), meta));
+  var level = [rootId];
+
+  for (var depth = 0; depth < 25 && level.length && folders.length < 2000; depth++) {
+    var inLevel = {};
+    level.forEach(function (id) { inLevel[id] = true; });
+    var next = [];
+    // Keep each query well under Drive's length limit.
+    for (var i = 0; i < level.length; i += 40) {
+      var chunk = level.slice(i, i + 40);
+      var q = '(' + chunk.map(function (id) { return "'" + id + "' in parents"; }).join(' or ') + ') and trashed = false';
+      lumaDriveList_(q).forEach(function (item) {
+        var parentId = (item.parents || []).filter(function (pid) { return inLevel[pid]; })[0];
+        if (!parentId) return;
+        if (item.mimeType === LUMA_DRIVE_FOLDER_MIME) {
+          folders.push({ id: item.id, name: item.name, parentId: parentId, createdAt: item.createdTime });
+          next.push(item.id);
+        } else if (files.length < 5000) {
+          var m = meta[item.id] || {};
+          files.push({
+            id: item.id,
+            name: item.name,
+            folderId: parentId,
+            mimeType: item.mimeType,
+            kind: lumaFileKind_(item.mimeType),
+            size: Number(item.size || 0),
+            createdAt: item.createdTime,
+            updatedAt: item.modifiedTime,
+            url: 'https://drive.google.com/file/d/' + item.id + '/view',
+            description: m.description || '',
+            tags: m.tags || '',
+            expiryDate: m.expiryDate || ''
+          });
+        }
+      });
+    }
+    level = next;
   }
-  return { success: true, rootId: root.getId(), rootUrl: root.getUrl(), folders: folders, files: files };
+  return { success: true, rootId: rootId, rootUrl: 'https://drive.google.com/drive/folders/' + rootId, folders: folders, files: files };
 }
 
 /* ------------------------------------------------------------ operations */
