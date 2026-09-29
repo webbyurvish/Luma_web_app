@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { ThemedSelect } from '@/components/ui/ThemedSelect'
 import { Switch } from '@/components/ui/Switch'
-import type { FinancialAccount, SIPFrequency, SIPInput } from '@/types'
+import type { FinancialAccount, SIP, SIPFrequency, SIPInput } from '@/types'
 
 interface FormState {
   name: string
@@ -38,16 +38,34 @@ const FREQUENCY_OPTIONS = [
   { value: 'quarterly', label: 'Quarterly' },
 ]
 
+function sipToForm(sip: SIP): FormState {
+  return {
+    name: sip.name,
+    fundName: sip.fundName,
+    platformAccountId: sip.platformAccountId ?? '',
+    amount: String(sip.amount),
+    frequency: sip.frequency,
+    debitDay: sip.debitDay !== undefined ? String(sip.debitDay) : '',
+    startDate: sip.startDate ?? '',
+    endDate: sip.endDate ?? '',
+    category: sip.category ?? '',
+    isActive: sip.isActive,
+  }
+}
+
 interface SipEditorProps {
   open: boolean
   accounts: FinancialAccount[]
+  /** When set, the editor pre-fills from this SIP and behaves as an edit rather than a create. */
+  sip?: SIP | null
   onClose: () => void
   onSave: (input: SIPInput) => void
-  /** True while the create request is in flight — disables Save and prevents double submission. */
+  /** True while the create/update request is in flight — disables Save and prevents double submission. */
   saving?: boolean
 }
 
-export function SipEditor({ open, accounts, onClose, onSave, saving }: SipEditorProps) {
+export function SipEditor({ open, accounts, sip, onClose, onSave, saving }: SipEditorProps) {
+  const isEdit = !!sip
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
   const [initialForm, setInitialForm] = useState<FormState>(EMPTY_FORM)
   const [touched, setTouched] = useState<Record<string, boolean>>({})
@@ -56,11 +74,12 @@ export function SipEditor({ open, accounts, onClose, onSave, saving }: SipEditor
 
   useEffect(() => {
     if (!open) return
-    setForm(EMPTY_FORM)
-    setInitialForm(EMPTY_FORM)
+    const next = sip ? sipToForm(sip) : EMPTY_FORM
+    setForm(next)
+    setInitialForm(next)
     setTouched({})
     setAttemptedSave(false)
-  }, [open])
+  }, [open, sip])
 
   const isDirty = JSON.stringify(form) !== JSON.stringify(initialForm)
   const amountNumber = Number(form.amount)
@@ -101,17 +120,18 @@ export function SipEditor({ open, accounts, onClose, onSave, saving }: SipEditor
   return (
     <>
       <SlideOver
+        busy={saving}
         open={open}
         onClose={requestClose}
-        title="Add SIP"
+        title={isEdit ? 'Edit SIP' : 'Add SIP'}
         subtitle="Set up a recurring investment"
         footer={
           <div className="flex items-center justify-end gap-2">
             <Button type="button" variant="secondary" size="sm" onClick={requestClose} disabled={saving}>
               Cancel
             </Button>
-            <Button type="button" size="sm" onClick={handleSave} disabled={saving || (attemptedSave && !isValid)}>
-              {saving ? 'Saving…' : 'Save SIP'}
+            <Button type="button" size="sm" onClick={handleSave} loading={saving} loadingText="Saving…" disabled={attemptedSave && !isValid}>
+              {isEdit ? 'Save Changes' : 'Save SIP'}
             </Button>
           </div>
         }

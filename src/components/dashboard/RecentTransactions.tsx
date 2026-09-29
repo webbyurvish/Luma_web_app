@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { Receipt } from 'lucide-react'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { ListRowSkeleton } from '@/components/ui/Skeleton'
 import { CATEGORY_META } from '@/lib/categoryMeta'
 import { formatCurrency } from '@/lib/formatCurrency'
 import { formatDate } from '@/lib/formatDate'
@@ -11,9 +12,10 @@ import type { Transaction } from '@/types'
 
 interface RecentTransactionsProps {
   transactions: Transaction[]
+  loading?: boolean
 }
 
-export function RecentTransactions({ transactions }: RecentTransactionsProps) {
+export function RecentTransactions({ transactions, loading }: RecentTransactionsProps) {
   const items = getRecentTransactions(transactions, 7)
 
   return (
@@ -28,7 +30,13 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
         }
       />
 
-      {items.length === 0 ? (
+      {loading ? (
+        <div className="divide-y divide-border-soft">
+          {[0, 1, 2, 3].map((i) => (
+            <ListRowSkeleton key={i} />
+          ))}
+        </div>
+      ) : items.length === 0 ? (
         <EmptyState icon={<Receipt size={20} />} title="No transactions yet" description="Your financial journey starts here." />
       ) : (
         <ul className="divide-y divide-border-soft">

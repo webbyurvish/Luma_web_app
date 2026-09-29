@@ -4,14 +4,17 @@ import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ErrorState } from '@/components/ui/ErrorState'
-import { ChartCardSkeleton } from '@/components/ui/Skeleton'
+import { ListSkeleton } from '@/components/ui/Skeleton'
+import { SlowLoadHint, SyncBadge, SyncBar } from '@/components/ui/Loader'
+import { getErrorMessage } from '@/lib/errors'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { AccountRow } from './AccountRow'
 import { AccountEditor } from './AccountEditor'
 import type { UseAccountsResult } from '@/hooks/useFinanceCollections'
 import { useToast } from '@/context/ToastContext'
 import { ACCOUNT_TYPE_META } from '@/lib/accountMeta'
 import { formatCurrency } from '@/lib/formatCurrency'
-import type { AccountInput, AccountType } from '@/types'
+import type { AccountInput, AccountType, FinancialAccount } from '@/types'
 
 const GROUP_ORDER: AccountType[] = ['bank', 'cash', 'wallet', 'credit_card', 'demat', 'other']
 
@@ -21,10 +24,11 @@ interface AccountsSectionProps {
 }
 
 export function AccountsSection({ accountsState }: AccountsSectionProps) {
-  const { accounts, loading, error, refetch, createAccount, creating } = accountsState
+  const { accounts, loading, refreshing, error, refetch, createAccount, creating, updateAccount, updating, archiveAccount, archiving } = accountsState
   const { showToast } = useToast()
 
-  const [editorOpen, setEditorOpen] = useState(false)
+  const [editorTarget, setEditorTarget] = useState<FinancialAccount | 'new' | null>(null)
+  const [archiveTarget, setArchiveTarget] = useState<FinancialAccount | null>(null)
 
   const groups = useMemo(() => {
     return GROUP_ORDER.map((type) => {
@@ -37,9 +41,29 @@ export function AccountsSection({ accountsState }: AccountsSectionProps) {
   const totalAssets = accounts.filter((a) => a.isActive && a.type !== 'credit_card').reduce((sum, a) => sum + a.balance, 0)
 
   const handleSave = async (input: AccountInput) => {
-    await createAccount(input)
-    showToast('Account added')
-    setEditorOpen(false)
+    try {
+      if (editorTarget && editorTarget !== 'new') {
+        await updateAccount(editorTarget.id, input)
+        showToast('Account updated')
+      } else {
+        await createAccount(input)
+        showToast('Account added')
+      }
+      setEditorTarget(null)
+    } catch (err) {
+      showToast(getErrorMessage(err, "Couldn't save the account. Please try again."), 'error')
+    }
+  }
+
+  const handleArchiveConfirm = async () => {
+    if (!archiveTarget) return
+    try {
+      await archiveAccount(archiveTarget.id)
+      showToast('Account archived')
+      setArchiveTarget(null)
+    } catch (err) {
+      showToast(getErrorMessage(err, "Couldn't archive the account. Please try again."), 'error')
+    }
   }
 
   if (error) {
@@ -55,20 +79,25 @@ export function AccountsSection({ accountsState }: AccountsSectionProps) {
     return (
       <Card variant="panel">
         <CardHeader title="Your Accounts" subtitle="Everything you own, in one place" />
-        <ChartCardSkeleton />
+        <ListSkeleton rows={4} />
+        <SlowLoadHint />
       </Card>
     )
   }
 
   return (
-    <Card variant="panel">
+    <Card variant="panel" className="relative">
+      <SyncBar active={refreshing} />
       <CardHeader
         title="Your Accounts"
         subtitle={`${accounts.filter((a) => a.isActive).length} accounts · ${formatCurrency(totalAssets, { compact: true })} in assets`}
         action={
-          <Button size="sm" icon={<Plus size={13} />} onClick={() => setEditorOpen(true)}>
-            Add Account
-          </Button>
+          <div className="flex items-center gap-2">
+            <SyncBadge active={refreshing} />
+            <Button size="sm" icon={<Plus size={13} />} onClick={() => setEditorTarget('new')}>
+              Add Account
+            </Button>
+          </div>
         }
       />
 
@@ -88,7 +117,7 @@ export function AccountsSection({ accountsState }: AccountsSectionProps) {
                 </div>
                 <div className="divide-y divide-border-soft">
                   {group.items.map((account) => (
-                    <AccountRow key={account.id} account={account} />
+                    <AccountRow key={account.id} account={account} onEdit={setEditorTarget} onArchive={setArchiveTarget} />
                   ))}
                 </div>
               </div>
@@ -97,7 +126,24 @@ export function AccountsSection({ accountsState }: AccountsSectionProps) {
         </div>
       )}
 
-      <AccountEditor open={editorOpen} onClose={() => setEditorOpen(false)} onSave={handleSave} saving={creating} />
+      <AccountEditor
+        open={editorTarget !== null}
+        account={editorTarget === 'new' ? null : editorTarget}
+        onClose={() => setEditorTarget(null)}
+        onSave={handleSave}
+        saving={creating || updating}
+      />
+
+      <ConfirmDialog
+        open={archiveTarget !== null}
+        title="Archive account?"
+        description={`"${archiveTarget?.name}" will be hidden from your accounts and totals. Historical transactions that reference it are kept exactly as they are.`}
+        confirmLabel="Archive"
+        loading={archiving}
+        loadingLabel="Archiving…"
+        onConfirm={handleArchiveConfirm}
+        onCancel={() => setArchiveTarget(null)}
+      />
     </Card>
   )
 }

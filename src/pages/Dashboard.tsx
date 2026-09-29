@@ -90,7 +90,7 @@ export function Dashboard() {
 
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
             <div className="xl:col-span-2">
-              <RecentTransactions transactions={transactions} />
+              <RecentTransactions transactions={transactions} loading={loading} />
             </div>
             <UdhaarPreview />
           </div>

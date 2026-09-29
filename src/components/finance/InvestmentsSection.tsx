@@ -3,7 +3,10 @@ import { Plus } from 'lucide-react'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { ErrorState } from '@/components/ui/ErrorState'
-import { ChartCardSkeleton } from '@/components/ui/Skeleton'
+import { ListSkeleton, NetWorthPanelSkeleton } from '@/components/ui/Skeleton'
+import { SlowLoadHint, SyncBadge, SyncBar } from '@/components/ui/Loader'
+import { getErrorMessage } from '@/lib/errors'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { AllocationDonut } from './AllocationDonut'
 import { HoldingsTable } from './HoldingsTable'
 import { InvestmentEditor } from './InvestmentEditor'
@@ -20,20 +23,41 @@ interface InvestmentsSectionProps {
 }
 
 export function InvestmentsSection({ accounts }: InvestmentsSectionProps) {
-  const { investments, loading, error, refetch, createInvestment, creating } = useInvestments()
+  const { investments, loading, refreshing, error, refetch, createInvestment, creating, updateInvestment, updating, archiveInvestment, archiving } = useInvestments()
   const { showToast } = useToast()
 
   const [viewingInvestment, setViewingInvestment] = useState<Investment | null>(null)
-  const [editorOpen, setEditorOpen] = useState(false)
+  const [editorTarget, setEditorTarget] = useState<Investment | 'new' | null>(null)
+  const [archiveTarget, setArchiveTarget] = useState<Investment | null>(null)
 
   const totals = getInvestmentTotals(investments)
   const allocation = getInvestmentTypeAllocation(investments)
   const positive = totals.gain >= 0
 
   const handleSave = async (input: InvestmentInput) => {
-    await createInvestment(input)
-    showToast('Investment added')
-    setEditorOpen(false)
+    try {
+      if (editorTarget && editorTarget !== 'new') {
+        await updateInvestment(editorTarget.id, input)
+        showToast('Investment updated')
+      } else {
+        await createInvestment(input)
+        showToast('Investment added')
+      }
+      setEditorTarget(null)
+    } catch (err) {
+      showToast(getErrorMessage(err, "Couldn't save the investment. Please try again."), 'error')
+    }
+  }
+
+  const handleArchiveConfirm = async () => {
+    if (!archiveTarget) return
+    try {
+      await archiveInvestment(archiveTarget.id)
+      showToast('Investment archived')
+      setArchiveTarget(null)
+    } catch (err) {
+      showToast(getErrorMessage(err, "Couldn't archive the investment. Please try again."), 'error')
+    }
   }
 
   if (error) {
@@ -41,12 +65,24 @@ export function InvestmentsSection({ accounts }: InvestmentsSectionProps) {
   }
 
   if (loading) {
-    return <ChartCardSkeleton />
+    return (
+      <div className="flex flex-col gap-4">
+        <NetWorthPanelSkeleton />
+        <Card variant="panel">
+          <ListSkeleton rows={4} />
+          <SlowLoadHint />
+        </Card>
+      </div>
+    )
   }
 
   return (
     <div className="flex flex-col gap-4">
-      <Card variant="panel">
+      <Card variant="panel" className="relative">
+        <SyncBar active={refreshing} />
+        <div className="absolute -top-2.5 right-5 z-10">
+          <SyncBadge active={refreshing} />
+        </div>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-muted">Total Investments</p>
@@ -76,7 +112,7 @@ export function InvestmentsSection({ accounts }: InvestmentsSectionProps) {
           title="Holdings"
           subtitle="Manually maintained values — not live market prices"
           action={
-            <Button size="sm" icon={<Plus size={13} />} onClick={() => setEditorOpen(true)}>
+            <Button size="sm" icon={<Plus size={13} />} onClick={() => setEditorTarget('new')}>
               Add Investment
             </Button>
           }
@@ -84,9 +120,40 @@ export function InvestmentsSection({ accounts }: InvestmentsSectionProps) {
         <HoldingsTable investments={investments} accounts={accounts} onSelect={setViewingInvestment} />
       </Card>
 
-      <InvestmentDetail open={viewingInvestment !== null} investment={viewingInvestment} accounts={accounts} onClose={() => setViewingInvestment(null)} />
+      <InvestmentDetail
+        open={viewingInvestment !== null}
+        investment={viewingInvestment}
+        accounts={accounts}
+        onClose={() => setViewingInvestment(null)}
+        onEdit={(investment) => {
+          setViewingInvestment(null)
+          setEditorTarget(investment)
+        }}
+        onArchive={(investment) => {
+          setViewingInvestment(null)
+          setArchiveTarget(investment)
+        }}
+      />
 
-      <InvestmentEditor open={editorOpen} accounts={accounts} onClose={() => setEditorOpen(false)} onSave={handleSave} saving={creating} />
+      <InvestmentEditor
+        open={editorTarget !== null}
+        investment={editorTarget === 'new' ? null : editorTarget}
+        accounts={accounts}
+        onClose={() => setEditorTarget(null)}
+        onSave={handleSave}
+        saving={creating || updating}
+      />
+
+      <ConfirmDialog
+        open={archiveTarget !== null}
+        title="Archive investment?"
+        description={`"${archiveTarget?.name}" will be hidden from your holdings and totals. Its history is kept.`}
+        confirmLabel="Archive"
+        loading={archiving}
+        loadingLabel="Archiving…"
+        onConfirm={handleArchiveConfirm}
+        onCancel={() => setArchiveTarget(null)}
+      />
     </div>
   )
 }

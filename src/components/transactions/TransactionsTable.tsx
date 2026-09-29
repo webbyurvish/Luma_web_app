@@ -1,4 +1,4 @@
-import { Receipt } from 'lucide-react'
+import { Ban, Receipt } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Pagination } from '@/components/ui/Pagination'
@@ -13,9 +13,10 @@ interface TransactionsTableProps {
   page: number
   pageSize: number
   onPageChange: (page: number) => void
+  onVoid: (transaction: Transaction) => void
 }
 
-export function TransactionsTable({ transactions, page, pageSize, onPageChange }: TransactionsTableProps) {
+export function TransactionsTable({ transactions, page, pageSize, onPageChange, onVoid }: TransactionsTableProps) {
   const pageCount = Math.max(1, Math.ceil(transactions.length / pageSize))
   const pageItems = transactions.slice((page - 1) * pageSize, page * pageSize)
 
@@ -35,6 +36,7 @@ export function TransactionsTable({ transactions, page, pageSize, onPageChange }
                   <th className="py-2 pr-3 font-semibold">Date</th>
                   <th className="py-2 pr-3 font-semibold">Payment</th>
                   <th className="py-2 pr-2 text-right font-semibold">Amount</th>
+                  <th className="py-2 pl-2 pr-2" aria-hidden="true" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-border-soft">
@@ -42,7 +44,7 @@ export function TransactionsTable({ transactions, page, pageSize, onPageChange }
                   const meta = CATEGORY_META[item.category]
                   const signedAmount = item.type === 'expense' ? -item.amount : item.amount
                   return (
-                    <tr key={item.id} className="transition-colors hover:bg-bg-soft">
+                    <tr key={item.id} className="group transition-colors hover:bg-bg-soft">
                       <td className="py-2.5 pl-2 pr-3 text-[10px] font-semibold uppercase tracking-[0.05em]" style={{ color: meta.color }}>
                         {meta.label}
                       </td>
@@ -57,6 +59,18 @@ export function TransactionsTable({ transactions, page, pageSize, onPageChange }
                         )}
                       >
                         {formatCurrency(signedAmount, { signed: true })}
+                      </td>
+                      <td className="py-2.5 pl-2 pr-2 text-right">
+                        {item.sourceId && (
+                          <button
+                            type="button"
+                            onClick={() => onVoid(item)}
+                            aria-label={`Void ${item.description}`}
+                            className="rounded-full p-1.5 text-ink-muted opacity-0 transition-colors hover:bg-danger-soft hover:text-danger group-hover:opacity-100 group-focus-within:opacity-100"
+                          >
+                            <Ban size={13} />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   )

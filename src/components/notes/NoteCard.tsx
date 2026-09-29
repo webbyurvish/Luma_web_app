@@ -1,4 +1,4 @@
-import { NotebookText, Pencil, Trash2 } from 'lucide-react'
+import { Archive, NotebookText, Pencil } from 'lucide-react'
 import { formatDate } from '@/lib/formatDate'
 import type { Note } from '@/types'
 
@@ -6,10 +6,10 @@ interface NoteCardProps {
   note: Note
   onView: (note: Note) => void
   onEdit: (note: Note) => void
-  onDelete: (note: Note) => void
+  onArchive: (note: Note) => void
 }
 
-export function NoteCard({ note, onView, onEdit, onDelete }: NoteCardProps) {
+export function NoteCard({ note, onView, onEdit, onArchive }: NoteCardProps) {
   const excerpt = note.content.replace(/\n+/g, ' ').slice(0, 110)
 
   return (
@@ -40,12 +40,12 @@ export function NoteCard({ note, onView, onEdit, onDelete }: NoteCardProps) {
         <button
           onClick={(e) => {
             e.stopPropagation()
-            onDelete(note)
+            onArchive(note)
           }}
-          aria-label={`Delete ${note.title}`}
+          aria-label={`Archive ${note.title}`}
           className="rounded-xs p-1.5 text-ink-muted transition-colors hover:bg-card hover:text-danger"
         >
-          <Trash2 size={13} />
+          <Archive size={13} />
         </button>
       </div>
     </div>

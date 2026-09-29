@@ -43,4 +43,9 @@ export interface Transaction {
   /** Source-provided month bucket (e.g. "Sep-2026"), when available — avoids re-deriving
    *  month boundaries from a date string. */
   month?: string
+  /** The backend's real Transaction ID (e.g. "TXN-000012"), distinct from `id` above which
+   *  is a synthesized display/React key. Only present once the sheet row has been assigned
+   *  one (via the backend's ID backfill) — undefined on older rows, which therefore can't
+   *  be voided from the UI since void is id-based only. */
+  sourceId?: string
 }

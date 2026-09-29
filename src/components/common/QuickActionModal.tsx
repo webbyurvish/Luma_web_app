@@ -59,7 +59,7 @@ export function QuickActionModal({ open, kind, onClose }: QuickActionModalProps)
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={config.title} subtitle={config.subtitle}>
+    <Modal open={open} onClose={onClose} title={config.title} subtitle={config.subtitle} busy={submitting}>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         {(kind === 'expense' || kind === 'income' || kind === 'udhaar' || kind === 'repayment') && (
           <div>
@@ -109,11 +109,11 @@ export function QuickActionModal({ open, kind, onClose }: QuickActionModalProps)
         )}
 
         <div className="mt-2 flex items-center justify-end gap-2">
-          <Button type="button" variant="secondary" onClick={onClose}>
+          <Button type="button" variant="secondary" onClick={onClose} disabled={submitting}>
             Cancel
           </Button>
-          <Button type="submit" disabled={submitting}>
-            {submitting ? 'Saving...' : config.submitLabel}
+          <Button type="submit" loading={submitting} loadingText="Saving…">
+            {config.submitLabel}
           </Button>
         </div>
       </form>

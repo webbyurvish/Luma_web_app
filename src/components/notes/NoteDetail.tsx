@@ -1,4 +1,4 @@
-import { Pencil, Trash2 } from 'lucide-react'
+import { Archive, Pencil } from 'lucide-react'
 import { SlideOver } from '@/components/ui/SlideOver'
 import { Button } from '@/components/ui/Button'
 import { formatFullDate } from '@/lib/formatDate'
@@ -11,10 +11,10 @@ interface NoteDetailProps {
   categories: NoteCategoryDef[]
   onClose: () => void
   onEdit: (note: Note) => void
-  onDelete: (note: Note) => void
+  onArchive: (note: Note) => void
 }
 
-export function NoteDetail({ open, note, categories, onClose, onEdit, onDelete }: NoteDetailProps) {
+export function NoteDetail({ open, note, categories, onClose, onEdit, onArchive }: NoteDetailProps) {
   const categoryName = note ? categories.find((cat) => cat.id === note.category)?.name ?? note.category : ''
 
   return (
@@ -26,8 +26,8 @@ export function NoteDetail({ open, note, categories, onClose, onEdit, onDelete }
       footer={
         note && (
           <div className="flex items-center justify-end gap-2">
-            <Button type="button" variant="danger" size="sm" icon={<Trash2 size={13} />} onClick={() => onDelete(note)}>
-              Delete
+            <Button type="button" variant="danger" size="sm" icon={<Archive size={13} />} onClick={() => onArchive(note)}>
+              Archive
             </Button>
             <Button type="button" size="sm" icon={<Pencil size={13} />} onClick={() => onEdit(note)}>
               Edit

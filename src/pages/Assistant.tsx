@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { ConversationList } from '@/components/assistant/ConversationList'
 import { ChatWindow } from '@/components/assistant/ChatWindow'
 import { ChatInput } from '@/components/assistant/ChatInput'
 import { AssistantEmptyState } from '@/components/assistant/AssistantEmptyState'
 import { Card } from '@/components/ui/Card'
+import { InlineValueSkeleton } from '@/components/ui/Skeleton'
 import { mockChatMessages, mockConversations } from '@/data/mockAssistant'
 import { formatCurrency } from '@/lib/formatCurrency'
 import { mockUdhaarSummary } from '@/data/mockUdhaar'
@@ -19,8 +20,8 @@ export function Assistant() {
   const spentToday = useMemo(() => calculateTodayExpense(transactions), [transactions])
   const balance = useMemo(() => calculateBalance(transactions), [transactions])
 
-  const contextRows = [
-    { label: 'Spent today', value: loading ? '—' : formatCurrency(spentToday, { compact: true }) },
+  const contextRows: { label: string; value: ReactNode }[] = [
+    { label: 'Spent today', value: loading ? <InlineValueSkeleton /> : formatCurrency(spentToday, { compact: true }) },
     { label: 'Udhaar to receive', value: formatCurrency(mockUdhaarSummary.toReceive, { compact: true }) },
     { label: 'Tasks today', value: '3 open' },
     { label: 'Documents', value: '1 needs review' },
@@ -81,7 +82,7 @@ export function Assistant() {
         </div>
         <div className="mt-4 border-t border-border-soft pt-3">
           <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-muted">Balance</p>
-          <p className="mt-1.5 font-mono-figure text-sm font-bold text-ink">{loading ? '—' : formatCurrency(balance)}</p>
+          <p className="mt-1.5 font-mono-figure text-sm font-bold text-ink">{loading ? <InlineValueSkeleton /> : formatCurrency(balance)}</p>
         </div>
       </div>
     </div>

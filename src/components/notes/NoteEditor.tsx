@@ -33,9 +33,11 @@ interface NoteEditorProps {
   categories: NoteCategoryDef[]
   onClose: () => void
   onSave: (input: NoteInput) => void
+  /** True while the create/update request is in flight — disables Save and prevents double submission. */
+  saving?: boolean
 }
 
-export function NoteEditor({ open, note, categories, onClose, onSave }: NoteEditorProps) {
+export function NoteEditor({ open, note, categories, onClose, onSave, saving }: NoteEditorProps) {
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
   const [initialForm, setInitialForm] = useState<FormState>(EMPTY_FORM)
   const [touched, setTouched] = useState<Record<string, boolean>>({})
@@ -78,16 +80,17 @@ export function NoteEditor({ open, note, categories, onClose, onSave }: NoteEdit
   return (
     <>
       <SlideOver
+        busy={saving}
         open={open}
         onClose={requestClose}
         title={note ? 'Edit Note' : 'New Note'}
         subtitle={note ? 'Update the details below' : 'Keep something important organized'}
         footer={
           <div className="flex items-center justify-end gap-2">
-            <Button type="button" variant="secondary" size="sm" onClick={requestClose}>
+            <Button type="button" variant="secondary" size="sm" onClick={requestClose} disabled={saving}>
               Cancel
             </Button>
-            <Button type="button" size="sm" onClick={handleSave} disabled={attemptedSave && !isValid}>
+            <Button type="button" size="sm" onClick={handleSave} loading={saving} loadingText="Saving…" disabled={attemptedSave && !isValid}>
               Save Note
             </Button>
           </div>

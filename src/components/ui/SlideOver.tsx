@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { slideOverTransition } from '@/lib/motion'
 import { cn } from '@/lib/cn'
+import { SavingOverlay } from './Loader'
 
 interface SlideOverProps {
   open: boolean
@@ -13,18 +14,25 @@ interface SlideOverProps {
   children: ReactNode
   footer?: ReactNode
   className?: string
+  /** While true a saving overlay covers the body, the footer is locked, and Escape / backdrop / close are ignored. */
+  busy?: boolean
+  /** Overlay caption while busy (defaults to "Saving to your ledger…"). */
+  busyLabel?: string
 }
 
-export function SlideOver({ open, onClose, title, subtitle, children, footer, className }: SlideOverProps) {
+export function SlideOver({ open, onClose, title, subtitle, children, footer, className, busy = false, busyLabel }: SlideOverProps) {
   const panelRef = useRef<HTMLDivElement>(null)
 
   // Callers typically pass an inline onClose (e.g. a requestClose that closes over
   // isDirty), which gets a new identity on every render — including every keystroke in
   // a field inside this panel. Reading it via a ref keeps the effect below scoped to
   // `open` only, so typing doesn't re-run it and steal focus back to the panel.
-  const onCloseRef = useRef(onClose)
+  const guardedClose = () => {
+    if (!busy) onClose()
+  }
+  const onCloseRef = useRef(guardedClose)
   useEffect(() => {
-    onCloseRef.current = onClose
+    onCloseRef.current = guardedClose
   })
 
   useEffect(() => {
@@ -53,12 +61,13 @@ export function SlideOver({ open, onClose, title, subtitle, children, footer, cl
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18 }}
             className="absolute inset-0 bg-ink/40 backdrop-blur-[2px]"
-            onClick={onClose}
+            onClick={guardedClose}
           />
           <motion.div
             ref={panelRef}
             role="dialog"
             aria-modal="true"
+            aria-busy={busy || undefined}
             aria-labelledby="slideover-title"
             tabIndex={-1}
             variants={slideOverTransition}
@@ -78,15 +87,21 @@ export function SlideOver({ open, onClose, title, subtitle, children, footer, cl
                 {subtitle && <p className="mt-0.5 text-xs text-ink-soft">{subtitle}</p>}
               </div>
               <button
-                onClick={onClose}
+                onClick={guardedClose}
+                disabled={busy}
                 aria-label="Close"
-                className="shrink-0 rounded-full p-1.5 text-ink-muted transition-colors hover:bg-bg-soft hover:text-ink"
+                className="shrink-0 rounded-full p-1.5 text-ink-muted transition-colors hover:bg-bg-soft hover:text-ink disabled:pointer-events-none disabled:opacity-40"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
+            <div className="relative min-h-0 flex-1">
+              <div className="h-full overflow-y-auto px-5 py-4" inert={busy || undefined}>
+                {children}
+              </div>
+              <SavingOverlay show={busy} label={busyLabel} />
+            </div>
 
             {footer && <div className="border-t border-border-soft px-5 py-4">{footer}</div>}
           </motion.div>

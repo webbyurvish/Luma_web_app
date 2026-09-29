@@ -74,6 +74,80 @@
 
   --animate-fade-up: fade-up 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
   --animate-spark: spark-pulse 2.6s ease-in-out infinite;
+  --animate-shimmer: shimmer 1.7s ease-in-out infinite;
+  --animate-spin-smooth: spin-smooth 0.8s linear infinite;
+  --animate-ledger-ink: ledger-ink 2.1s cubic-bezier(0.65, 0, 0.35, 1) infinite both;
+  --animate-ledger-nib: ledger-nib 2.1s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  --animate-sync-slide: sync-slide 1.25s cubic-bezier(0.45, 0, 0.25, 1) infinite;
+
+  @keyframes spin-smooth {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* Each ledger line inks in left→right, holds, then fades so the loop restarts cleanly */
+  @keyframes ledger-ink {
+    0% {
+      transform: scaleX(0);
+      transform-origin: left;
+      opacity: 1;
+    }
+    13% {
+      transform: scaleX(1);
+      transform-origin: left;
+      opacity: 1;
+    }
+    80% {
+      transform: scaleX(1);
+      opacity: 1;
+    }
+    100% {
+      transform: scaleX(1);
+      opacity: 0;
+    }
+  }
+
+  /* The nib travels down the three lines, writing each one */
+  @keyframes ledger-nib {
+    0% {
+      transform: translate(0, 0);
+      opacity: 0;
+    }
+    4% {
+      opacity: 1;
+    }
+    13% {
+      transform: translate(104px, 0);
+    }
+    14% {
+      transform: translate(0, 13px);
+    }
+    27% {
+      transform: translate(104px, 13px);
+    }
+    28% {
+      transform: translate(0, 26px);
+    }
+    38% {
+      transform: translate(64px, 26px);
+      opacity: 1;
+    }
+    50%,
+    100% {
+      transform: translate(64px, 26px);
+      opacity: 0;
+    }
+  }
+
+  @keyframes sync-slide {
+    0% {
+      left: -35%;
+    }
+    100% {
+      left: 100%;
+    }
+  }
 
   @keyframes fade-up {
     from {
@@ -93,6 +167,15 @@
     }
     50% {
       opacity: 0.6;
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: 160% 0;
+    }
+    100% {
+      background-position: -60% 0;
     }
   }
 }
@@ -249,6 +332,23 @@
     bottom: 2px;
     width: 3px;
     background: var(--color-rust);
+  }
+
+  /* Skeleton loading sweep — a soft rust-tinted highlight drifts across the base
+     tone rather than a flat pulse, so a screenful of skeletons reads as one
+     coordinated wave instead of independently-blinking blocks. */
+  .skeleton-shimmer {
+    background-color: var(--color-bg-soft);
+    background-image: linear-gradient(
+      100deg,
+      transparent 30%,
+      var(--color-rust-soft) 48%,
+      var(--color-surface) 50%,
+      var(--color-rust-soft) 52%,
+      transparent 70%
+    );
+    background-size: 250% 100%;
+    background-repeat: no-repeat;
   }
 }
 

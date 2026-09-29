@@ -5,6 +5,7 @@ import type {
   RawAccount,
   RawInvestment,
   RawLiability,
+  RawNote,
   RawSip,
   RawTransaction,
   TransactionsApiResponse,
@@ -132,6 +133,10 @@ export async function getLiabilities(signal?: AbortSignal): Promise<RawLiability
   return fetchList<RawLiability>('liabilities', signal)
 }
 
+export async function getNotes(signal?: AbortSignal): Promise<RawNote[]> {
+  return fetchList<RawNote>('notes', signal)
+}
+
 export function createAccount(payload: Record<string, unknown>): Promise<void> {
   return postEntity('account', payload)
 }
@@ -146,4 +151,58 @@ export function createSip(payload: Record<string, unknown>): Promise<void> {
 
 export function createLiability(payload: Record<string, unknown>): Promise<void> {
   return postEntity('liability', payload)
+}
+
+export function createNote(payload: Record<string, unknown>): Promise<void> {
+  return postEntity('note', payload)
+}
+
+/**
+ * Update and archive/deactivate/close/void calls all share the same `postEntity`
+ * re-fetch-to-confirm behavior as create — see the comment on postEntity above.
+ * `operation` + `id` travel inside the JSON body; `action` (the query param) stays
+ * the entity's singular name, exactly as create already uses it.
+ */
+export function updateAccount(id: string, payload: Record<string, unknown>): Promise<void> {
+  return postEntity('account', { operation: 'update', id, ...payload })
+}
+
+export function archiveAccount(id: string): Promise<void> {
+  return postEntity('account', { operation: 'archive', id })
+}
+
+export function updateInvestment(id: string, payload: Record<string, unknown>): Promise<void> {
+  return postEntity('investment', { operation: 'update', id, ...payload })
+}
+
+export function archiveInvestment(id: string): Promise<void> {
+  return postEntity('investment', { operation: 'archive', id })
+}
+
+export function updateSip(id: string, payload: Record<string, unknown>): Promise<void> {
+  return postEntity('sip', { operation: 'update', id, ...payload })
+}
+
+export function deactivateSip(id: string): Promise<void> {
+  return postEntity('sip', { operation: 'deactivate', id })
+}
+
+export function updateLiability(id: string, payload: Record<string, unknown>): Promise<void> {
+  return postEntity('liability', { operation: 'update', id, ...payload })
+}
+
+export function closeLiability(id: string): Promise<void> {
+  return postEntity('liability', { operation: 'close', id })
+}
+
+export function voidTransaction(id: string): Promise<void> {
+  return postEntity('transaction', { operation: 'void', id })
+}
+
+export function updateNote(id: string, payload: Record<string, unknown>): Promise<void> {
+  return postEntity('note', { operation: 'update', id, ...payload })
+}
+
+export function archiveNote(id: string): Promise<void> {
+  return postEntity('note', { operation: 'archive', id })
 }

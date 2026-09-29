@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { ThemedSelect } from '@/components/ui/ThemedSelect'
 import { ACCOUNT_TYPE_OPTIONS } from '@/lib/accountMeta'
-import type { AccountInput, AccountType } from '@/types'
+import type { AccountInput, AccountType, FinancialAccount } from '@/types'
 
 interface FormState {
   name: string
@@ -18,15 +18,29 @@ interface FormState {
 
 const EMPTY_FORM: FormState = { name: '', type: '', institution: '', accountNumberLast4: '', balance: '', notes: '' }
 
+function accountToForm(account: FinancialAccount): FormState {
+  return {
+    name: account.name,
+    type: account.type,
+    institution: account.institution ?? '',
+    accountNumberLast4: account.accountNumberLast4 ?? '',
+    balance: String(account.balance),
+    notes: account.notes ?? '',
+  }
+}
+
 interface AccountEditorProps {
   open: boolean
+  /** When set, the editor pre-fills from this account and behaves as an edit rather than a create. */
+  account?: FinancialAccount | null
   onClose: () => void
   onSave: (input: AccountInput) => void
-  /** True while the create request is in flight — disables Save and prevents double submission. */
+  /** True while the create/update request is in flight — disables Save and prevents double submission. */
   saving?: boolean
 }
 
-export function AccountEditor({ open, onClose, onSave, saving }: AccountEditorProps) {
+export function AccountEditor({ open, account, onClose, onSave, saving }: AccountEditorProps) {
+  const isEdit = !!account
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
   const [initialForm, setInitialForm] = useState<FormState>(EMPTY_FORM)
   const [touched, setTouched] = useState<Record<string, boolean>>({})
@@ -35,11 +49,12 @@ export function AccountEditor({ open, onClose, onSave, saving }: AccountEditorPr
 
   useEffect(() => {
     if (!open) return
-    setForm(EMPTY_FORM)
-    setInitialForm(EMPTY_FORM)
+    const next = account ? accountToForm(account) : EMPTY_FORM
+    setForm(next)
+    setInitialForm(next)
     setTouched({})
     setAttemptedSave(false)
-  }, [open])
+  }, [open, account])
 
   const isDirty = JSON.stringify(form) !== JSON.stringify(initialForm)
   const balanceNumber = Number(form.balance)
@@ -74,17 +89,18 @@ export function AccountEditor({ open, onClose, onSave, saving }: AccountEditorPr
   return (
     <>
       <SlideOver
+        busy={saving}
         open={open}
         onClose={requestClose}
-        title="Add Account"
+        title={isEdit ? 'Edit Account' : 'Add Account'}
         subtitle="Track where your money lives"
         footer={
           <div className="flex items-center justify-end gap-2">
             <Button type="button" variant="secondary" size="sm" onClick={requestClose} disabled={saving}>
               Cancel
             </Button>
-            <Button type="button" size="sm" onClick={handleSave} disabled={saving || (attemptedSave && !isValid)}>
-              {saving ? 'Saving…' : 'Save Account'}
+            <Button type="button" size="sm" onClick={handleSave} loading={saving} loadingText="Saving…" disabled={attemptedSave && !isValid}>
+              {isEdit ? 'Save Changes' : 'Save Account'}
             </Button>
           </div>
         }

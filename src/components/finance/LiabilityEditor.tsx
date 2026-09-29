@@ -3,7 +3,7 @@ import { SlideOver } from '@/components/ui/SlideOver'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { ThemedSelect } from '@/components/ui/ThemedSelect'
-import type { LiabilityInput, LiabilityType } from '@/types'
+import type { Liability, LiabilityInput, LiabilityType } from '@/types'
 
 interface FormState {
   name: string
@@ -18,24 +18,31 @@ const TYPE_OPTIONS = [
   { value: 'other', label: 'Other' },
 ]
 
+function liabilityToForm(liability: Liability): FormState {
+  return { name: liability.name, type: liability.type, amount: String(liability.amount) }
+}
+
 interface LiabilityEditorProps {
   open: boolean
+  /** When set, the editor pre-fills from this liability and behaves as an edit rather than a create. */
+  liability?: Liability | null
   onClose: () => void
   onSave: (input: LiabilityInput) => void
-  /** True while the create request is in flight — disables Save and prevents double submission. */
+  /** True while the create/update request is in flight — disables Save and prevents double submission. */
   saving?: boolean
 }
 
-export function LiabilityEditor({ open, onClose, onSave, saving }: LiabilityEditorProps) {
+export function LiabilityEditor({ open, liability, onClose, onSave, saving }: LiabilityEditorProps) {
+  const isEdit = !!liability
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
   const [attemptedSave, setAttemptedSave] = useState(false)
 
   useEffect(() => {
     if (open) {
-      setForm(EMPTY_FORM)
+      setForm(liability ? liabilityToForm(liability) : EMPTY_FORM)
       setAttemptedSave(false)
     }
-  }, [open])
+  }, [open, liability])
 
   const amountNumber = Number(form.amount)
   const errors = {
@@ -53,17 +60,18 @@ export function LiabilityEditor({ open, onClose, onSave, saving }: LiabilityEdit
 
   return (
     <SlideOver
+      busy={saving}
       open={open}
       onClose={onClose}
-      title="Add Liability"
+      title={isEdit ? 'Edit Liability' : 'Add Liability'}
       subtitle="Loans and other amounts you owe"
       footer={
         <div className="flex items-center justify-end gap-2">
           <Button type="button" variant="secondary" size="sm" onClick={onClose} disabled={saving}>
             Cancel
           </Button>
-          <Button type="button" size="sm" onClick={handleSave} disabled={saving || (attemptedSave && !isValid)}>
-            {saving ? 'Saving…' : 'Save Liability'}
+          <Button type="button" size="sm" onClick={handleSave} loading={saving} loadingText="Saving…" disabled={attemptedSave && !isValid}>
+            {isEdit ? 'Save Changes' : 'Save Liability'}
           </Button>
         </div>
       }

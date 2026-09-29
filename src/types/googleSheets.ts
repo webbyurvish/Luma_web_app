@@ -1,4 +1,6 @@
-/** Raw transaction row exactly as the Google Apps Script Web App returns it. */
+/** Raw transaction row exactly as the Google Apps Script Web App returns it.
+ *  id/status/voidedAt are only populated once the sheet's lifecycle columns
+ *  exist (backfillTransactionIds()) — id falls back to "" on older rows. */
 export interface RawTransaction {
   timestamp: string
   date: string
@@ -10,6 +12,9 @@ export interface RawTransaction {
   merchant: string
   note: string
   month: string
+  id?: string
+  status?: string
+  voidedAt?: string | null
 }
 
 export interface TransactionsApiResponse {
@@ -102,6 +107,19 @@ export interface RawSip {
   lastPaymentDate: string | null
   nextPaymentDate: string | null
   notes: string | null
+  createdAt: string | null
+  updatedAt: string | null
+}
+
+/** Sheet row shape for ?action=notes. Tags are stored as one comma-separated cell. */
+export interface RawNote {
+  noteId: string
+  title: string | null
+  content: string | null
+  category: string | null
+  tags: string | null
+  isPinned: boolean | null
+  isArchived: boolean | null
   createdAt: string | null
   updatedAt: string | null
 }

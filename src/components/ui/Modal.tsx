@@ -12,18 +12,23 @@ interface ModalProps {
   subtitle?: string
   children: ReactNode
   className?: string
+  /** While true the modal ignores Escape, backdrop clicks and the close button — a request is in flight. */
+  busy?: boolean
 }
 
-export function Modal({ open, onClose, title, subtitle, children, className }: ModalProps) {
+export function Modal({ open, onClose, title, subtitle, children, className, busy = false }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
 
   // Callers typically pass an inline onClose, which gets a new identity on every render
   // — including every keystroke in a field inside this modal. Reading it via a ref keeps
   // the effect below scoped to `open` only, so typing doesn't re-run it and steal focus
   // back to the dialog.
-  const onCloseRef = useRef(onClose)
+  const guardedClose = () => {
+    if (!busy) onClose()
+  }
+  const onCloseRef = useRef(guardedClose)
   useEffect(() => {
-    onCloseRef.current = onClose
+    onCloseRef.current = guardedClose
   })
 
   useEffect(() => {
@@ -52,12 +57,13 @@ export function Modal({ open, onClose, title, subtitle, children, className }: M
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18 }}
             className="absolute inset-0 bg-ink/40 backdrop-blur-[2px]"
-            onClick={onClose}
+            onClick={guardedClose}
           />
           <motion.div
             ref={dialogRef}
             role="dialog"
             aria-modal="true"
+            aria-busy={busy || undefined}
             aria-labelledby="modal-title"
             tabIndex={-1}
             variants={modalTransition}
@@ -77,9 +83,10 @@ export function Modal({ open, onClose, title, subtitle, children, className }: M
                 {subtitle && <p className="mt-0.5 text-xs text-ink-soft">{subtitle}</p>}
               </div>
               <button
-                onClick={onClose}
+                onClick={guardedClose}
+                disabled={busy}
                 aria-label="Close"
-                className="rounded-full p-1.5 text-ink-muted transition-colors hover:bg-bg-soft hover:text-ink"
+                className="rounded-full p-1.5 text-ink-muted transition-colors hover:bg-bg-soft hover:text-ink disabled:pointer-events-none disabled:opacity-40"
               >
                 <X size={18} />
               </button>

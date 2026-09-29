@@ -1,12 +1,12 @@
 import { createContext, type ReactNode, useCallback, useContext, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { CheckCircle2, Info, X } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Info, X } from 'lucide-react'
 import { cn } from '@/lib/cn'
 
 interface ToastItem {
   id: string
   message: string
-  variant: 'success' | 'info'
+  variant: 'success' | 'info' | 'error'
 }
 
 interface ToastContextValue {
@@ -23,7 +23,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToasts((prev) => [...prev, { id, message, variant }])
     setTimeout(() => {
       setToasts((prev) => prev.filter((toast) => toast.id !== id))
-    }, 3200)
+    }, variant === 'error' ? 5500 : 3200)
   }, [])
 
   const dismiss = useCallback((id: string) => {
@@ -49,6 +49,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             >
               {toast.variant === 'success' ? (
                 <CheckCircle2 size={18} className="shrink-0 text-success" />
+              ) : toast.variant === 'error' ? (
+                <AlertCircle size={18} className="shrink-0 text-danger" />
               ) : (
                 <Info size={18} className="shrink-0 text-info" />
               )}

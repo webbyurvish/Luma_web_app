@@ -1,6 +1,8 @@
 import { CalendarClock } from 'lucide-react'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { ErrorState } from '@/components/ui/ErrorState'
+import { UpcomingRowSkeleton } from '@/components/ui/Skeleton'
 import { formatCurrency } from '@/lib/formatCurrency'
 import { formatFullDate, todayIstDateKey } from '@/lib/formatDate'
 import { getUpcomingSips } from '@/lib/financeCalculations'
@@ -17,8 +19,15 @@ interface UpcomingItem {
 }
 
 export function UpcomingFinance() {
-  const { sips } = useSips()
-  const { accounts } = useAccounts()
+  const { sips, loading: sipsLoading, error: sipsError, refetch: refetchSips } = useSips()
+  const { accounts, loading: accountsLoading, error: accountsError, refetch: refetchAccounts } = useAccounts()
+
+  const loading = sipsLoading || accountsLoading
+  const error = sipsError ?? accountsError
+  const retry = () => {
+    refetchSips()
+    refetchAccounts()
+  }
 
   const platformName = (id?: string) => accounts.find((a) => a.id === id)?.name ?? 'Unassigned'
   const today = todayIstDateKey()
@@ -40,7 +49,15 @@ export function UpcomingFinance() {
   return (
     <Card hoverable className="h-full">
       <CardHeader title="Upcoming" subtitle="SIPs and money due" />
-      {items.length === 0 ? (
+      {error ? (
+        <ErrorState title="Couldn't load upcoming items." description={error} onRetry={retry} />
+      ) : loading ? (
+        <div className="-mx-1.5 divide-y divide-border-soft">
+          {[0, 1, 2, 3].map((i) => (
+            <UpcomingRowSkeleton key={i} />
+          ))}
+        </div>
+      ) : items.length === 0 ? (
         <EmptyState icon={<CalendarClock size={20} />} title="Nothing upcoming" description="Scheduled SIPs and dues will show up here." />
       ) : (
         <ul className="-mx-1.5 divide-y divide-border-soft">

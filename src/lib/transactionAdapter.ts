@@ -90,6 +90,7 @@ export function normalizeTransactions(rows: RawTransaction[], onSkip?: (row: Raw
       merchant: row.merchant?.trim() || undefined,
       note: row.note?.trim() || undefined,
       month: normalizeMonthLabel(row.month, timestamp),
+      sourceId: row.id?.trim() || undefined,
     })
   })
 

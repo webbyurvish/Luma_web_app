@@ -4,7 +4,10 @@ import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ErrorState } from '@/components/ui/ErrorState'
-import { ChartCardSkeleton } from '@/components/ui/Skeleton'
+import { ListSkeleton, StatTileSkeleton } from '@/components/ui/Skeleton'
+import { SlowLoadHint, SyncBadge, SyncBar } from '@/components/ui/Loader'
+import { getErrorMessage } from '@/lib/errors'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { SipRow } from './SipRow'
 import { SipEditor } from './SipEditor'
 import { SipContributionBars } from './SipContributionBars'
@@ -14,17 +17,18 @@ import { useToast } from '@/context/ToastContext'
 import { formatCurrency } from '@/lib/formatCurrency'
 import { todayIstDateKey } from '@/lib/formatDate'
 import { getActiveSipCount, getMonthlySipTotal, getSipsByFund, getSipsByPlatform, getUpcomingSips } from '@/lib/financeCalculations'
-import type { FinancialAccount, SIPInput } from '@/types'
+import type { FinancialAccount, SIP, SIPInput } from '@/types'
 
 interface SipsSectionProps {
   accounts: FinancialAccount[]
 }
 
 export function SipsSection({ accounts }: SipsSectionProps) {
-  const { sips, loading, error, refetch, createSip, creating } = useSips()
+  const { sips, loading, refreshing, error, refetch, createSip, creating, updateSip, updating, deactivateSip, deactivating } = useSips()
   const { showToast } = useToast()
 
-  const [editorOpen, setEditorOpen] = useState(false)
+  const [editorTarget, setEditorTarget] = useState<SIP | 'new' | null>(null)
+  const [deactivateTarget, setDeactivateTarget] = useState<SIP | null>(null)
 
   const monthlyTotal = getMonthlySipTotal(sips)
   const activeCount = getActiveSipCount(sips)
@@ -37,9 +41,29 @@ export function SipsSection({ accounts }: SipsSectionProps) {
   const platformFor = (id?: string) => accounts.find((a) => a.id === id)
 
   const handleSave = async (input: SIPInput) => {
-    await createSip(input)
-    showToast('SIP added')
-    setEditorOpen(false)
+    try {
+      if (editorTarget && editorTarget !== 'new') {
+        await updateSip(editorTarget.id, input)
+        showToast('SIP updated')
+      } else {
+        await createSip(input)
+        showToast('SIP added')
+      }
+      setEditorTarget(null)
+    } catch (err) {
+      showToast(getErrorMessage(err, "Couldn't save the SIP. Please try again."), 'error')
+    }
+  }
+
+  const handleDeactivateConfirm = async () => {
+    if (!deactivateTarget) return
+    try {
+      await deactivateSip(deactivateTarget.id)
+      showToast('SIP deactivated')
+      setDeactivateTarget(null)
+    } catch (err) {
+      showToast(getErrorMessage(err, "Couldn't deactivate the SIP. Please try again."), 'error')
+    }
   }
 
   if (error) {
@@ -47,12 +71,28 @@ export function SipsSection({ accounts }: SipsSectionProps) {
   }
 
   if (loading) {
-    return <ChartCardSkeleton />
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <StatTileSkeleton />
+          <StatTileSkeleton />
+          <StatTileSkeleton />
+        </div>
+        <Card variant="panel">
+          <ListSkeleton rows={4} />
+          <SlowLoadHint />
+        </Card>
+      </div>
+    )
   }
 
   return (
     <div className="flex flex-col gap-4">
-      <Card variant="panel">
+      <Card variant="panel" className="relative">
+        <SyncBar active={refreshing} />
+        <div className="absolute -top-2.5 right-5 z-10">
+          <SyncBadge active={refreshing} />
+        </div>
         <div className="grid grid-cols-2 divide-x divide-border-soft sm:grid-cols-3">
           <div className="pr-4">
             <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">Monthly SIP</p>
@@ -81,7 +121,7 @@ export function SipsSection({ accounts }: SipsSectionProps) {
           title="Your SIPs"
           subtitle={`${sips.length} total · ${activeCount} active`}
           action={
-            <Button size="sm" icon={<Plus size={13} />} onClick={() => setEditorOpen(true)}>
+            <Button size="sm" icon={<Plus size={13} />} onClick={() => setEditorTarget('new')}>
               Add SIP
             </Button>
           }
@@ -94,7 +134,7 @@ export function SipsSection({ accounts }: SipsSectionProps) {
             {activeSips.length > 0 && (
               <div className="divide-y divide-border-soft">
                 {activeSips.map((sip) => (
-                  <SipRow key={sip.id} sip={sip} platform={platformFor(sip.platformAccountId)} />
+                  <SipRow key={sip.id} sip={sip} platform={platformFor(sip.platformAccountId)} onEdit={setEditorTarget} onDeactivate={setDeactivateTarget} />
                 ))}
               </div>
             )}
@@ -103,7 +143,7 @@ export function SipsSection({ accounts }: SipsSectionProps) {
                 <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">Paused</p>
                 <div className="divide-y divide-border-soft">
                   {pausedSips.map((sip) => (
-                    <SipRow key={sip.id} sip={sip} platform={platformFor(sip.platformAccountId)} />
+                    <SipRow key={sip.id} sip={sip} platform={platformFor(sip.platformAccountId)} onEdit={setEditorTarget} onDeactivate={setDeactivateTarget} />
                   ))}
                 </div>
               </div>
@@ -112,7 +152,25 @@ export function SipsSection({ accounts }: SipsSectionProps) {
         )}
       </Card>
 
-      <SipEditor open={editorOpen} accounts={accounts} onClose={() => setEditorOpen(false)} onSave={handleSave} saving={creating} />
+      <SipEditor
+        open={editorTarget !== null}
+        sip={editorTarget === 'new' ? null : editorTarget}
+        accounts={accounts}
+        onClose={() => setEditorTarget(null)}
+        onSave={handleSave}
+        saving={creating || updating}
+      />
+
+      <ConfirmDialog
+        open={deactivateTarget !== null}
+        title="Deactivate SIP?"
+        description={`"${deactivateTarget?.fundName}" will stop counting toward your monthly SIP total and move to Paused. Its history is kept.`}
+        confirmLabel="Deactivate"
+        loading={deactivating}
+        loadingLabel="Deactivating…"
+        onConfirm={handleDeactivateConfirm}
+        onCancel={() => setDeactivateTarget(null)}
+      />
     </div>
   )
 }
