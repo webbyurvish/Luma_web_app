@@ -14,6 +14,10 @@
  */
 
 function doGet(e) {
+  // Luma Documents in Google Drive (Luma_Drive). Null for every other action.
+  var driveGet = tryHandleLumaDriveGet_(e);
+  if (driveGet) return driveGet;
+
   // Speech tokens for the mic button (Luma_AI). Null for every other action.
   var aiGet = tryHandleLumaAIGet_(e);
   if (aiGet) return aiGet;
@@ -220,6 +224,10 @@ function coerceTransactionDate_(raw) {
 
 
 function doPost(e) {
+  // Document operations (Luma_Drive) carry a "driveOp" field; everything else gets null.
+  var drive = tryHandleLumaDrive_(e);
+  if (drive) return drive;
+
   // AI requests (Luma_AI) carry an "aiTask" field; everything else gets null.
   var ai = tryHandleLumaAI_(e);
   if (ai) return ai;
