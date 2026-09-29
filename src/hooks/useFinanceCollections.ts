@@ -28,16 +28,18 @@ import {
   normalizeSip,
 } from '@/lib/financeAdapters'
 import { type RemoteListResult, useRemoteList, useSyncedAction } from './useRemoteData'
+import type { RemoteKey } from '@/lib/remoteStore'
 import type { AccountInput, FinancialAccount, Investment, InvestmentInput, Liability, LiabilityInput, SIP, SIPInput } from '@/types'
 
 /** Per-row flavour of useRemoteList — each raw row is normalized independently. */
 export function useRemoteCollection<TRaw, T>(
-  fetchFn: (signal?: AbortSignal) => Promise<TRaw[]>,
+  key: RemoteKey,
+  fetchFn: () => Promise<TRaw[]>,
   normalize: (raw: TRaw) => T,
 ): RemoteListResult<T> {
   // normalize is a stable module-level function, so this keeps a stable identity too.
   const transform = useCallback((rows: TRaw[]) => rows.map(normalize), [normalize])
-  return useRemoteList(fetchFn, transform)
+  return useRemoteList(key, fetchFn, transform)
 }
 
 export interface UseAccountsResult {
@@ -55,7 +57,7 @@ export interface UseAccountsResult {
 }
 
 export function useAccounts(): UseAccountsResult {
-  const { items, loading, refreshing, error, refetch } = useRemoteCollection(getAccounts, normalizeAccount)
+  const { items, loading, refreshing, error, refetch } = useRemoteCollection('accounts', getAccounts, normalizeAccount)
   const [createAccount, creating] = useSyncedAction((input: AccountInput) => createAccountApi(buildAccountPayload(input)), refetch)
   const [updateAccount, updating] = useSyncedAction(
     (id: string, input: AccountInput) => updateAccountApi(id, buildAccountPayload(input)),
@@ -81,7 +83,7 @@ export interface UseInvestmentsResult {
 }
 
 export function useInvestments(): UseInvestmentsResult {
-  const { items, loading, refreshing, error, refetch } = useRemoteCollection(getInvestments, normalizeInvestment)
+  const { items, loading, refreshing, error, refetch } = useRemoteCollection('investments', getInvestments, normalizeInvestment)
   const [createInvestment, creating] = useSyncedAction(
     (input: InvestmentInput) => createInvestmentApi(buildInvestmentPayload(input)),
     refetch,
@@ -122,7 +124,7 @@ export interface UseSipsResult {
 }
 
 export function useSips(): UseSipsResult {
-  const { items, loading, refreshing, error, refetch } = useRemoteCollection(getSips, normalizeSip)
+  const { items, loading, refreshing, error, refetch } = useRemoteCollection('sips', getSips, normalizeSip)
   const [createSip, creating] = useSyncedAction((input: SIPInput) => createSipApi(buildSipPayload(input)), refetch)
   const [updateSip, updating] = useSyncedAction((id: string, input: SIPInput) => updateSipApi(id, buildSipPayload(input)), refetch)
   const [deactivateSip, deactivating] = useSyncedAction((id: string) => deactivateSipApi(id), refetch)
@@ -145,7 +147,7 @@ export interface UseLiabilitiesResult {
 }
 
 export function useLiabilities(): UseLiabilitiesResult {
-  const { items, loading, refreshing, error, refetch } = useRemoteCollection(getLiabilities, normalizeLiability)
+  const { items, loading, refreshing, error, refetch } = useRemoteCollection('liabilities', getLiabilities, normalizeLiability)
   const [createLiability, creating] = useSyncedAction(
     (input: LiabilityInput) => createLiabilityApi(buildLiabilityPayload(input)),
     refetch,

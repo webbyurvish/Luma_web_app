@@ -141,3 +141,21 @@ export interface RawLiability {
   createdAt: string | null
   updatedAt: string | null
 }
+
+/**
+ * `?action=bootstrap` — every first-paint collection from one Apps Script execution.
+ * A collection that failed server-side is absent from `data` and named in `errors`;
+ * the client then fetches just that one through its own route.
+ */
+export interface BootstrapApiResponse {
+  success: boolean
+  data?: Partial<{
+    accounts: RawAccount[]
+    investments: RawInvestment[]
+    sips: RawSip[]
+    liabilities: RawLiability[]
+    transactions: RawTransaction[]
+  }>
+  errors?: Record<string, string>
+  error?: string
+}

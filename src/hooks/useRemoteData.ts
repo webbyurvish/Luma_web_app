@@ -1,76 +1,49 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { ensureLoaded, getSnapshot, refetch as refetchKey, type RemoteKey, subscribe } from '@/lib/remoteStore'
 
 export interface RemoteListResult<T> {
   items: T[]
-  /** True only until the first successful load — drives skeletons. */
+  /** True only while there's nothing to show yet (no cached or fetched data) — drives skeletons. */
   loading: boolean
-  /** True while re-syncing data that's already on screen (after a save, or a manual refetch). */
+  /** True while re-syncing data that's already on screen (cache restore, after a save, manual refetch). */
   refreshing: boolean
+  /** Only surfaced when there's no data to show; a failed background re-sync keeps the last good data. */
   error: string | null
   /** Re-fetches in the background; the promise settles once the fresh data (or an error) has landed. */
   refetch: () => Promise<void>
 }
 
 /**
- * Fetch-on-mount + refetch for one Sheets-backed list. After the first load, refetches keep
- * the current items on screen and flip `refreshing` instead of `loading`, so a save doesn't
- * blank the list back to a skeleton.
+ * One Sheets-backed list, read through the app-wide store in lib/remoteStore: every
+ * component using the same `key` shares a single request and a single copy of the rows.
  */
 export function useRemoteList<TRaw, T>(
-  fetchFn: (signal?: AbortSignal) => Promise<TRaw[]>,
+  key: RemoteKey,
+  fetchFn: () => Promise<TRaw[]>,
   transform: (rows: TRaw[]) => T[],
   fallbackError = 'Failed to load data.',
 ): RemoteListResult<T> {
-  const [items, setItems] = useState<T[]>([])
-  const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [version, setVersion] = useState(0)
-
-  const hasLoadedRef = useRef(false)
-  // Resolvers for refetch() promises, settled by whichever fetch finishes next (a superseded
-  // fetch is aborted and leaves them for its replacement).
-  const waitersRef = useRef<Array<() => void>>([])
-
-  useEffect(() => {
-    const controller = new AbortController()
-    if (hasLoadedRef.current) setRefreshing(true)
-    else setLoading(true)
-    setError(null)
-
-    fetchFn(controller.signal)
-      .then((rows) => {
-        if (controller.signal.aborted) return
-        setItems(transform(rows))
-        hasLoadedRef.current = true
-      })
-      .catch((err: unknown) => {
-        if (controller.signal.aborted) return
-        if (import.meta.env.DEV) console.error('[useRemoteList] Fetch failed:', err)
-        setError(err instanceof Error ? err.message : fallbackError)
-      })
-      .finally(() => {
-        if (controller.signal.aborted) return
-        setLoading(false)
-        setRefreshing(false)
-        const waiters = waitersRef.current
-        waitersRef.current = []
-        waiters.forEach((resolve) => resolve())
-      })
-
-    return () => controller.abort()
-  }, [version, fetchFn, transform, fallbackError])
-
-  const refetch = useCallback(
-    () =>
-      new Promise<void>((resolve) => {
-        waitersRef.current.push(resolve)
-        setVersion((v) => v + 1)
-      }),
-    [],
+  const snapshot = useSyncExternalStore(
+    useCallback((listener: () => void) => subscribe(key, listener), [key]),
+    () => getSnapshot(key),
   )
 
-  return { items, loading, refreshing, error, refetch }
+  useEffect(() => {
+    void ensureLoaded(key, fetchFn, fallbackError)
+  }, [key, fetchFn, fallbackError])
+
+  const items = useMemo(() => (snapshot.raw ? transform(snapshot.raw as TRaw[]) : []), [snapshot.raw, transform])
+  const hasData = snapshot.raw !== null
+
+  const refetch = useCallback(() => refetchKey(key, fetchFn, fallbackError), [key, fetchFn, fallbackError])
+
+  return {
+    items,
+    loading: !hasData && !snapshot.error,
+    refreshing: hasData && snapshot.syncing,
+    error: hasData ? null : snapshot.error,
+    refetch,
+  }
 }
 
 /**

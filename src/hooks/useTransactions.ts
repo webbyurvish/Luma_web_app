@@ -26,7 +26,7 @@ function transformRows(rows: RawTransaction[]): Transaction[] {
  * "Google Sheets → API service → this hook → pages" data flow.
  */
 export function useTransactions(): UseTransactionsResult {
-  const { items, loading, refreshing, error, refetch } = useRemoteList(getTransactions, transformRows, 'Failed to load transactions.')
+  const { items, loading, refreshing, error, refetch } = useRemoteList('transactions', getTransactions, transformRows, 'Failed to load transactions.')
   const [voidTransaction, voiding] = useSyncedAction((sourceId: string) => voidTransactionApi(sourceId), refetch)
 
   return { transactions: items, loading, refreshing, error, refetch, voidTransaction, voiding }

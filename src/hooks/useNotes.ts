@@ -19,7 +19,7 @@ export interface UseNotesResult {
 }
 
 export function useNotes(): UseNotesResult {
-  const { items, loading, refreshing, error, refetch } = useRemoteCollection(getNotes, normalizeNote)
+  const { items, loading, refreshing, error, refetch } = useRemoteCollection('notes', getNotes, normalizeNote)
   const [createNote, creating] = useSyncedAction((input: NoteInput) => createNoteApi(buildNotePayload(input)), refetch)
   const [updateNote, updating] = useSyncedAction((id: string, input: NoteInput) => updateNoteApi(id, buildNotePayload(input)), refetch)
   const [archiveNote, archiving] = useSyncedAction((id: string) => archiveNoteApi(id), refetch)

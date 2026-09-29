@@ -1,4 +1,5 @@
 import type {
+  BootstrapApiResponse,
   CreateApiResponse,
   HealthCheckResponse,
   ListApiResponse,
@@ -205,4 +206,20 @@ export function updateNote(id: string, payload: Record<string, unknown>): Promis
 
 export function archiveNote(id: string): Promise<void> {
   return postEntity('note', { operation: 'archive', id })
+}
+
+/**
+ * One request for accounts/investments/SIPs/liabilities/transactions. Throws on a deployment
+ * that predates the route (it answers `Unknown action: bootstrap`), so callers can fall back
+ * to the per-collection routes.
+ */
+export async function getBootstrap(signal?: AbortSignal): Promise<NonNullable<BootstrapApiResponse['data']>> {
+  const payload = await fetchJson<BootstrapApiResponse>('bootstrap', signal)
+  if (!payload.success || !payload.data) {
+    throw new GoogleSheetsApiError(payload.error || 'Google Sheets API reported a failure fetching the bootstrap bundle.')
+  }
+  if (import.meta.env.DEV && payload.errors && Object.keys(payload.errors).length > 0) {
+    console.warn('[getBootstrap] Some collections failed server-side:', payload.errors)
+  }
+  return payload.data
 }
