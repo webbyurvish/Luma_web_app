@@ -40,9 +40,14 @@ function lumaDriveRoot_() {
   var props = PropertiesService.getScriptProperties();
   var id = props.getProperty(LUMA_DRIVE_ROOT_PROP);
   if (id) {
+    var cache = CacheService.getScriptCache();
     try {
       var existing = DriveApp.getFolderById(id);
-      if (!existing.isTrashed()) return existing;
+      if (cache.get('luma_drive_root_ok_' + id)) return existing; // verified within the last 6h
+      if (!existing.isTrashed()) {
+        cache.put('luma_drive_root_ok_' + id, '1', 21600);
+        return existing;
+      }
     } catch (err) { /* deleted or inaccessible — create a new one below */ }
   }
   return withLumaLock_(function () {
@@ -75,10 +80,36 @@ function lumaInsideRoot_(item, rootId, allowRoot) {
   return false;
 }
 
+/*
+ * Every folder id seen in the last tree listing (and every folder created since), so create,
+ * rename and move don't have to prove "inside Luma Documents" by climbing parents one slow
+ * DriveApp call at a time. Unknown ids still get the full check.
+ */
+var LUMA_DRIVE_KNOWN_KEY = 'luma_drive_known_folders';
+
+function lumaKnownFolders_() {
+  try { return JSON.parse(CacheService.getScriptCache().get(LUMA_DRIVE_KNOWN_KEY) || '{}'); } catch (err) { return {}; }
+}
+
+function lumaRememberFolders_(ids) {
+  var json = JSON.stringify(ids);
+  // Short-lived: a folder moved out of Luma Documents in Drive is re-checked within the hour.
+  if (json.length < 90000) CacheService.getScriptCache().put(LUMA_DRIVE_KNOWN_KEY, json, 3600);
+}
+
+function lumaForgetFolders_() {
+  CacheService.getScriptCache().remove(LUMA_DRIVE_KNOWN_KEY);
+}
+
 function lumaFolderInRoot_(folderId, root, allowRoot) {
+  var id = String(folderId || '');
+  if (id === root.getId()) {
+    if (!allowRoot) throw new Error("The Luma Documents folder itself can't be changed.");
+    return root;
+  }
   var folder;
-  try { folder = DriveApp.getFolderById(String(folderId || '')); } catch (err) { throw new Error('Folder not found.'); }
-  if (!allowRoot && folder.getId() === root.getId()) throw new Error("The Luma Documents folder itself can't be changed.");
+  try { folder = DriveApp.getFolderById(id); } catch (err) { throw new Error('Folder not found.'); }
+  if (lumaKnownFolders_()[id]) return folder;
   if (folder.isTrashed() || !lumaInsideRoot_(folder, root.getId(), allowRoot)) throw new Error('That folder is outside Luma Documents.');
   return folder;
 }
@@ -86,6 +117,9 @@ function lumaFolderInRoot_(folderId, root, allowRoot) {
 function lumaFileInRoot_(fileId, root) {
   var file;
   try { file = DriveApp.getFileById(String(fileId || '')); } catch (err) { throw new Error('File not found.'); }
+  var parents = file.getParents();
+  var parentId = parents.hasNext() ? parents.next().getId() : '';
+  if (parentId && (parentId === root.getId() || lumaKnownFolders_()[parentId])) return file;
   if (file.isTrashed() || !lumaInsideRoot_(file, root.getId(), false)) throw new Error('That file is outside Luma Documents.');
   return file;
 }
@@ -330,7 +364,111 @@ function lumaDriveTree_() {
     }
     level = next;
   }
+
+  var known = {};
+  folders.forEach(function (f) { if (f.parentId) known[f.id] = 1; });
+  lumaRememberFolders_(known);
+
+  var complete = folders.length < 2000 && files.length < 5000;
+  try {
+    lumaSyncDriveSheet_(files, folders, complete);
+  } catch (err) {
+    // Keeping the sheet in step is a bonus — never fail the listing because of it.
+    Logger.log('[LumaDrive] sheet sync skipped: ' + err.message);
+  }
   return { success: true, rootId: rootId, rootUrl: 'https://drive.google.com/drive/folders/' + rootId, folders: folders, files: files };
+}
+
+/* ------------------------------------------------------------ sheet sync */
+
+/**
+ * Keeps the Documents sheet in step with Drive, so the sheet always lists every document with
+ * its Drive link — including files dropped into the folders directly in Drive. One read, at most
+ * one batched write for changed rows and one append for new ones; nothing is written when the
+ * sheet is already current. Rows whose file is no longer in Drive are marked Is Archived.
+ */
+function lumaSyncDriveSheet_(files, folders, complete) {
+  var sh = lumaMetaSheet_();
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(1500)) return; // busy — the next listing will catch up
+  try {
+    var lastCol = sh.getLastColumn();
+    var lastRow = sh.getLastRow();
+    var headers = sh.getRange(1, 1, 1, lastCol).getValues()[0].map(function (h) { return String(h).trim(); });
+    var c = {};
+    headers.forEach(function (h, i) { c[h] = i; });
+    if (c['Drive File ID'] === undefined) return;
+
+    var body = lastRow >= 2 ? sh.getRange(2, 1, lastRow - 1, lastCol).getValues() : [];
+    var rowOf = {};
+    body.forEach(function (row, i) { var id = String(row[c['Drive File ID']] || '').trim(); if (id) rowOf[id] = i; });
+
+    var byId = {};
+    folders.forEach(function (f) { byId[f.id] = f; });
+    var pathOf = function (folderId) {
+      var names = [];
+      for (var f = byId[folderId], guard = 0; f && f.parentId && guard < 30; f = byId[f.parentId], guard++) names.unshift(f.name);
+      return names;
+    };
+
+    var now = new Date();
+    var changed = false;
+    var fresh = [];
+    var seen = {};
+    files.forEach(function (file) {
+      seen[file.id] = true;
+      var path = pathOf(file.folderId);
+      var want = {
+        'Name': file.name,
+        'Category': path[0] || '',
+        'Folder': path.join(' / '),
+        'Drive URL': file.url,
+        'File Type': file.kind,
+        'Size': file.size
+      };
+      if (rowOf[file.id] === undefined) {
+        var row = headers.map(function () { return ''; });
+        row[c['Drive File ID']] = file.id;
+        Object.keys(want).forEach(function (k) { if (c[k] !== undefined) row[c[k]] = want[k]; });
+        if (c['Created At'] !== undefined) row[c['Created At']] = now;
+        if (c['Updated At'] !== undefined) row[c['Updated At']] = now;
+        fresh.push(row);
+        return;
+      }
+      var existing = body[rowOf[file.id]];
+      Object.keys(want).forEach(function (k) {
+        if (c[k] === undefined || String(existing[c[k]]) === String(want[k])) return;
+        existing[c[k]] = want[k];
+        changed = true;
+      });
+      if (c['Is Archived'] !== undefined && existing[c['Is Archived']] === true) {
+        existing[c['Is Archived']] = false;
+        changed = true;
+      }
+    });
+
+    // Only trust "missing" when the listing wasn't cut short by its size limits.
+    if (complete && c['Is Archived'] !== undefined) {
+      body.forEach(function (row) {
+        var id = String(row[c['Drive File ID']] || '').trim();
+        if (id && !seen[id] && row[c['Is Archived']] !== true) {
+          row[c['Is Archived']] = true;
+          changed = true;
+        }
+      });
+    }
+
+    if (changed) sh.getRange(2, 1, body.length, lastCol).setValues(body);
+    if (fresh.length) {
+      if (c['Document ID'] !== undefined) {
+        var ids = nextLumaIds_(sh, 'DOC', c['Document ID'] + 1, fresh.length);
+        fresh.forEach(function (row, i) { row[c['Document ID']] = ids[i]; });
+      }
+      sh.getRange(lastRow + 1, 1, fresh.length, lastCol).setValues(fresh);
+    }
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 /* ------------------------------------------------------------ operations */
@@ -345,6 +483,9 @@ function lumaDriveOp_(p) {
     var dupes = parent.getFoldersByName(name);
     if (dupes.hasNext()) throw new Error('A folder named "' + name + '" already exists here.');
     var created = parent.createFolder(name);
+    var known = lumaKnownFolders_();
+    known[created.getId()] = 1;
+    lumaRememberFolders_(known);
     return { success: true, folder: { id: created.getId(), name: created.getName(), parentId: parent.getId() } };
   }
 
@@ -375,6 +516,7 @@ function lumaDriveOp_(p) {
       while (fo.hasNext()) stack.push(fo.next());
     }
     doomed.setTrashed(true); // recoverable from Drive's Trash for 30 days
+    lumaForgetFolders_(); // its sub-folders are gone too; the next listing rebuilds the cache
     lumaDeleteDriveMeta_(ids);
     return { success: true, trashedFiles: ids.length };
   }
