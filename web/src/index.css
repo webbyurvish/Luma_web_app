@@ -1,0 +1,368 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: 'Fraunces', ui-serif, Georgia, serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* Brand — Ledger */
+  --color-rust: #b5482a;
+  --color-rust-dark: #8f3a20;
+  --color-rust-soft: #f1dccf;
+
+  /* Surfaces */
+  --color-bg: #f6f1e7;
+  --color-surface: #fbf8f1;
+  --color-bg-soft: #ede6d6;
+  --color-card: #fbf8f1;
+  --color-ink-rail: #1b1a17;
+  --color-ink-rail-soft: #26241f;
+  --color-border: rgba(27, 26, 23, 0.15);
+  --color-border-soft: rgba(27, 26, 23, 0.09);
+
+  /* Text */
+  --color-ink: #1b1a17;
+  --color-ink-soft: #5c574d;
+  --color-ink-muted: #9a937f;
+  --color-paper: #f6f1e7;
+
+  /* Semantic — desaturated, journal-appropriate */
+  --color-success: #3f6b3a;
+  --color-success-soft: #e2e8d3;
+  --color-danger: #a13a2a;
+  --color-danger-soft: #f2dcd2;
+  --color-warning: #a1791f;
+  --color-warning-soft: #f1e4c4;
+  --color-ai: #35415c;
+  --color-ai-soft: #dfe2e9;
+  --color-info: #35415c;
+  --color-info-soft: #dfe2e9;
+  --color-pink: #8a4a5c;
+  --color-pink-soft: #ecdce0;
+  --color-cyan: #33635f;
+  --color-cyan-soft: #dce7e5;
+  --color-green: #3f6b3a;
+
+  /* Legacy aliases kept for components not yet re-themed */
+  --color-gold: var(--color-rust);
+  --color-gold-mid: var(--color-rust);
+  --color-gold-light: var(--color-rust-soft);
+  --color-gold-dark: var(--color-rust-dark);
+
+  /* Radius hierarchy — controlled, not uniform */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 9px;
+  --radius-btn: 9px;
+  --radius-card: 12px;
+  --radius-hero: 16px;
+  --radius-pill: 9999px;
+
+  /* Ink-tinted, mostly-flat shadows — reserved for hover, not resting state */
+  --shadow-xs: 0 1px 2px rgba(27, 26, 23, 0.07);
+  --shadow-card: 0 1px 2px rgba(27, 26, 23, 0.05);
+  --shadow-hover: 0 6px 18px -4px rgba(27, 26, 23, 0.16);
+  --shadow-gold: 0 6px 18px -4px rgba(181, 72, 42, 0.28);
+  --shadow-ai: 0 6px 18px -4px rgba(53, 65, 92, 0.22);
+  --shadow-dropdown: 0 8px 24px rgba(20, 18, 14, 0.1), 0 2px 6px rgba(20, 18, 14, 0.06);
+
+  /* Motion durations — small ⇒ fast, large ⇒ slow. Mirrors the timings used in lib/motion.ts. */
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-slow: 260ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --animate-fade-up: fade-up 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-spark: spark-pulse 2.6s ease-in-out infinite;
+  --animate-shimmer: shimmer 1.7s ease-in-out infinite;
+  --animate-spin-smooth: spin-smooth 0.8s linear infinite;
+  --animate-ledger-ink: ledger-ink 2.1s cubic-bezier(0.65, 0, 0.35, 1) infinite both;
+  --animate-ledger-nib: ledger-nib 2.1s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  --animate-sync-slide: sync-slide 1.25s cubic-bezier(0.45, 0, 0.25, 1) infinite;
+
+  @keyframes spin-smooth {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* Each ledger line inks in left→right, holds, then fades so the loop restarts cleanly */
+  @keyframes ledger-ink {
+    0% {
+      transform: scaleX(0);
+      transform-origin: left;
+      opacity: 1;
+    }
+    13% {
+      transform: scaleX(1);
+      transform-origin: left;
+      opacity: 1;
+    }
+    80% {
+      transform: scaleX(1);
+      opacity: 1;
+    }
+    100% {
+      transform: scaleX(1);
+      opacity: 0;
+    }
+  }
+
+  /* The nib travels down the three lines, writing each one */
+  @keyframes ledger-nib {
+    0% {
+      transform: translate(0, 0);
+      opacity: 0;
+    }
+    4% {
+      opacity: 1;
+    }
+    13% {
+      transform: translate(104px, 0);
+    }
+    14% {
+      transform: translate(0, 13px);
+    }
+    27% {
+      transform: translate(104px, 13px);
+    }
+    28% {
+      transform: translate(0, 26px);
+    }
+    38% {
+      transform: translate(64px, 26px);
+      opacity: 1;
+    }
+    50%,
+    100% {
+      transform: translate(64px, 26px);
+      opacity: 0;
+    }
+  }
+
+  @keyframes sync-slide {
+    0% {
+      left: -35%;
+    }
+    100% {
+      left: 100%;
+    }
+  }
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes spark-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.6;
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: 160% 0;
+    }
+    100% {
+      background-position: -60% 0;
+    }
+  }
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    position: relative;
+    background-color: var(--color-bg);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 13.5px;
+    line-height: 1.5;
+    isolation: isolate;
+  }
+
+  /* Faint ledger dot-grid — the paper texture motif, barely visible */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    pointer-events: none;
+    background-image: radial-gradient(circle, rgba(27, 26, 23, 0.14) 0.7px, transparent 0.7px);
+    background-size: 22px 22px;
+    opacity: 0.5;
+    mask-image: radial-gradient(ellipse 70% 55% at 50% 0%, black 0%, transparent 75%);
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.03;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    background-size: 180px 180px;
+  }
+
+  ::selection {
+    background-color: var(--color-rust-soft);
+    color: var(--color-ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-rust);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  /* Buttons don't get a pointer cursor from the browser by default — this is the one
+     place that's fixed for the whole app, rather than adding cursor-pointer to every
+     button individually. Scoped to real interactive elements only, never a global `*`. */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  [role='switch']:not([aria-disabled='true']),
+  [role='tab']:not([aria-disabled='true']),
+  [role='option']:not([aria-disabled='true']),
+  summary {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [role='button'][aria-disabled='true'],
+  [role='switch'][aria-disabled='true'] {
+    cursor: not-allowed;
+  }
+
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not(:disabled),
+  textarea:not(:disabled) {
+    cursor: text;
+  }
+
+  input:disabled,
+  textarea:disabled,
+  select:disabled {
+    cursor: not-allowed;
+  }
+
+  input[type='checkbox']:not(:disabled),
+  input[type='radio']:not(:disabled) {
+    cursor: pointer;
+  }
+
+  /* Subtle pressed feedback for plain buttons. Uses `filter`, not `transform`, so it
+     never fights the Button component's own whileTap scale animation. */
+  button:not(:disabled):active,
+  [role='button']:not([aria-disabled='true']):active {
+    filter: brightness(0.96);
+  }
+}
+
+@layer utilities {
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  .font-display {
+    font-family: var(--font-display);
+  }
+
+  /* Numeric typography for currency, KPIs, chart labels, percentages, counters —
+     modern and highly scannable, distinct from the editorial serif used for titles. */
+  .font-mono-figure {
+    font-family: var(--font-sans);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+
+  /* The single most important number in a view (Net Worth, Available Balance, Total
+     Investments). One size everywhere it appears so no page reads "bigger" than another. */
+  .text-hero-value {
+    font-family: var(--font-sans);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+    font-size: 30px;
+    line-height: 1;
+    font-weight: 700;
+  }
+  @media (min-width: 640px) {
+    .text-hero-value {
+      font-size: 34px;
+    }
+  }
+
+  /* Chart tooltip fade — recharts toggles its wrapper's inline styles, this just adds motion. */
+  .recharts-tooltip-wrapper {
+    transition:
+      opacity var(--duration-fast) ease-out,
+      transform var(--duration-fast) ease-out;
+  }
+
+  /* The recurring "Luma marker" motif — thin vertical rust rule */
+  .ledger-marker {
+    position: relative;
+  }
+  .ledger-marker::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 2px;
+    bottom: 2px;
+    width: 3px;
+    background: var(--color-rust);
+  }
+  /* Luma's own answers carry the assistant's navy rule instead of the ledger rust. */
+  .ledger-marker-ai::before {
+    background: var(--color-ai);
+  }
+
+  /* Skeleton loading sweep — a soft rust-tinted highlight drifts across the base
+     tone rather than a flat pulse, so a screenful of skeletons reads as one
+     coordinated wave instead of independently-blinking blocks. */
+  .skeleton-shimmer {
+    background-color: var(--color-bg-soft);
+    background-image: linear-gradient(
+      100deg,
+      transparent 30%,
+      var(--color-rust-soft) 48%,
+      var(--color-surface) 50%,
+      var(--color-rust-soft) 52%,
+      transparent 70%
+    );
+    background-size: 250% 100%;
+    background-repeat: no-repeat;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
