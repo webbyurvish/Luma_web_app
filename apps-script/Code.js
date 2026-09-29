@@ -14,6 +14,10 @@
  */
 
 function doGet(e) {
+  // Passcode gate (Luma_Auth): answers authstatus, refuses unauthenticated reads once enforced.
+  var gate = lumaAuthGateGet_(e);
+  if (gate) return gate;
+
   // Luma Documents in Google Drive (Luma_Drive). Null for every other action.
   var driveGet = tryHandleLumaDriveGet_(e);
   if (driveGet) return driveGet;
@@ -224,6 +228,10 @@ function coerceTransactionDate_(raw) {
 
 
 function doPost(e) {
+  // Passcode gate (Luma_Auth): handles sign-in, refuses unauthenticated writes once enforced.
+  var gate = lumaAuthGatePost_(e);
+  if (gate) return gate;
+
   // Document operations (Luma_Drive) carry a "driveOp" field; everything else gets null.
   var drive = tryHandleLumaDrive_(e);
   if (drive) return drive;
