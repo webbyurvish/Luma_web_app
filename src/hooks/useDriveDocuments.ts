@@ -1,9 +1,14 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { driveApi, getDriveTree } from '@/services/googleSheetsApi'
-import { useRemoteList, useSyncedAction } from './useRemoteData'
+import { mutateLocal } from '@/lib/remoteStore'
+import { useRemoteList } from './useRemoteData'
 import type { DriveFile, DriveFileDetails, DriveFolder, DriveTree } from '@/types'
 
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+
+/** Folders created optimistically carry this prefix until Drive returns the real id. */
+export const PENDING_PREFIX = 'pending-'
+export const isPending = (id: string) => id.startsWith(PENDING_PREFIX)
 
 // The store holds lists; the tree travels as a one-item list.
 const fetchTree = async (): Promise<DriveTree[]> => [await getDriveTree()]
@@ -25,6 +30,24 @@ function readAsBase64(file: File): Promise<string> {
     reader.onerror = () => reject(new Error("Couldn't read the file."))
     reader.readAsDataURL(file)
   })
+}
+
+/** Applies an edit to the on-screen tree immediately; returns its undo. */
+const editTree = (fn: (tree: DriveTree) => DriveTree) => mutateLocal('drive', (rows) => (rows as DriveTree[]).map(fn))
+
+function descendantIds(tree: DriveTree, folderId: string): Set<string> {
+  const ids = new Set([folderId])
+  let grew = true
+  while (grew) {
+    grew = false
+    tree.folders.forEach((f) => {
+      if (f.parentId && ids.has(f.parentId) && !ids.has(f.id)) {
+        ids.add(f.id)
+        grew = true
+      }
+    })
+  }
+  return ids
 }
 
 export function useDriveDocuments() {
@@ -60,15 +83,83 @@ export function useDriveDocuments() {
     return { folderById, childFolders, filesIn, pathTo, countDeep }
   }, [tree])
 
-  const [createFolder, creatingFolder] = useSyncedAction((parentId: string, name: string) => driveApi.createFolder(parentId, name), refetch)
-  const [renameFolder, renamingFolder] = useSyncedAction((folderId: string, name: string) => driveApi.renameFolder(folderId, name), refetch)
-  const [moveFolder, movingFolder] = useSyncedAction((folderId: string, targetId: string) => driveApi.moveFolder(folderId, targetId), refetch)
-  const [trashFolder, trashingFolder] = useSyncedAction((folderId: string) => driveApi.trashFolder(folderId), refetch)
-  const [updateFile, updatingFile] = useSyncedAction((fileId: string, details: Partial<DriveFileDetails>) => driveApi.updateFile(fileId, details), refetch)
-  const [moveFile, movingFile] = useSyncedAction((fileId: string, folderId: string) => driveApi.moveFile(fileId, folderId), refetch)
-  const [trashFile, trashingFile] = useSyncedAction((fileId: string) => driveApi.trashFile(fileId), refetch)
+  /**
+   * Optimistic write: the tree changes on screen at once, Drive is updated in the background,
+   * and a quiet re-sync follows. If Drive refuses, the change is rolled back and the error thrown.
+   */
+  const optimistic = useCallback(
+    async <T>(apply: (tree: DriveTree) => DriveTree, call: () => Promise<T>): Promise<T> => {
+      const undo = editTree(apply)
+      try {
+        const result = await call()
+        void refetch()
+        return result
+      } catch (err) {
+        undo()
+        throw err
+      }
+    },
+    [refetch],
+  )
 
-  /* Uploads run one at a time (Apps Script is slow with parallel requests), then one refresh. */
+  const createFolder = useCallback(
+    async (parentId: string, name: string) => {
+      const tempId = `${PENDING_PREFIX}${crypto.randomUUID()}`
+      const temp: DriveFolder = { id: tempId, name, parentId, createdAt: new Date().toISOString() }
+      const { folder } = await optimistic((t) => ({ ...t, folders: [...t.folders, temp] }), () => driveApi.createFolder(parentId, name))
+      // Swap the placeholder for the real folder (unless a re-sync already did).
+      editTree((t) => ({ ...t, folders: t.folders.map((f) => (f.id === tempId ? { ...folder, createdAt: temp.createdAt } : f)) }))
+      return folder
+    },
+    [optimistic],
+  )
+
+  const renameFolder = useCallback(
+    (folderId: string, name: string) =>
+      optimistic((t) => ({ ...t, folders: t.folders.map((f) => (f.id === folderId ? { ...f, name } : f)) }), () => driveApi.renameFolder(folderId, name)),
+    [optimistic],
+  )
+
+  const moveFolder = useCallback(
+    (folderId: string, targetId: string) =>
+      optimistic(
+        (t) => ({ ...t, folders: t.folders.map((f) => (f.id === folderId ? { ...f, parentId: targetId } : f)) }),
+        () => driveApi.moveFolder(folderId, targetId),
+      ),
+    [optimistic],
+  )
+
+  const trashFolder = useCallback(
+    (folderId: string) =>
+      optimistic(
+        (t) => {
+          const gone = descendantIds(t, folderId)
+          return { ...t, folders: t.folders.filter((f) => !gone.has(f.id)), files: t.files.filter((f) => !gone.has(f.folderId)) }
+        },
+        () => driveApi.trashFolder(folderId),
+      ),
+    [optimistic],
+  )
+
+  const updateFile = useCallback(
+    (fileId: string, details: Partial<DriveFileDetails>) =>
+      optimistic((t) => ({ ...t, files: t.files.map((f) => (f.id === fileId ? { ...f, ...details } : f)) }), () => driveApi.updateFile(fileId, details)),
+    [optimistic],
+  )
+
+  const moveFile = useCallback(
+    (fileId: string, folderId: string) =>
+      optimistic((t) => ({ ...t, files: t.files.map((f) => (f.id === fileId ? { ...f, folderId } : f)) }), () => driveApi.moveFile(fileId, folderId)),
+    [optimistic],
+  )
+
+  const trashFile = useCallback(
+    (fileId: string) => optimistic((t) => ({ ...t, files: t.files.filter((f) => f.id !== fileId) }), () => driveApi.trashFile(fileId)),
+    [optimistic],
+  )
+
+  /* Uploads run one at a time (Apps Script is slow with parallel requests); each finished file
+   * appears straight away, and one quiet re-sync runs at the end. */
   const [uploads, setUploads] = useState<UploadItem[]>([])
   const queueRef = useRef<{ item: UploadItem; file: File }[]>([])
   const runningRef = useRef(false)
@@ -84,7 +175,8 @@ export function useDriveDocuments() {
       patch(item.id, { status: 'uploading' })
       try {
         const dataBase64 = await readAsBase64(file)
-        await driveApi.upload(item.folderId, { name: file.name, mimeType: file.type || 'application/octet-stream', dataBase64 })
+        const { file: saved } = await driveApi.upload(item.folderId, { name: file.name, mimeType: file.type || 'application/octet-stream', dataBase64 })
+        if (saved?.id) editTree((t) => ({ ...t, files: [...t.files.filter((f) => f.id !== saved.id), saved] }))
         patch(item.id, { status: 'done' })
         uploadedAny = true
       } catch (err) {
@@ -92,10 +184,10 @@ export function useDriveDocuments() {
       }
     }
     runningRef.current = false
-    if (uploadedAny) await refetch()
+    if (uploadedAny) void refetch()
   }, [refetch])
 
-  /** Queues files for upload into `folderId`; oversized files are rejected up front. */
+  /** Queues files for upload into `folderId`; oversized or empty files are rejected up front. */
   const uploadFiles = useCallback(
     (files: File[], folderId: string) => {
       const added: UploadItem[] = files.map((file) => ({
@@ -103,7 +195,7 @@ export function useDriveDocuments() {
         name: file.name,
         size: file.size,
         folderId,
-        status: file.size > MAX_UPLOAD_BYTES ? 'error' : file.size === 0 ? 'error' : 'queued',
+        status: file.size > MAX_UPLOAD_BYTES || file.size === 0 ? 'error' : 'queued',
         error: file.size > MAX_UPLOAD_BYTES ? 'Over 10 MB — upload this one in Google Drive directly.' : file.size === 0 ? 'The file is empty.' : undefined,
       }))
       setUploads((prev) => [...prev, ...added])
@@ -129,8 +221,6 @@ export function useDriveDocuments() {
     updateFile,
     moveFile,
     trashFile,
-    folderBusy: creatingFolder || renamingFolder || movingFolder || trashingFolder,
-    fileBusy: updatingFile || movingFile || trashingFile,
     uploads,
     uploadFiles,
     clearFinishedUploads,

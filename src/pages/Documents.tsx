@@ -1,7 +1,7 @@
 import { type DragEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { CalendarClock, ChevronRight, ExternalLink, FolderPlus, LayoutGrid, List, RefreshCw, Search, UploadCloud } from 'lucide-react'
+import { CalendarClock, ChevronRight, ExternalLink, FolderPlus, FolderTree as FolderTreeIcon, LayoutGrid, List, RefreshCw, Search, UploadCloud } from 'lucide-react'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -10,6 +10,7 @@ import { ErrorState } from '@/components/ui/ErrorState'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { SlowLoadHint, SyncBadge } from '@/components/ui/Loader'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { SlideOver } from '@/components/ui/SlideOver'
 import { FolderTree } from '@/components/documents/FolderTree'
 import { FileItem, FolderItem, ExpiryBadge, type ViewMode } from '@/components/documents/DocumentItems'
 import { FileDetailsPanel } from '@/components/documents/FileDetailsPanel'
@@ -54,6 +55,7 @@ export function Documents() {
   const [dialog, setDialog] = useState<Dialog>(null)
   const [openFile, setOpenFile] = useState<{ file: DriveFile; edit: boolean } | null>(null)
   const [dragging, setDragging] = useState(false)
+  const [treeOpen, setTreeOpen] = useState(false)
   const dragDepth = useRef(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -111,14 +113,13 @@ export function Documents() {
 
   /* ---------------------------------------------------------- actions */
 
+  /** The change is already on screen (optimistic); this confirms it or reports the rollback. */
   const run = async (action: () => Promise<unknown>, success: string, failure: string) => {
     try {
       await action()
       showToast(success)
-      return true
     } catch (err) {
-      showToast(getErrorMessage(err, failure), 'error')
-      return false
+      showToast(`${getErrorMessage(err, failure)} The change was undone.`, 'error')
     }
   }
 
@@ -130,7 +131,8 @@ export function Documents() {
 
   const saveDetails = async (details: Partial<DriveFileDetails>) => {
     if (!openFile) return
-    if (await run(() => drive.updateFile(openFile.file.id, details), 'Details saved', "Couldn't save the details.")) setOpenFile(null)
+    setOpenFile(null)
+    void run(() => drive.updateFile(openFile.file.id, details), 'Details saved', "Couldn't save the details.")
   }
 
   const descendantsOf = (id: string): Set<string> => {
@@ -235,11 +237,14 @@ export function Documents() {
 
       <section className="relative min-w-0" {...dropHandlers}>
         {/* Toolbar */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="sm:w-80">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="secondary" size="sm" icon={<FolderTreeIcon size={13} />} onClick={() => setTreeOpen(true)} className="lg:hidden" aria-label="Browse folders">
+            <span className="hidden sm:inline">Folders</span>
+          </Button>
+          <div className="min-w-[180px] flex-1 sm:max-w-sm">
             <Input icon={<Search size={15} />} placeholder="Search all documents, tags, folders…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
             <SyncBadge active={drive.refreshing} />
             <div className="flex rounded-btn border border-border p-0.5" role="group" aria-label="View">
               {(['grid', 'list'] as const).map((mode) => (
@@ -255,14 +260,22 @@ export function Documents() {
                 </button>
               ))}
             </div>
-            <Button variant="ghost" size="sm" icon={<RefreshCw size={12} />} onClick={() => void drive.refetch()} disabled={drive.refreshing} title="Pick up changes made in Google Drive">
-              Refresh
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={<RefreshCw size={12} />}
+              onClick={() => void drive.refetch()}
+              disabled={drive.refreshing}
+              title="Pick up changes made in Google Drive"
+              aria-label="Refresh"
+            >
+              <span className="hidden xl:inline">Refresh</span>
             </Button>
-            <Button variant="secondary" size="sm" icon={<FolderPlus size={13} />} onClick={() => setDialog({ type: 'newFolder' })}>
-              New folder
+            <Button variant="secondary" size="sm" icon={<FolderPlus size={13} />} onClick={() => setDialog({ type: 'newFolder' })} aria-label="New folder">
+              <span className="hidden sm:inline">New folder</span>
             </Button>
-            <Button size="sm" icon={<UploadCloud size={13} />} onClick={() => fileInputRef.current?.click()}>
-              Upload
+            <Button size="sm" icon={<UploadCloud size={13} />} onClick={() => fileInputRef.current?.click()} aria-label="Upload">
+              <span className="hidden sm:inline">Upload</span>
             </Button>
             <input
               ref={fileInputRef}
@@ -301,7 +314,7 @@ export function Documents() {
 
         {/* Breadcrumbs */}
         {!query && (
-          <div className="mt-5 flex items-center justify-between gap-3">
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
             <nav aria-label="Folder path" className="flex min-w-0 flex-wrap items-center gap-1 text-xs">
               {breadcrumb.map((f, i) => (
                 <span key={f.id} className="flex items-center gap-1">
@@ -415,7 +428,6 @@ export function Documents() {
         path={openFile ? pathLabel(openFile.file.folderId) : ''}
         today={today}
         startEditing={openFile?.edit}
-        saving={drive.fileBusy}
         onClose={() => setOpenFile(null)}
         onSave={saveDetails}
         onMove={(file) => setDialog({ type: 'moveFile', file })}
@@ -427,10 +439,10 @@ export function Documents() {
         title="New folder"
         subtitle={`Inside ${currentName}`}
         confirmLabel="Create folder"
-        saving={drive.folderBusy}
         onCancel={() => setDialog(null)}
-        onConfirm={async (name) => {
-          if (await run(() => drive.createFolder(folderId, name), `Folder “${name}” created`, "Couldn't create the folder.")) setDialog(null)
+        onConfirm={(name) => {
+          setDialog(null)
+          void run(() => drive.createFolder(folderId, name), `Folder “${name}” created`, "Couldn't create the folder.")
         }}
       />
 
@@ -439,11 +451,11 @@ export function Documents() {
         title="Rename folder"
         initialName={dialog?.type === 'renameFolder' ? dialog.folder.name : ''}
         confirmLabel="Rename"
-        saving={drive.folderBusy}
         onCancel={() => setDialog(null)}
-        onConfirm={async (name) => {
+        onConfirm={(name) => {
           if (dialog?.type !== 'renameFolder') return
-          if (await run(() => drive.renameFolder(dialog.folder.id, name), 'Folder renamed', "Couldn't rename the folder.")) setDialog(null)
+          setDialog(null)
+          void run(() => drive.renameFolder(dialog.folder.id, name), 'Folder renamed', "Couldn't rename the folder.")
         }}
       />
 
@@ -459,17 +471,15 @@ export function Documents() {
               ? new Set([dialog.file.folderId])
               : new Set()
         }
-        saving={drive.folderBusy || drive.fileBusy}
         onCancel={() => setDialog(null)}
-        onPick={async (targetId) => {
+        onPick={(targetId) => {
           const target = targetId === rootId ? 'Luma Documents' : folderById.get(targetId)?.name
+          setDialog(null)
           if (dialog?.type === 'moveFolder') {
-            if (await run(() => drive.moveFolder(dialog.folder.id, targetId), `Moved to ${target}`, "Couldn't move the folder.")) setDialog(null)
+            void run(() => drive.moveFolder(dialog.folder.id, targetId), `Moved to ${target}`, "Couldn't move the folder.")
           } else if (dialog?.type === 'moveFile') {
-            if (await run(() => drive.moveFile(dialog.file.id, targetId), `Moved to ${target}`, "Couldn't move the file.")) {
-              setDialog(null)
-              setOpenFile(null)
-            }
+            setOpenFile(null)
+            void run(() => drive.moveFile(dialog.file.id, targetId), `Moved to ${target}`, "Couldn't move the file.")
           }
         }}
       />
@@ -483,15 +493,12 @@ export function Documents() {
             : ''
         }
         confirmLabel="Move to trash"
-        loading={drive.fileBusy}
-        loadingLabel="Moving…"
         onCancel={() => setDialog(null)}
-        onConfirm={async () => {
+        onConfirm={() => {
           if (dialog?.type !== 'trashFile') return
-          if (await run(() => drive.trashFile(dialog.file.id), 'Moved to Drive trash', "Couldn't move the file to trash.")) {
-            setDialog(null)
-            setOpenFile(null)
-          }
+          setDialog(null)
+          setOpenFile(null)
+          void run(() => drive.trashFile(dialog.file.id), 'Moved to Drive trash', "Couldn't move the file to trash.")
         }}
       />
 
@@ -504,20 +511,34 @@ export function Documents() {
             : ''
         }
         confirmLabel="Move to trash"
-        loading={drive.folderBusy}
-        loadingLabel="Moving…"
         onCancel={() => setDialog(null)}
-        onConfirm={async () => {
+        onConfirm={() => {
           if (dialog?.type !== 'trashFolder') return
           const folder = dialog.folder
-          if (await run(() => drive.trashFolder(folder.id), 'Folder moved to Drive trash', "Couldn't move the folder to trash.")) {
-            setDialog(null)
-            if (openPath.has(folder.id)) setCurrentId(folder.parentId)
-          }
+          setDialog(null)
+          if (openPath.has(folder.id)) setCurrentId(folder.parentId)
+          void run(() => drive.trashFolder(folder.id), 'Folder moved to Drive trash', "Couldn't move the folder to trash.")
         }}
       />
 
       <UploadTray uploads={drive.uploads} onClear={drive.clearFinishedUploads} />
+
+      {/* Folder tree for phones and tablets */}
+      <SlideOver open={treeOpen} onClose={() => setTreeOpen(false)} title="Folders" subtitle="Luma Documents in your Google Drive">
+        <FolderTree
+          rootId={rootId}
+          childFolders={childFolders}
+          countDeep={countDeep}
+          activeId={query ? '' : folderId}
+          openPath={openPath}
+          onSelect={(id) => {
+            setCurrentId(id)
+            setSearch('')
+            setTreeOpen(false)
+          }}
+          onDropFiles={(dropped, target) => upload(dropped, target)}
+        />
+      </SlideOver>
     </div>
   )
 }

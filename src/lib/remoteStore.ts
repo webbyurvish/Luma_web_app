@@ -220,3 +220,19 @@ export function hasRecord(key: RemoteKey, idField: string, id: string): boolean 
   const raw = getEntry(key).snapshot.raw as Record<string, unknown>[] | null
   return !!raw?.some((row) => String(row[idField] ?? '').trim() === id)
 }
+
+/**
+ * Optimistic local edit: applies `fn` to the rows on screen right away (not cached, not marked
+ * fresh). Returns an undo that restores the previous rows — but only if nothing newer (a
+ * refetch or another edit) has replaced them in the meantime.
+ */
+export function mutateLocal(key: RemoteKey, fn: (raw: unknown[]) => unknown[]): () => void {
+  const entry = getEntry(key)
+  const before = entry.snapshot.raw
+  if (!before) return () => {}
+  const after = fn(before)
+  update(entry, { raw: after })
+  return () => {
+    if (entry.snapshot.raw === after) update(entry, { raw: before })
+  }
+}

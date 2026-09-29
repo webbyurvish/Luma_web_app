@@ -159,7 +159,12 @@ function TreeRow({ id, label, icon, depth, count, active, hasChildren, open, onT
       >
         <ChevronRight size={12} className={cn('transition-transform', open && 'rotate-90')} />
       </button>
-      <button type="button" onClick={() => onSelect(id)} className="flex min-w-0 flex-1 items-center gap-2 py-1.5 text-left">
+      <button
+        type="button"
+        onClick={() => onSelect(id)}
+        disabled={id.startsWith('pending-')}
+        className="flex min-w-0 flex-1 items-center gap-2 py-1.5 text-left disabled:cursor-wait disabled:opacity-60"
+      >
         <span className={cn('shrink-0', active ? 'text-paper' : 'text-rust/80')}>{icon}</span>
         <span className="truncate font-medium">{label}</span>
       </button>

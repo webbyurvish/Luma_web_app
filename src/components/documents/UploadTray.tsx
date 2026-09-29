@@ -17,7 +17,7 @@ export function UploadTray({ uploads, onClear }: { uploads: UploadItem[]; onClea
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 16 }}
-          className="fixed bottom-5 left-5 z-40 w-[320px] overflow-hidden rounded-card border border-border bg-card shadow-hover"
+          className="fixed inset-x-4 bottom-4 z-40 overflow-hidden rounded-card border border-border bg-card shadow-hover sm:inset-x-auto sm:bottom-5 sm:left-5 sm:w-[320px]"
           role="status"
           aria-live="polite"
         >

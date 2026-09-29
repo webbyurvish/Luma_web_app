@@ -3,6 +3,7 @@ import { CalendarClock, ExternalLink, Folder, FolderInput, MoreHorizontal, Penci
 import { KIND_STYLE, driveLinks, expiryState, formatBytes, splitTags } from './driveLinks'
 import { formatDate } from '@/lib/formatDate'
 import { cn } from '@/lib/cn'
+import { Spinner } from '@/components/ui/Loader'
 import type { DriveFile, DriveFolder } from '@/types'
 
 export type ViewMode = 'grid' | 'list'
@@ -116,7 +117,7 @@ export function FileItem({ file, view, today, path, ...actions }: FileItemProps)
           ))}
           <ExpiryBadge expiryDate={file.expiryDate} today={today} />
         </div>
-        <div className="opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+        <div className="transition-opacity pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 group-focus-within:opacity-100">
           <FileMenu file={file} {...actions} />
         </div>
       </div>
@@ -133,7 +134,7 @@ export function FileItem({ file, view, today, path, ...actions }: FileItemProps)
     >
       <div className="relative flex h-28 items-center justify-center overflow-hidden border-b border-border-soft bg-bg-soft/60">
         <FileThumb file={file} large />
-        <div className="absolute right-1.5 top-1.5 rounded-pill bg-card/90 opacity-0 shadow-xs backdrop-blur transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+        <div className="absolute right-1.5 top-1.5 rounded-pill bg-card/90 shadow-xs backdrop-blur transition-opacity pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 group-focus-within:opacity-100">
           <FileMenu file={file} {...actions} />
         </div>
       </div>
@@ -178,6 +179,20 @@ interface FolderItemProps extends FolderActions {
 
 export function FolderItem({ folder, count, subfolders, view, ...actions }: FolderItemProps) {
   const [menu, setMenu] = useState(false)
+  const pending = folder.id.startsWith('pending-')
+  if (pending) {
+    return (
+      <div className={cn('flex items-center gap-3 rounded-card border border-dashed border-rust/40 bg-card/60', view === 'grid' ? 'px-3 py-3' : 'px-2.5 py-2')} aria-busy="true">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-btn bg-rust-soft/50 text-rust">
+          <Spinner size={15} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xs font-medium text-ink">{folder.name}</p>
+          <p className="text-[10px] text-ink-muted">Creating in Drive…</p>
+        </div>
+      </div>
+    )
+  }
   const parts = [subfolders ? `${subfolders} folder${subfolders > 1 ? 's' : ''}` : '', `${count} document${count === 1 ? '' : 's'}`]
   const menuItems = [
     { label: 'Rename', icon: Pencil, run: actions.onRename, danger: false },
@@ -212,7 +227,7 @@ export function FolderItem({ folder, count, subfolders, view, ...actions }: Fold
           e.stopPropagation()
           setMenu((v) => !v)
         }}
-        className="rounded-full p-1.5 text-ink-muted opacity-0 transition-opacity hover:bg-bg-soft hover:text-ink group-hover:opacity-100 focus-visible:opacity-100"
+        className="rounded-full p-1.5 text-ink-muted transition-opacity hover:bg-bg-soft hover:text-ink pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 focus-visible:opacity-100"
       >
         <MoreHorizontal size={14} />
       </button>
