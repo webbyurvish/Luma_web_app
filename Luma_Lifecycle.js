@@ -406,6 +406,105 @@ function archiveSchemaEntity_(sheetName, id) {
 }
 
 /* ========================================================================== */
+/*  PERMANENT DELETE — the one operation that removes a row. For records     */
+/*  added by mistake or for testing. Every deleted row is first copied,      */
+/*  whole, to the "Deleted Records" sheet, so a wrong delete can still be    */
+/*  restored by hand. Archive/void remain the everyday way to hide records.  */
+/* ========================================================================== */
+
+var LUMA_DELETED_SHEET = 'Deleted Records';
+
+/** Appends the full row (headers + values as JSON) to the Deleted Records
+ *  sheet, creating it on first use. Must run inside withLumaLock_. */
+function copyRowToDeletedRecords_(sh, row, headers, recordId) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var bin = ss.getSheetByName(LUMA_DELETED_SHEET);
+  if (!bin) {
+    bin = ss.insertSheet(LUMA_DELETED_SHEET);
+    bin.appendRow(['Deleted At', 'Sheet', 'Record ID', 'Row Data (JSON)']);
+    bin.setFrozenRows(1);
+    bin.getRange(1, 1, 1, 4).setFontWeight('bold');
+  }
+  var values = sh.getRange(row, 1, 1, headers.length).getValues()[0];
+  var record = {};
+  headers.forEach(function (h, i) { if (h) record[h] = values[i] instanceof Date ? values[i].toISOString() : values[i]; });
+  bin.appendRow([new Date(), sh.getName(), recordId, JSON.stringify(record)]);
+}
+
+/** Sheets whose rows can point at an account through an "Account ID" column,
+ *  with the rule for "this row no longer counts" (archived/closed/voided). */
+var LUMA_ACCOUNT_REFERENCES = [
+  { sheet: 'Investments',  label: 'investment',  inactive: { field: 'Is Archived', value: true } },
+  { sheet: 'SIPs',         label: 'SIP',         inactive: { field: 'Is Active',   value: false } },
+  { sheet: 'Liabilities',  label: 'liability',   inactive: { field: 'Status',      value: 'Closed' } },
+  { sheet: 'Transactions', label: 'transaction', inactive: { field: 'Status',      value: 'Voided' } },
+  { sheet: 'Udhaar',       label: 'udhaar entry', inactive: { field: 'Is Archived', value: true } }
+];
+
+/** Human-readable list of live records still pointing at accountId, e.g.
+ *  ["2 SIPs", "1 investment"]. Archived/closed/voided rows don't count. */
+function liveAccountReferences_(accountId) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var found = [];
+  LUMA_ACCOUNT_REFERENCES.forEach(function (ref) {
+    var sh = ss.getSheetByName(ref.sheet);
+    if (!sh || sh.getLastRow() < 2) return;
+    var values = sh.getRange(1, 1, sh.getLastRow(), sh.getLastColumn()).getValues();
+    var headers = values[0].map(function (h) { return String(h).trim(); });
+    var accCol = headers.indexOf('Account ID');
+    if (accCol < 0) return;
+    var inactiveCol = headers.indexOf(ref.inactive.field);
+    var count = 0;
+    for (var r = 1; r < values.length; r++) {
+      if (String(values[r][accCol]).trim() !== String(accountId).trim()) continue;
+      if (inactiveCol >= 0 && values[r][inactiveCol] === ref.inactive.value) continue;
+      count++;
+    }
+    if (count) found.push(count + ' ' + ref.label + (count > 1 ? 's' : ''));
+  });
+  return found;
+}
+
+function deleteSchemaEntity_(sheetName, id) {
+  var schema = LUMA_SCHEMA[sheetName];
+  if (!schema) throw new Error('No schema for ' + sheetName);
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+  if (!sh) throw new Error('Sheet not found: ' + sheetName);
+  var idHeader = schema.cols[0].n;
+
+  return withLumaLock_(function () {
+    var found = findRowById_(sh, idHeader, id);
+    if (!found) throw new Error(sheetName + ' record not found: ' + id);
+
+    if (sheetName === 'Accounts') {
+      var refs = liveAccountReferences_(id);
+      if (refs.length) {
+        throw new Error("Can't delete this account: it's still linked to " + refs.join(', ') + '. Delete or archive those first.');
+      }
+    }
+
+    copyRowToDeletedRecords_(sh, found.row, found.headers, id);
+    sh.deleteRow(found.row);
+
+    Logger.log('[Luma][delete] ' + sheetName + ' ' + id + ' success (copied to ' + LUMA_DELETED_SHEET + ')');
+    return { success: true, message: sheetName + ' record deleted', id: id };
+  });
+}
+
+function deleteTransaction_(id) {
+  return withLumaLock_(function () {
+    var found = findTransactionRow_(id);
+    if (!found) throw new Error('Transaction not found: ' + id);
+
+    copyRowToDeletedRecords_(found.sh, found.row, found.headers, id);
+    found.sh.deleteRow(found.row);
+
+    Logger.log('[Luma][delete] Transaction ' + id + ' success (copied to ' + LUMA_DELETED_SHEET + ')');
+    return { success: true, message: 'Transaction deleted', id: id };
+  });
+}
+
+/* ========================================================================== */
 /*  TRANSACTIONS — VOID (never delete), plus UPDATE                          */
 /* ========================================================================== */
 
@@ -491,10 +590,29 @@ function updateTransaction_(id, payload) {
   });
 }
 
+/** Called from doPost right after a new transaction row is appended (app or
+ *  iPhone Shortcut), so every new row is editable/deletable by id from day
+ *  one. Only fills blanks, only in columns that exist. The caller wraps this
+ *  in try/catch: a lifecycle problem must never fail the save itself. */
+function assignTransactionLifecycleFields_(sh, row) {
+  var headers = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(function (h) { return String(h).trim(); });
+  var idCol      = lumaNamedCol_(headers, 'Transaction ID');
+  var statusCol  = lumaNamedCol_(headers, 'Status');
+  var updatedCol = lumaNamedCol_(headers, 'Updated At');
+
+  if (idCol && String(sh.getRange(row, idCol).getValue()).trim() === '') {
+    var id = withLumaLock_(function () { return nextLumaIds_(sh, 'TXN', idCol, 1)[0]; });
+    sh.getRange(row, idCol).setValue(id);
+  }
+  if (statusCol && String(sh.getRange(row, statusCol).getValue()).trim() === '') sh.getRange(row, statusCol).setValue('Active');
+  if (updatedCol) sh.getRange(row, updatedCol).setValue(new Date());
+}
+
 function handleTransactionLifecycle_(operation, payload) {
   if (!payload.id) throw new Error('id is required for transaction ' + operation);
   if (operation === 'void') return voidTransaction_(payload.id);
   if (operation === 'update') return updateTransaction_(payload.id, payload);
+  if (operation === 'delete') return deleteTransaction_(payload.id);
   throw new Error('Unsupported transaction operation: ' + operation);
 }
 
@@ -593,9 +711,26 @@ function archiveUdhaarRecord_(id) {
   });
 }
 
+/** Removes one Udhaar ledger row (copied to Deleted Records first). The
+ *  per-row Outstanding/Status formulas use ranges that Sheets re-anchors when
+ *  a row above them is removed, so every remaining balance stays correct. */
+function deleteUdhaarRecord_(id) {
+  return withLumaLock_(function () {
+    var found = findUdhaarRow_(id);
+    if (!found) throw new Error('Udhaar record not found: ' + id);
+
+    copyRowToDeletedRecords_(found.sh, found.row, found.headers, id);
+    found.sh.deleteRow(found.row);
+
+    Logger.log('[Luma][delete] Udhaar ' + id + ' success (copied to ' + LUMA_DELETED_SHEET + ')');
+    return { success: true, message: 'Udhaar record deleted', id: id };
+  });
+}
+
 function handleUdhaarLifecycle_(operation, payload) {
   if (!payload.id) throw new Error('id is required for udhaar ' + operation);
   if (operation === 'update') return updateUdhaarRecord_(payload.id, payload);
+  if (operation === 'delete') return deleteUdhaarRecord_(payload.id);
   if (operation === 'archive' || operation === 'settle') return archiveUdhaarRecord_(payload.id);
   throw new Error('Unsupported udhaar operation: ' + operation);
 }
@@ -726,6 +861,10 @@ function tryHandleLumaLifecyclePost_(e) {
     if (operation === 'update') {
       if (!payload.id) throw new Error('id is required for update');
       return lumaJson_(updateSchemaEntity_(sheetName, payload.id, payload));
+    }
+    if (operation === 'delete') {
+      if (!payload.id) throw new Error('id is required for delete');
+      return lumaJson_(deleteSchemaEntity_(sheetName, payload.id));
     }
     if (['archive', 'deactivate', 'close', 'void', 'settle'].indexOf(operation) >= 0) {
       if (!payload.id) throw new Error('id is required for ' + operation);

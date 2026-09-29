@@ -14,6 +14,10 @@
  */
 
 function doGet(e) {
+  // Speech tokens for the mic button (Luma_AI). Null for every other action.
+  var aiGet = tryHandleLumaAIGet_(e);
+  if (aiGet) return aiGet;
+
   // Luma read routes (accounts, notes, tasks, ...). Returns null for health,
   // transactions, a missing action, and anything it does not recognise, so the
   // original logic below is reached unchanged. Never throws.
@@ -35,57 +39,53 @@ function doGet(e) {
 
     // Get transactions
     if (action === "transactions") {
-      const sheet = spreadsheet.getSheetByName("Transactions");
+      const includeVoided = String(e?.parameter?.includeVoided || "").trim().toLowerCase() === "true";
+      const transactions = readTransactions_(spreadsheet, includeVoided);
 
-      if (!sheet) {
-        throw new Error('Sheet "Transactions" not found.');
-      }
-
-      const data = sheet.getDataRange().getValues();
-
-      if (data.length <= 1) {
+      // An empty sheet has always answered without a count; kept byte-identical.
+      if (transactions === null) {
         return jsonResponse({
           success: true,
           transactions: []
         });
       }
 
-      // Column J stays index 9 exactly as before. Any lifecycle columns
-      // (Transaction ID / Status / Voided At / Updated At) are looked up by
-      // header text, since they only exist once setupLumaLifecycle() has run
-      // — so this whole block degrades gracefully before that migration too.
-      const rawHeaders = data[0].map(h => String(h).trim());
-      const idCol = rawHeaders.indexOf("Transaction ID");
-      const statusCol = rawHeaders.indexOf("Status");
-      const voidedAtCol = rawHeaders.indexOf("Voided At");
-      const includeVoided = String(e?.parameter?.includeVoided || "").trim().toLowerCase() === "true";
-
-      // Fields 0-9 are read by fixed index, so any column beyond J is ignored
-      // and the response shape for existing fields cannot change when the
-      // sheet is widened. id/status/voidedAt below are new, additive fields.
-      const transactions = data.slice(1)
-        .filter(row => row[1] !== "" || row[2] !== "")
-        .filter(row => includeVoided || statusCol < 0 || row[statusCol] !== "Voided")
-        .map(row => ({
-          timestamp: formatDate(row[0]),
-          date: formatDate(row[1]),
-          amount: Number(row[2]) || 0,
-          type: row[3] || "Expense",
-          category: row[4] || "Other",
-          subcategory: row[5] || "",
-          paymentMethod: row[6] || "",
-          merchant: row[7] || "",
-          note: row[8] || "",
-          month: row[9] || "",
-          id: idCol >= 0 ? (row[idCol] || "") : "",
-          status: statusCol >= 0 ? (row[statusCol] || "Active") : "Active",
-          voidedAt: voidedAtCol >= 0 && row[voidedAtCol] ? formatDate(row[voidedAtCol]) : null
-        }));
-
       return jsonResponse({
         success: true,
         count: transactions.length,
         transactions: transactions
+      });
+    }
+
+    // Everything the web app needs on first paint, in ONE execution: one cold
+    // start, one redirect, one spreadsheet open — instead of five parallel
+    // requests that Apps Script queues behind each other. Each collection is
+    // read independently, so one missing sheet can't blank the others; its
+    // error is reported under errors[key] and the client falls back to the
+    // single-collection route for just that key.
+    if (action === "bootstrap") {
+      const data = {};
+      const errors = {};
+      const lumaKeys = ["accounts", "investments", "sips", "liabilities", "udhaar"];
+
+      lumaKeys.forEach(key => {
+        try {
+          data[key] = readEntity_(LUMA_GET_ROUTES[key], false);
+        } catch (err) {
+          errors[key] = safeMessage_(err);
+        }
+      });
+
+      try {
+        data.transactions = readTransactions_(spreadsheet, false) || [];
+      } catch (err) {
+        errors.transactions = safeMessage_(err);
+      }
+
+      return jsonResponse({
+        success: true,
+        data: data,
+        errors: errors
       });
     }
 
@@ -101,6 +101,55 @@ function doGet(e) {
 
 
 // ---------- Helper Functions ----------
+
+/**
+ * Transactions sheet as the API's transaction objects. Shared by
+ * ?action=transactions and ?action=bootstrap so both return identical rows.
+ * Returns null (not []) for a sheet with only a header, because the
+ * transactions route has always answered that case without a count.
+ */
+function readTransactions_(spreadsheet, includeVoided) {
+  const sheet = spreadsheet.getSheetByName("Transactions");
+
+  if (!sheet) {
+    throw new Error('Sheet "Transactions" not found.');
+  }
+
+  const data = sheet.getDataRange().getValues();
+
+  if (data.length <= 1) return null;
+
+  // Column J stays index 9 exactly as before. Any lifecycle columns
+  // (Transaction ID / Status / Voided At / Updated At) are looked up by
+  // header text, since they only exist once setupLumaLifecycle() has run
+  // — so this whole block degrades gracefully before that migration too.
+  const rawHeaders = data[0].map(h => String(h).trim());
+  const idCol = rawHeaders.indexOf("Transaction ID");
+  const statusCol = rawHeaders.indexOf("Status");
+  const voidedAtCol = rawHeaders.indexOf("Voided At");
+
+  // Fields 0-9 are read by fixed index, so any column beyond J is ignored
+  // and the response shape for existing fields cannot change when the
+  // sheet is widened. id/status/voidedAt below are new, additive fields.
+  return data.slice(1)
+    .filter(row => row[1] !== "" || row[2] !== "")
+    .filter(row => includeVoided || statusCol < 0 || row[statusCol] !== "Voided")
+    .map(row => ({
+      timestamp: formatDate(row[0]),
+      date: formatDate(row[1]),
+      amount: Number(row[2]) || 0,
+      type: row[3] || "Expense",
+      category: row[4] || "Other",
+      subcategory: row[5] || "",
+      paymentMethod: row[6] || "",
+      merchant: row[7] || "",
+      note: row[8] || "",
+      month: row[9] || "",
+      id: idCol >= 0 ? (row[idCol] || "") : "",
+      status: statusCol >= 0 ? (row[statusCol] || "Active") : "Active",
+      voidedAt: voidedAtCol >= 0 && row[voidedAtCol] ? formatDate(row[voidedAtCol]) : null
+    }));
+}
 
 function jsonResponse(data) {
   return ContentService
@@ -171,6 +220,10 @@ function coerceTransactionDate_(raw) {
 
 
 function doPost(e) {
+  // AI requests (Luma_AI) carry an "aiTask" field; everything else gets null.
+  var ai = tryHandleLumaAI_(e);
+  if (ai) return ai;
+
   // Udhaar records (recordType: "Udhaar"). Returns null for anything else.
   var udhaar = tryHandleUdhaar_(e);
   if (udhaar) return udhaar;
@@ -222,6 +275,15 @@ function doPost(e) {
       data.note || "",
       transactionMonth_(data.date, now)
     ]);
+
+    // Give the new row its Transaction ID / Status so it can be edited and
+    // deleted from the app. Additive and isolated: any failure here is only
+    // logged, so the save and the response the Shortcut sees are unchanged.
+    try {
+      assignTransactionLifecycleFields_(sheet, sheet.getLastRow());
+    } catch (lifecycleError) {
+      Logger.log('assignTransactionLifecycleFields_ skipped: ' + lifecycleError.message);
+    }
 
     return ContentService
       .createTextOutput(JSON.stringify({
