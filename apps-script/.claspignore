@@ -1,0 +1,4 @@
+# Only the Apps Script sources and manifest are pushed; never git metadata or local files.
+**/**
+!*.js
+!appsscript.json
