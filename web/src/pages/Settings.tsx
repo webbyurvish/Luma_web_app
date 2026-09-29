@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Bell, CreditCard, Palette, ShieldCheck, User } from 'lucide-react'
+import { Bell, CreditCard, Palette, User } from 'lucide-react'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Tabs } from '@/components/ui/Tabs'
 import { Input } from '@/components/ui/Input'
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button'
 import { Avatar } from '@/components/ui/Avatar'
 import { useToast } from '@/context/ToastContext'
 import { tabContent } from '@/lib/motion'
+import { SecuritySettings } from '@/components/settings/SecuritySettings'
 
 const sections = [
   { id: 'profile', label: 'Profile' },
@@ -131,12 +132,7 @@ export function Settings() {
       )}
 
       {active === 'security' && (
-        <Card hoverable className="max-w-2xl">
-          <CardHeader title="Security" subtitle="Keep your account safe" icon={<ShieldCheck size={17} className="text-ink-soft" />} />
-          <p className="text-sm text-ink-soft">
-            Authentication and account security will be available once accounts are introduced in a future phase.
-          </p>
-        </Card>
+        <SecuritySettings />
       )}
       </motion.div>
     </div>

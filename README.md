@@ -63,10 +63,17 @@ npm run dev
 
 ## Security notes
 
-- `.env` (the Apps Script web app URL) is git-ignored — keep it private: anyone with that URL
-  can call the API.
-- Azure keys live only in Apps Script **Script Properties**, never in this repository.
-- Drive operations are confined to the `Luma Documents` folder, "delete" moves files to Drive's
+- **Passcode gate** (): with  and  set in
+  Script Properties, every request needs a signed, expiring session token from signing in; the
+  web app shows a sign-in screen. 10 wrong attempts lock sign-in for 15 minutes. Settings →
+  Security has sign-out and "sign out everywhere". Setup order: set the passcode → run
+   → deploy and sign in → add the printed key to the iPhone Shortcut → enforce.
+- The **iPhone Shortcut** sends  in its JSON; that key can only add a
+  transaction or an udhaar entry.
+-  (the Apps Script web app URL) is git-ignored. It still ends up in the built JavaScript, so
+  the passcode gate — not secrecy of the URL — is what protects the data.
+- Azure keys and the passcode live only in Apps Script **Script Properties**, never in this repository.
+- Drive operations are confined to the  folder, "delete" moves files to Drive's
   trash, and AI/Drive calls are rate-limited per hour.
 
 ## History

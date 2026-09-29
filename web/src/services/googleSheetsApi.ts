@@ -17,6 +17,7 @@ import type {
   RawTransaction,
   TransactionsApiResponse,
 } from '@/types'
+import { getAuthToken, reportAuthRequired } from '@/lib/auth'
 
 export class GoogleSheetsApiError extends Error {
   constructor(message: string) {
@@ -38,7 +39,25 @@ function getApiUrl(): string {
 function buildEndpoint(action: string): string {
   const url = new URL(getApiUrl())
   url.searchParams.set('action', action)
+  // Apps Script can't read headers, so the signed session token rides as a query parameter.
+  const token = getAuthToken()
+  if (token) url.searchParams.set('t', token)
   return url.toString()
+}
+
+/** The script refused the request because there's no valid session — never retried. */
+export class AuthRequiredError extends Error {
+  constructor() {
+    super('Please sign in to Luma again.')
+    this.name = 'AuthRequiredError'
+  }
+}
+
+function assertSignedIn(text: string) {
+  if (text.includes('"authRequired":true')) {
+    reportAuthRequired()
+    throw new AuthRequiredError()
+  }
 }
 
 /** Apps Script intermittently answers a healthy read with 404/429/5xx under load; those are worth retrying. */
@@ -118,8 +137,10 @@ async function fetchTextNow(url: string, init: RequestInit, timeoutMs: number, o
   try {
     const response = await fetch(url, { ...init, signal: controller.signal })
     const text = await response.text()
+    assertSignedIn(text)
     return { status: response.status, ok: response.ok, text }
   } catch (cause) {
+    if (cause instanceof AuthRequiredError) throw cause
     if (timedOut) throw new AttemptTimeout()
     throw cause
   } finally {
@@ -138,6 +159,7 @@ async function fetchJson<T>(action: string, signal?: AbortSignal): Promise<T> {
       result = await fetchTextWithin(buildEndpoint(action), { method: 'GET' }, timeoutMs, signal)
     } catch (cause) {
       if (cause instanceof DOMException && cause.name === 'AbortError' && signal?.aborted) throw cause
+      if (cause instanceof AuthRequiredError) throw cause
       if (canRetry) {
         await new Promise((resolve) => setTimeout(resolve, READ_RETRY_DELAYS_MS[attempt]))
         continue
@@ -221,12 +243,14 @@ async function postEntityNow(action: string, payload: Record<string, unknown>): 
   }
 
   try {
-    const body = (await response.json()) as CreateApiResponse<unknown>
+    const text = await response.text()
+    assertSignedIn(text)
+    const body = JSON.parse(text) as CreateApiResponse<unknown>
     if (body.success === false) {
       throw new GoogleSheetsApiError(body.error || 'Google Sheets API reported a failure saving this record.')
     }
   } catch (err) {
-    if (err instanceof GoogleSheetsApiError) throw err
+    if (err instanceof GoogleSheetsApiError || err instanceof AuthRequiredError) throw err
     // Response wasn't parseable JSON — expected for POST (see comment above). Not an error.
   }
 }
@@ -465,11 +489,11 @@ async function postForResult<T extends { success: boolean; error?: string }>(act
         (err: unknown) => {
           if (settled) return
           failures++
-          const final = typeof err === 'object' && err !== null && 'final' in err
+          const final = err instanceof AuthRequiredError || (typeof err === 'object' && err !== null && 'final' in err)
           if (final || failures >= 2) {
             settled = true
             clearTimeout(hedgeTimer)
-            reject(err instanceof GoogleSheetsApiError ? err : new GoogleSheetsApiError('Could not reach the assistant. Please try again.'))
+            reject(err instanceof GoogleSheetsApiError || err instanceof AuthRequiredError ? err : new GoogleSheetsApiError('Could not reach the assistant. Please try again.'))
             return
           }
           // First attempt failed outright: send the backup now instead of waiting for the hedge.
@@ -625,6 +649,7 @@ async function driveOp<T = Record<string, unknown>>(payload: Record<string, unkn
       true,
     )
   } catch (cause) {
+    if (cause instanceof AuthRequiredError) throw cause
     throw new GoogleSheetsApiError(
       cause instanceof AttemptTimeout
         ? "Google is taking too long to confirm. Refresh in a moment to see whether it went through."
@@ -651,4 +676,58 @@ export const driveApi = {
   updateFile: (fileId: string, details: Partial<DriveFileDetails>) => driveOp({ driveOp: 'updateFile', fileId, ...details }),
   moveFile: (fileId: string, folderId: string) => driveOp({ driveOp: 'moveFile', fileId, folderId }),
   trashFile: (fileId: string) => driveOp({ driveOp: 'trashFile', fileId }),
+}
+
+/* Passcode sign-in (Luma_Auth in Apps Script) */
+
+export interface AuthStatus {
+  /** A passcode is set in Script Properties. */
+  configured: boolean
+  /** Requests without a valid session are refused. */
+  enforced: boolean
+}
+
+/**
+ * Read-only; open even without a session. An older deployment answers "Unknown action", which
+ * reads as "not configured" — and the sign-in POST is only ever sent after this says configured,
+ * so an old script never receives it (it would treat it as a Shortcut transaction).
+ */
+export async function getAuthStatus(): Promise<AuthStatus> {
+  try {
+    const body = await fetchJson<{ success: boolean; auth?: AuthStatus }>('authstatus')
+    return body.success && body.auth ? body.auth : { configured: false, enforced: false }
+  } catch (err) {
+    if (err instanceof AuthRequiredError) return { configured: true, enforced: true }
+    throw err
+  }
+}
+
+/** Exchanges the passcode for a signed session token. Never retried (a retry could burn an attempt). */
+export async function signIn(passcode: string, remember: boolean): Promise<{ token: string; expiresAt: number }> {
+  const result = await withSlot(true, () =>
+    fetchTextNow(
+      buildEndpoint('auth'),
+      { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ authLogin: passcode, remember }) },
+      45_000,
+    ),
+  ).catch((cause: unknown) => {
+    throw new GoogleSheetsApiError(cause instanceof AttemptTimeout ? 'Google is slow to respond. Please try again.' : 'Could not reach Luma. Check your connection.')
+  })
+  let body: { success?: boolean; error?: string; token?: string; expiresAt?: number }
+  try {
+    body = JSON.parse(result.text)
+  } catch {
+    throw new GoogleSheetsApiError("Luma didn't answer properly. Please try again.")
+  }
+  if (!body.success || !body.token || !body.expiresAt) throw new GoogleSheetsApiError(body.error || "That passcode isn't right.")
+  return { token: body.token, expiresAt: body.expiresAt }
+}
+
+/** Invalidates every session on every device (including this one). */
+export async function signOutEverywhere(): Promise<void> {
+  const result = await withSlot(true, () =>
+    fetchTextNow(buildEndpoint('auth'), { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ authLogoutAll: true }) }, 45_000),
+  )
+  const body = JSON.parse(result.text) as { success?: boolean; error?: string }
+  if (!body.success) throw new GoogleSheetsApiError(body.error || "Couldn't sign out other devices.")
 }
