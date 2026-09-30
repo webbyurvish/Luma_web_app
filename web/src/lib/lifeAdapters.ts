@@ -42,6 +42,7 @@ export function normalizeUdhaarRows(rows: RawUdhaar[]): UdhaarEntry[] {
       description: textOrUndefined(row.description),
       paymentMethod: textOrUndefined(row.paymentMethod),
       note: textOrUndefined(row.note),
+      accountId: textOrUndefined(row.accountId),
     })
   })
   return entries
@@ -118,6 +119,7 @@ export function buildUdhaarFields(input: UdhaarEntryInput): Record<string, unkno
     description: input.description ?? '',
     paymentMethod: input.paymentMethod ?? '',
     note: input.note ?? '',
+    accountId: input.accountId ?? '',
   }
 }
 

@@ -26,6 +26,7 @@ function normalizeType(raw: string): TransactionType | null {
   const value = str(raw).trim().toLowerCase()
   if (value === 'expense') return 'expense'
   if (value === 'income') return 'income'
+  if (value === 'transfer') return 'transfer'
   return null
 }
 
@@ -92,6 +93,8 @@ export function normalizeTransactions(rows: RawTransaction[], onSkip?: (row: Raw
       note: str(row.note).trim() || undefined,
       month: normalizeMonthLabel(row.month, timestamp),
       sourceId: str(row.id).trim() || undefined,
+      accountId: str(row.accountId).trim() || undefined,
+      toAccountId: str(row.toAccountId).trim() || undefined,
     })
   })
 

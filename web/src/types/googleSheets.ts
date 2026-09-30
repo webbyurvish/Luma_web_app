@@ -15,6 +15,8 @@ export interface RawTransaction {
   id?: string
   status?: string
   voidedAt?: string | null
+  accountId?: string | null
+  toAccountId?: string | null
 }
 
 export interface TransactionsApiResponse {
@@ -174,6 +176,7 @@ export interface RawUdhaar {
   paymentMethod: string | null
   note: string | null
   isArchived?: boolean | null
+  accountId?: string | null
 }
 
 /** Sheet row shape for ?action=tasks. */

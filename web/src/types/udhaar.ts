@@ -14,6 +14,8 @@ export interface UdhaarEntry {
   dueDate?: string
   description?: string
   paymentMethod?: string
+  /** Account the money left (given) or came back into (repayment). Moves its balance. */
+  accountId?: string
   note?: string
 }
 
@@ -25,6 +27,8 @@ export interface UdhaarEntryInput {
   dueDate?: string
   description?: string
   paymentMethod?: string
+  /** Account the money left (given) or came back into (repayment). Moves its balance. */
+  accountId?: string
   note?: string
 }
 

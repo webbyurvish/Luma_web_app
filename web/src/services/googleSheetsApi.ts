@@ -532,13 +532,16 @@ export async function askAssistant(messages: AiChatTurn[], context: string): Pro
 }
 
 export interface QuickAddDraft {
-  kind: 'expense' | 'income' | 'udhaar_given' | 'udhaar_repayment' | 'task' | 'unknown'
+  kind: 'expense' | 'income' | 'transfer' | 'udhaar_given' | 'udhaar_repayment' | 'task' | 'unknown'
   amount: number | null
   date: string | null
   category: string | null
   subcategory: string | null
   merchant: string | null
   paymentMethod: string | null
+  /** Account name the AI recognised ("from HDFC"); older script deployments omit it. */
+  account?: string | null
+  toAccount?: string | null
   note: string | null
   person: string | null
   dueDate: string | null
@@ -550,7 +553,7 @@ export interface QuickAddDraft {
 export async function parseQuickAdd(
   text: string,
   today: string,
-  hints: { categories: string[]; paymentMethods: string[]; people: string[] },
+  hints: { categories: string[]; paymentMethods: string[]; people: string[]; accounts: string[] },
 ): Promise<QuickAddDraft> {
   await requireAiChat()
   const body = await postForResult<{ success: boolean; error?: string; draft: QuickAddDraft }>('ai', { aiTask: 'parse', text, today, hints })

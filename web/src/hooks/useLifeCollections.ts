@@ -22,6 +22,7 @@ import {
 } from '@/lib/lifeAdapters'
 import { useRemoteCollection } from './useFinanceCollections'
 import { useDeleteAction, useRemoteList, useSyncedAction } from './useRemoteData'
+import { useWithAccountResync } from './useAccountResync'
 import type { Task, TaskInput, UdhaarEntry, UdhaarEntryInput, UdhaarPerson, UdhaarSummary } from '@/types'
 
 /* ------------------------------------------------------------------ udhaar */
@@ -44,15 +45,17 @@ export interface UseUdhaarResult {
 
 export function useUdhaar(): UseUdhaarResult {
   const { items: entries, loading, refreshing, error, refetch } = useRemoteList('udhaar', getUdhaar, normalizeUdhaarRows, 'Failed to load udhaar.')
+  // Entries linked to an account move its balance, so writes re-sync accounts too.
+  const resync = useWithAccountResync(refetch)
   const people = useMemo(() => groupUdhaarByPerson(entries), [entries])
   const summary = useMemo(() => summarizeUdhaar(people), [people])
 
-  const [createEntry, creating] = useSyncedAction((input: UdhaarEntryInput) => createUdhaarEntryApi(buildUdhaarCreatePayload(input)), refetch)
+  const [createEntry, creating] = useSyncedAction((input: UdhaarEntryInput) => createUdhaarEntryApi(buildUdhaarCreatePayload(input)), resync)
   const [updateEntry, updating] = useSyncedAction(
     (id: string, input: UdhaarEntryInput) => updateUdhaarEntryApi(id, buildUdhaarFields(input)),
-    refetch,
+    resync,
   )
-  const [deleteEntry, deleting] = useDeleteAction('udhaar', 'udhaarId', deleteUdhaarEntryApi, refetch)
+  const [deleteEntry, deleting] = useDeleteAction('udhaar', 'udhaarId', deleteUdhaarEntryApi, resync)
 
   return { entries, people, summary, loading, refreshing, error, refetch, createEntry, creating, updateEntry, updating, deleteEntry, deleting }
 }

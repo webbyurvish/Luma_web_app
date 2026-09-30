@@ -7,6 +7,7 @@ import { Spinner } from '@/components/ui/Loader'
 import { QuickActionModal, type QuickActionKind } from '@/components/common/QuickActionModal'
 import { useTransactions } from '@/hooks/useTransactions'
 import { useUdhaar } from '@/hooks/useLifeCollections'
+import { useAccounts } from '@/hooks/useFinanceCollections'
 import { useToast } from '@/context/ToastContext'
 import { CATEGORY_META } from '@/lib/categoryMeta'
 import { todayIstDateKey } from '@/lib/formatDate'
@@ -16,6 +17,7 @@ import { cn } from '@/lib/cn'
 const KIND_FOR_DRAFT: Record<Exclude<QuickAddDraft['kind'], 'unknown'>, QuickActionKind> = {
   expense: 'expense',
   income: 'income',
+  transfer: 'transfer',
   udhaar_given: 'udhaar',
   udhaar_repayment: 'repayment',
   task: 'task',
@@ -29,6 +31,7 @@ export function QuickAddBar({ className }: { className?: string }) {
   const { showToast } = useToast()
   const { transactions } = useTransactions()
   const { people } = useUdhaar()
+  const { accounts } = useAccounts()
 
   const [text, setText] = useState('')
   const [parsing, setParsing] = useState(false)
@@ -44,6 +47,7 @@ export function QuickAddBar({ className }: { className?: string }) {
         categories: Array.from(new Set([...Object.values(CATEGORY_META).map((m) => m.label), ...transactions.map((t) => t.rawCategory ?? '')].filter(Boolean))),
         paymentMethods: Array.from(new Set(transactions.map((t) => t.payment).filter((p) => p && p !== 'Other'))),
         people: people.map((p) => p.name),
+        accounts: accounts.filter((a) => a.isActive).map((a) => a.name),
       }
       const draft = await parseQuickAdd(value, todayIstDateKey(), hints)
       if (draft.kind === 'unknown') {
@@ -85,7 +89,7 @@ export function QuickAddBar({ className }: { className?: string }) {
               value={text}
               onChange={(e) => setText(e.target.value)}
               disabled={parsing}
-              placeholder={parsing ? 'Reading that…' : 'Tell Luma what happened — "Paid 450 at Swiggy by UPI yesterday" or "Gave Rohit 2000"'}
+              placeholder={parsing ? 'Reading that…' : 'Tell Luma what happened — "Paid 450 at Swiggy from HDFC by UPI" or "Gave Rohit 2000"'}
               aria-label="Describe a transaction, udhaar or task"
               className="min-w-0 flex-1 bg-transparent text-sm text-ink placeholder:text-ink-muted focus:outline-none disabled:opacity-60"
             />

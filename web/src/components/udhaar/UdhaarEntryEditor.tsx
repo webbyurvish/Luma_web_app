@@ -4,8 +4,10 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { cn } from '@/lib/cn'
+import { AccountSelect } from '@/components/finance/AccountSelect'
+import { previewBalanceChanges } from '@/lib/accountLinking'
 import { todayIstDateKey } from '@/lib/formatDate'
-import type { UdhaarEntry, UdhaarEntryInput, UdhaarEntryType } from '@/types'
+import type { FinancialAccount, UdhaarEntry, UdhaarEntryInput, UdhaarEntryType } from '@/types'
 
 interface FormState {
   type: UdhaarEntryType
@@ -16,6 +18,7 @@ interface FormState {
   description: string
   paymentMethod: string
   note: string
+  accountId: string
 }
 
 function entryToForm(entry: UdhaarEntry): FormState {
@@ -28,6 +31,7 @@ function entryToForm(entry: UdhaarEntry): FormState {
     description: entry.description ?? '',
     paymentMethod: entry.paymentMethod ?? '',
     note: entry.note ?? '',
+    accountId: entry.accountId ?? '',
   }
 }
 
@@ -43,12 +47,14 @@ interface UdhaarEntryEditorProps {
   draft?: Partial<UdhaarEntryInput>
   /** Everyone already in the ledger, offered as suggestions so names stay consistent. */
   knownPeople: string[]
+  /** Accounts the money can move through (their balances update on save). */
+  accounts: FinancialAccount[]
   onClose: () => void
   onSave: (input: UdhaarEntryInput) => void
   saving?: boolean
 }
 
-export function UdhaarEntryEditor({ open, entry, newType = 'given', newPerson = '', draft, knownPeople, onClose, onSave, saving }: UdhaarEntryEditorProps) {
+export function UdhaarEntryEditor({ open, entry, newType = 'given', newPerson = '', draft, knownPeople, accounts, onClose, onSave, saving }: UdhaarEntryEditorProps) {
   const isCreate = entry === null
   const [form, setForm] = useState<FormState | null>(null)
   const [initialForm, setInitialForm] = useState<FormState | null>(null)
@@ -68,6 +74,7 @@ export function UdhaarEntryEditor({ open, entry, newType = 'given', newPerson = 
           description: draft?.description ?? '',
           paymentMethod: draft?.paymentMethod ?? '',
           note: draft?.note ?? '',
+          accountId: draft?.accountId ?? '',
         }
     setForm(next)
     setInitialForm(next)
@@ -101,6 +108,7 @@ export function UdhaarEntryEditor({ open, entry, newType = 'given', newPerson = 
       description: form.description.trim() || undefined,
       paymentMethod: form.paymentMethod.trim() || undefined,
       note: form.note.trim() || undefined,
+      accountId: form.accountId,
     })
   }
 
@@ -186,6 +194,20 @@ export function UdhaarEntryEditor({ open, entry, newType = 'given', newPerson = 
             <label className="mb-1.5 block text-xs font-medium text-ink-soft">Description (optional)</label>
             <Input value={form.description} onChange={(e) => set('description', e.target.value)} placeholder="e.g. Trip advance" />
           </div>
+
+          <AccountSelect
+            label={isGiven ? 'Paid from (optional)' : 'Received in (optional)'}
+            value={form.accountId}
+            onChange={(id) => set('accountId', id)}
+            suggested={accounts.filter((a) => a.isActive && a.type !== 'credit_card')}
+            others={accounts.filter((a) => a.isActive && a.type === 'credit_card')}
+            change={
+              form.accountId && !entry
+                ? previewBalanceChanges(accounts, { kind: isGiven ? 'udhaar_given' : 'udhaar_repayment', amount: Number(form.amount) || 0, accountId: form.accountId })[0]
+                : undefined
+            }
+            hint="Link the account the money moved through and its balance updates too."
+          />
 
           <div>
             <label className="mb-1.5 block text-xs font-medium text-ink-soft">Payment method (optional)</label>

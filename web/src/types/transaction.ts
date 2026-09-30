@@ -32,8 +32,10 @@ export interface Transaction {
   payment: PaymentMethod
   amount: number
   status: TransactionStatus
-  /** Which financial account this movement belongs to — optional so existing mock rows keep working. */
+  /** Account the money left (expense, transfer) or entered (income). */
   accountId?: string
+  /** Transfers only: the account the money moved to. */
+  toAccountId?: string
   /** Original, un-mapped category text from the data source — used for grouping so a real
    *  category the fixed CategoryId set doesn't recognize isn't lost inside "other". */
   rawCategory?: string
@@ -55,11 +57,15 @@ export interface TransactionUpdateInput {
   /** yyyy-MM-dd */
   date: string
   amount: number
-  /** Sheet text: "Expense" | "Income" */
+  /** Sheet text: "Expense" | "Income" | "Transfer" */
   type: string
   category: string
   subcategory: string
   paymentMethod: string
   merchant: string
   note: string
+  /** Linked account ('' to unlink). Moves that account's balance. */
+  accountId?: string
+  /** Transfers only: destination account. */
+  toAccountId?: string
 }

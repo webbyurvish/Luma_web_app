@@ -16,9 +16,12 @@ interface TransactionsTableProps {
   onVoid: (transaction: Transaction) => void
   onEdit: (transaction: Transaction) => void
   onDelete: (transaction: Transaction) => void
+  /** Account id → name, to show where the money moved. */
+  accountNames?: Map<string, string>
 }
 
-export function TransactionsTable({ transactions, page, pageSize, onPageChange, onVoid, onEdit, onDelete }: TransactionsTableProps) {
+export function TransactionsTable({ transactions, page, pageSize, onPageChange, onVoid, onEdit, onDelete, accountNames }: TransactionsTableProps) {
+  const nameOf = (id?: string) => (id ? accountNames?.get(id) ?? 'Unknown account' : '')
   const pageCount = Math.max(1, Math.ceil(transactions.length / pageSize))
   const pageItems = transactions.slice((page - 1) * pageSize, page * pageSize)
 
@@ -53,14 +56,25 @@ export function TransactionsTable({ transactions, page, pageSize, onPageChange, 
                       <td className="py-2.5 pr-3 text-xs font-medium text-ink">{item.description}</td>
                       <td className="py-2.5 pr-3 text-xs capitalize text-ink-soft">{item.type}</td>
                       <td className="py-2.5 pr-3 font-mono-figure text-xs text-ink-muted">{formatDate(item.date)}</td>
-                      <td className="py-2.5 pr-3 text-xs text-ink-soft">{item.payment}</td>
+                      <td className="py-2.5 pr-3 text-xs text-ink-soft">
+                        {item.type === 'transfer' ? (
+                          <span className="text-ink">
+                            {nameOf(item.accountId)} → {nameOf(item.toAccountId)}
+                          </span>
+                        ) : (
+                          <>
+                            {item.payment}
+                            {item.accountId && <span className="block text-[10.5px] text-ink-muted">{nameOf(item.accountId)}</span>}
+                          </>
+                        )}
+                      </td>
                       <td
                         className={cn(
                           'py-2.5 pr-2 text-right font-mono-figure text-xs font-bold',
-                          signedAmount < 0 ? 'text-ink' : 'text-success',
+                          item.type === 'transfer' ? 'font-semibold text-ink-soft' : signedAmount < 0 ? 'text-ink' : 'text-success',
                         )}
                       >
-                        {formatCurrency(signedAmount, { signed: true })}
+                        {item.type === 'transfer' ? formatCurrency(item.amount) : formatCurrency(signedAmount, { signed: true })}
                       </td>
                       <td className="py-2.5 pl-2 pr-2 text-right">
                         {item.sourceId && (

@@ -5,12 +5,14 @@ import { UdhaarEntryEditor } from '@/components/udhaar/UdhaarEntryEditor'
 import { TaskEditor } from '@/components/tasks/TaskEditor'
 import { useTransactions } from '@/hooks/useTransactions'
 import { useTasks, useUdhaar } from '@/hooks/useLifeCollections'
+import { useAccounts } from '@/hooks/useFinanceCollections'
+import { matchAccountByName } from '@/lib/accountLinking'
 import { useToast } from '@/context/ToastContext'
 import { getErrorMessage } from '@/lib/errors'
 import type { QuickAddDraft } from '@/services/googleSheetsApi'
 import type { TaskInput, TransactionUpdateInput, UdhaarEntryInput } from '@/types'
 
-export type QuickActionKind = 'expense' | 'income' | 'udhaar' | 'repayment' | 'task' | 'document'
+export type QuickActionKind = 'expense' | 'income' | 'transfer' | 'udhaar' | 'repayment' | 'task' | 'document'
 
 interface QuickActionModalProps {
   open: boolean
@@ -26,7 +28,8 @@ interface QuickActionModalProps {
  */
 export function QuickActionModal({ open, kind, onClose, draft }: QuickActionModalProps) {
   const d = draft ?? undefined
-  if (kind === 'expense' || kind === 'income') return <QuickTransaction open={open} type={kind === 'income' ? 'Income' : 'Expense'} onClose={onClose} draft={d} />
+  if (kind === 'expense' || kind === 'income' || kind === 'transfer')
+    return <QuickTransaction open={open} type={kind === 'income' ? 'Income' : kind === 'transfer' ? 'Transfer' : 'Expense'} onClose={onClose} draft={d} />
   if (kind === 'udhaar' || kind === 'repayment') return <QuickUdhaar open={open} type={kind === 'udhaar' ? 'given' : 'repayment'} onClose={onClose} draft={d} />
   if (kind === 'task') return <QuickTask open={open} onClose={onClose} draft={d} />
   return <QuickDocument open={open} onClose={onClose} />
@@ -45,7 +48,8 @@ function useSaveHandler(onClose: () => void) {
   }
 }
 
-function QuickTransaction({ open, type, onClose, draft }: { open: boolean; type: 'Expense' | 'Income'; onClose: () => void; draft?: QuickAddDraft }) {
+function QuickTransaction({ open, type, onClose, draft }: { open: boolean; type: 'Expense' | 'Income' | 'Transfer'; onClose: () => void; draft?: QuickAddDraft }) {
+  const { accounts } = useAccounts()
   const txDraft = useMemo(
     () =>
       draft && {
@@ -57,8 +61,11 @@ function QuickTransaction({ open, type, onClose, draft }: { open: boolean; type:
         merchant: draft.merchant ?? undefined,
         paymentMethod: draft.paymentMethod ?? undefined,
         note: draft.note ?? undefined,
+        // "from HDFC" → the matching account (unset if the AI named none or it doesn't match).
+        accountId: matchAccountByName(accounts, draft.account) || undefined,
+        toAccountId: matchAccountByName(accounts, draft.toAccount) || undefined,
       },
-    [draft, type],
+    [draft, type, accounts],
   )
   const { transactions, createTransaction, creating } = useTransactions()
   const save = useSaveHandler(onClose)
@@ -69,6 +76,7 @@ function QuickTransaction({ open, type, onClose, draft }: { open: boolean; type:
       newType={type}
       draft={txDraft ?? undefined}
       allTransactions={transactions}
+      accounts={accounts}
       onClose={onClose}
       onSave={(input) => save(() => createTransaction(input as TransactionUpdateInput), `${input.type ?? type} added`, "Couldn't add the transaction. Please try again.")}
       saving={creating}
@@ -77,6 +85,7 @@ function QuickTransaction({ open, type, onClose, draft }: { open: boolean; type:
 }
 
 function QuickUdhaar({ open, type, onClose, draft }: { open: boolean; type: 'given' | 'repayment'; onClose: () => void; draft?: QuickAddDraft }) {
+  const { accounts } = useAccounts()
   const udhaarDraft = useMemo(
     () =>
       draft && {
@@ -87,8 +96,9 @@ function QuickUdhaar({ open, type, onClose, draft }: { open: boolean; type: 'giv
         dueDate: draft.dueDate ?? undefined,
         paymentMethod: draft.paymentMethod ?? undefined,
         note: draft.note ?? undefined,
+        accountId: matchAccountByName(accounts, draft.account) || undefined,
       },
-    [draft, type],
+    [draft, type, accounts],
   )
   const { people, createEntry, creating } = useUdhaar()
   const save = useSaveHandler(onClose)
@@ -99,6 +109,7 @@ function QuickUdhaar({ open, type, onClose, draft }: { open: boolean; type: 'giv
       draft={udhaarDraft ?? undefined}
       newType={type}
       knownPeople={people.map((p) => p.name)}
+      accounts={accounts}
       onClose={onClose}
       onSave={(input: UdhaarEntryInput) =>
         save(

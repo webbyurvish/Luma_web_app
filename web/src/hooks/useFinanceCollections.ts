@@ -66,7 +66,13 @@ export function useAccounts(): UseAccountsResult {
   const { items, loading, refreshing, error, refetch } = useRemoteCollection('accounts', getAccounts, normalizeAccount)
   const [createAccount, creating] = useSyncedAction((input: AccountInput) => createAccountApi(buildAccountPayload(input)), refetch)
   const [updateAccount, updating] = useSyncedAction(
-    (id: string, input: AccountInput) => updateAccountApi(id, buildAccountPayload(input)),
+    (id: string, input: AccountInput) => {
+      // Editing corrects the CURRENT balance only; the opening balance is history and linked
+      // transactions keep moving the current one from here on.
+      const { openingBalance: _opening, ...payload } = buildAccountPayload(input)
+      void _opening
+      return updateAccountApi(id, payload)
+    },
     refetch,
   )
   const [archiveAccount, archiving] = useSyncedAction((id: string) => archiveAccountApi(id), refetch)

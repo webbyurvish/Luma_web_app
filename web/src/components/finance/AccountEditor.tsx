@@ -160,7 +160,11 @@ export function AccountEditor({ open, account, onClose, onSave, saving }: Accoun
               type="number"
               min={0}
             />
-            {showError('balance') && <p className="mt-1 text-[11px] text-danger">{errors.balance}</p>}
+            {showError('balance') ? (
+              <p className="mt-1 text-[11px] text-danger">{errors.balance}</p>
+            ) : (
+              isEdit && <p className="mt-1 text-[10.5px] text-ink-muted">Updates by itself from linked transactions — change it only to correct it.</p>
+            )}
           </div>
 
           <div>

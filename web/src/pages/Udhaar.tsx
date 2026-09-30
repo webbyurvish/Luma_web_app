@@ -9,6 +9,7 @@ import { DeleteRecordDialog } from '@/components/ui/DeleteRecordDialog'
 import { UdhaarTable } from '@/components/udhaar/UdhaarTable'
 import { UdhaarEntryEditor } from '@/components/udhaar/UdhaarEntryEditor'
 import { useUdhaar } from '@/hooks/useLifeCollections'
+import { useAccounts } from '@/hooks/useFinanceCollections'
 import { useToast } from '@/context/ToastContext'
 import { getErrorMessage } from '@/lib/errors'
 import { formatCurrency } from '@/lib/formatCurrency'
@@ -21,6 +22,7 @@ export function Udhaar() {
   const { people, summary, loading, refreshing, error, refetch, createEntry, creating, updateEntry, updating, deleteEntry, deleting } = useUdhaar()
 
   const [editor, setEditor] = useState<EditorState>(null)
+  const { accounts } = useAccounts()
   const [deleteTarget, setDeleteTarget] = useState<UdhaarEntry | null>(null)
 
   const stats = [
@@ -114,6 +116,7 @@ export function Udhaar() {
         newType={editor && 'newType' in editor ? editor.newType : 'given'}
         newPerson={editor && 'newType' in editor ? editor.newPerson : undefined}
         knownPeople={people.map((p) => p.name)}
+        accounts={accounts}
         onClose={() => setEditor(null)}
         onSave={handleSave}
         saving={creating || updating}

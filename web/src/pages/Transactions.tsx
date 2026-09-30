@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { TransactionsFilters } from '@/components/transactions/TransactionsFilters'
 import { TransactionsTable } from '@/components/transactions/TransactionsTable'
 import { ErrorState } from '@/components/ui/ErrorState'
@@ -11,6 +12,7 @@ import { DeleteRecordDialog } from '@/components/ui/DeleteRecordDialog'
 import { TransactionEditor } from '@/components/transactions/TransactionEditor'
 import { QuickAddBar } from '@/components/ai/QuickAddBar'
 import { useTransactions } from '@/hooks/useTransactions'
+import { useAccounts } from '@/hooks/useFinanceCollections'
 import { getRecentTransactions } from '@/lib/transactionCalculations'
 import { useToast } from '@/context/ToastContext'
 import { formatCurrency } from '@/lib/formatCurrency'
@@ -24,6 +26,11 @@ export function Transactions() {
   const [search, setSearch] = useState('')
   const [type, setType] = useState<TransactionType | 'all'>('all')
   const [category, setCategory] = useState('all')
+  const { accounts } = useAccounts()
+  // "View transactions" on an account lands here pre-filtered to it.
+  const location = useLocation()
+  const [account, setAccount] = useState<string>(() => (location.state as { accountId?: string } | null)?.accountId ?? 'all')
+  const accountNames = useMemo(() => new Map(accounts.map((a) => [a.id, a.name])), [accounts])
   const [page, setPage] = useState(1)
   const [addOpen, setAddOpen] = useState(false)
   const [voidTarget, setVoidTarget] = useState<Transaction | null>(null)
@@ -75,12 +82,16 @@ export function Transactions() {
 
   const filtered = useMemo(() => {
     return getRecentTransactions(transactions, transactions.length).filter((item) => {
-      const matchesSearch = item.description.toLowerCase().includes(search.toLowerCase())
+      const query = search.toLowerCase()
+      const linked = [item.accountId, item.toAccountId].map((id) => (id ? accountNames.get(id) ?? '' : '')).join(' ').toLowerCase()
+      const matchesSearch = item.description.toLowerCase().includes(query) || (!!query && linked.includes(query))
       const matchesType = type === 'all' || item.type === type
       const matchesCategory = category === 'all' || item.category === category
-      return matchesSearch && matchesType && matchesCategory
+      const matchesAccount =
+        account === 'all' || (account === 'none' ? !item.accountId : item.accountId === account || item.toAccountId === account)
+      return matchesSearch && matchesType && matchesCategory && matchesAccount
     })
-  }, [transactions, search, type, category])
+  }, [transactions, search, type, category, account, accountNames])
 
   return (
     <div className="flex flex-col gap-4 pt-3">
@@ -102,6 +113,12 @@ export function Transactions() {
           setCategory(value)
           setPage(1)
         }}
+        account={account}
+        onAccountChange={(value) => {
+          setAccount(value)
+          setPage(1)
+        }}
+        accounts={accounts}
         onExport={() => showToast('Export is coming in a future phase', 'info')}
         onAdd={() => setAddOpen(true)}
       />
@@ -120,7 +137,7 @@ export function Transactions() {
       ) : (
         <div className="relative">
           <SyncBar active={refreshing} />
-          <TransactionsTable transactions={filtered} page={page} pageSize={PAGE_SIZE} onPageChange={setPage} onVoid={setVoidTarget} onEdit={setEditTarget} onDelete={setDeleteTarget} />
+          <TransactionsTable transactions={filtered} page={page} pageSize={PAGE_SIZE} onPageChange={setPage} onVoid={setVoidTarget} onEdit={setEditTarget} onDelete={setDeleteTarget} accountNames={accountNames} />
         </div>
       )}
 
@@ -128,6 +145,7 @@ export function Transactions() {
         open={addOpen}
         transaction={null}
         allTransactions={transactions}
+        accounts={accounts}
         onClose={() => setAddOpen(false)}
         onSave={handleCreate}
         saving={creating}
@@ -148,6 +166,7 @@ export function Transactions() {
         open={editTarget !== null}
         transaction={editTarget}
         allTransactions={transactions}
+        accounts={accounts}
         onClose={() => setEditTarget(null)}
         onSave={handleEditSave}
         saving={updating}

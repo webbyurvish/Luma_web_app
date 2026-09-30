@@ -7,6 +7,7 @@ import {
 } from '@/services/googleSheetsApi'
 import { normalizeTransactions } from '@/lib/transactionAdapter'
 import { useDeleteAction, useRemoteList, useSyncedAction } from './useRemoteData'
+import { useWithAccountResync } from './useAccountResync'
 import type { RawTransaction, Transaction, TransactionUpdateInput } from '@/types'
 
 export interface UseTransactionsResult {
@@ -38,13 +39,15 @@ function transformRows(rows: RawTransaction[]): Transaction[] {
  */
 export function useTransactions(): UseTransactionsResult {
   const { items, loading, refreshing, error, refetch } = useRemoteList('transactions', getTransactions, transformRows, 'Failed to load transactions.')
-  const [createTransaction, creating] = useSyncedAction((input: TransactionUpdateInput) => createTransactionApi({ ...input }), refetch)
-  const [voidTransaction, voiding] = useSyncedAction((sourceId: string) => voidTransactionApi(sourceId), refetch)
+  // Writes re-sync account balances too (linked transactions move them).
+  const resync = useWithAccountResync(refetch)
+  const [createTransaction, creating] = useSyncedAction((input: TransactionUpdateInput) => createTransactionApi({ ...input }), resync)
+  const [voidTransaction, voiding] = useSyncedAction((sourceId: string) => voidTransactionApi(sourceId), resync)
   const [updateTransaction, updating] = useSyncedAction(
     (sourceId: string, input: Partial<TransactionUpdateInput>) => updateTransactionApi(sourceId, { ...input }),
-    refetch,
+    resync,
   )
-  const [deleteTransaction, deleting] = useDeleteAction('transactions', 'id', deleteTransactionApi, refetch)
+  const [deleteTransaction, deleting] = useDeleteAction('transactions', 'id', deleteTransactionApi, resync)
 
   return { transactions: items, loading, refreshing, error, refetch, createTransaction, creating, voidTransaction, voiding, updateTransaction, updating, deleteTransaction, deleting }
 }

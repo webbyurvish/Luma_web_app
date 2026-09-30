@@ -3,12 +3,13 @@ import { Input } from '@/components/ui/Input'
 import { ThemedSelect } from '@/components/ui/ThemedSelect'
 import { Button } from '@/components/ui/Button'
 import { CATEGORY_META } from '@/lib/categoryMeta'
-import type { TransactionType } from '@/types'
+import type { FinancialAccount, TransactionType } from '@/types'
 
 const typeOptions = [
   { value: 'all', label: 'All Types' },
   { value: 'expense', label: 'Expense' },
   { value: 'income', label: 'Income' },
+  { value: 'transfer', label: 'Transfer' },
   { value: 'udhaar', label: 'Udhaar' },
 ]
 
@@ -24,6 +25,10 @@ interface TransactionsFiltersProps {
   onTypeChange: (value: TransactionType | 'all') => void
   category: string
   onCategoryChange: (value: string) => void
+  /** 'all', 'none' (not linked) or an account id. */
+  account: string
+  onAccountChange: (value: string) => void
+  accounts: FinancialAccount[]
   onExport: () => void
   onAdd: () => void
 }
@@ -35,6 +40,9 @@ export function TransactionsFilters({
   onTypeChange,
   category,
   onCategoryChange,
+  account,
+  onAccountChange,
+  accounts,
   onExport,
   onAdd,
 }: TransactionsFiltersProps) {
@@ -56,6 +64,18 @@ export function TransactionsFilters({
             onChange={(next) => onTypeChange(next as TransactionType | 'all')}
             options={typeOptions}
             aria-label="Filter by type"
+          />
+        </div>
+        <div className="w-full sm:w-44">
+          <ThemedSelect
+            value={account}
+            onChange={onAccountChange}
+            options={[
+              { value: 'all', label: 'All accounts' },
+              ...accounts.filter((a) => a.isActive || a.id === account).map((a) => ({ value: a.id, label: a.name })),
+              { value: 'none', label: 'Not linked' },
+            ]}
+            aria-label="Filter by account"
           />
         </div>
         <div className="w-full sm:w-44">

@@ -10,6 +10,9 @@ import { getErrorMessage } from '@/lib/errors'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { DeleteRecordDialog } from '@/components/ui/DeleteRecordDialog'
 import { useInvestments, useSips } from '@/hooks/useFinanceCollections'
+import { useTransactions } from '@/hooks/useTransactions'
+import { useUdhaar } from '@/hooks/useLifeCollections'
+import { AccountActivityPanel } from './AccountActivityPanel'
 import { AccountRow } from './AccountRow'
 import { AccountEditor } from './AccountEditor'
 import type { UseAccountsResult } from '@/hooks/useFinanceCollections'
@@ -32,6 +35,10 @@ export function AccountsSection({ accountsState }: AccountsSectionProps) {
   const [editorTarget, setEditorTarget] = useState<FinancialAccount | 'new' | null>(null)
   const [archiveTarget, setArchiveTarget] = useState<FinancialAccount | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<FinancialAccount | null>(null)
+  const [activityTarget, setActivityTarget] = useState<FinancialAccount | null>(null)
+  const { transactions } = useTransactions()
+  const { entries: udhaarEntries } = useUdhaar()
+  const accountNames = useMemo(() => new Map(accounts.map((a) => [a.id, a.name])), [accounts])
   // Shared store: these reuse the Investments/SIPs tabs' data, no extra requests.
   const { investments } = useInvestments()
   const { sips } = useSips()
@@ -147,7 +154,7 @@ export function AccountsSection({ accountsState }: AccountsSectionProps) {
                 </div>
                 <div className="divide-y divide-border-soft">
                   {group.items.map((account) => (
-                    <AccountRow key={account.id} account={account} onEdit={setEditorTarget} onArchive={setArchiveTarget} onDelete={setDeleteTarget} />
+                    <AccountRow key={account.id} account={account} onEdit={setEditorTarget} onArchive={setArchiveTarget} onDelete={setDeleteTarget} onOpen={setActivityTarget} />
                   ))}
                 </div>
               </div>
@@ -173,6 +180,18 @@ export function AccountsSection({ accountsState }: AccountsSectionProps) {
         loadingLabel="Archiving…"
         onConfirm={handleArchiveConfirm}
         onCancel={() => setArchiveTarget(null)}
+      />
+
+      <AccountActivityPanel
+        account={activityTarget ? (accounts.find((a) => a.id === activityTarget.id) ?? activityTarget) : null}
+        transactions={transactions}
+        udhaar={udhaarEntries}
+        accountNames={accountNames}
+        onClose={() => setActivityTarget(null)}
+        onEdit={(a) => {
+          setActivityTarget(null)
+          setEditorTarget(a)
+        }}
       />
 
       <DeleteRecordDialog
