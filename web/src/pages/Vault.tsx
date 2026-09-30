@@ -132,20 +132,41 @@ export function Vault() {
   ]
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="min-w-[200px] flex-1">
-          <Input icon={<Search size={14} />} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search names, usernames, banks…" aria-label="Search the vault" />
+    <div className="space-y-5 pt-5 sm:pt-6">
+      {/* Status bar: what state the vault is in, and the two main actions. */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-card border border-border bg-card px-4 py-3.5 shadow-card sm:px-5">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-success-soft text-success">
+          <ShieldCheck size={19} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-[13px] font-semibold text-ink">
+            Unlocked
+            <span className="ml-2 font-normal text-ink-muted">
+              · {vault.items.length} {vault.items.length === 1 ? 'item' : 'items'}
+            </span>
+          </p>
+          <p className="mt-0.5 text-[11px] text-ink-muted">
+            End-to-end encrypted · locks after 5 min idle ·{' '}
+            <button type="button" onClick={() => setChangeOpen(true)} className="text-ink-soft underline-offset-2 hover:text-ink hover:underline">
+              Change master password
+            </button>
+          </p>
         </div>
-        <Button icon={<Plus size={14} />} onClick={() => setEditor({ item: null, type: null })}>
-          Add
-        </Button>
-        <Button variant="secondary" icon={<Lock size={13} />} onClick={lockVault} title="Lock the vault now">
-          Lock
-        </Button>
+        <div className="flex w-full gap-2 sm:w-auto sm:shrink-0">
+          <Button variant="secondary" className="flex-1 sm:flex-none" icon={<Lock size={13} />} onClick={lockVault} title="Lock the vault now">
+            Lock
+          </Button>
+          <Button className="flex-1 sm:flex-none" icon={<Plus size={14} />} onClick={() => setEditor({ item: null, type: null })}>
+            Add item
+          </Button>
+        </div>
       </div>
 
-      <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center">
+        <div className="md:w-72 md:shrink-0">
+          <Input icon={<Search size={14} />} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search names, usernames, banks…" aria-label="Search the vault" />
+        </div>
+      <div className="-mx-1 flex min-w-0 flex-1 gap-1.5 overflow-x-auto px-1 py-0.5 [scrollbar-width:none]">
         {chips.map((chip) => {
           const n = counts[chip.id] ?? 0
           if (chip.id !== 'all' && chip.id !== 'favorites' && n === 0) return null
@@ -168,6 +189,7 @@ export function Vault() {
           )
         })}
       </div>
+      </div>
 
       {vault.unreadable > 0 && (
         <p className="flex items-center gap-2 rounded-sm bg-danger-soft px-3 py-2 text-[11.5px] text-danger">
@@ -176,7 +198,6 @@ export function Vault() {
       )}
 
       {vault.items.length === 0 ? (
-        <div className="rounded-card border border-border bg-card shadow-card">
           <EmptyState
             icon={<ShieldCheck size={22} />}
             title="Your vault is ready"
@@ -194,7 +215,6 @@ export function Vault() {
               </div>
             }
           />
-        </div>
       ) : (
         <div className="grid gap-4 lg:grid-cols-[minmax(280px,360px)_1fr]">
           <div className={cn('relative overflow-hidden rounded-card border border-border bg-card shadow-card', selected && 'hidden lg:block')}>
@@ -263,15 +283,6 @@ export function Vault() {
           </div>
         </div>
       )}
-
-      <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10.5px] text-ink-muted">
-        <span className="flex items-center gap-1">
-          <ShieldCheck size={11} /> End-to-end encrypted · locks after 5 min idle
-        </span>
-        <button type="button" onClick={() => setChangeOpen(true)} className="underline-offset-2 hover:text-ink hover:underline">
-          Change master password
-        </button>
-      </p>
 
       <VaultItemEditor
         open={editor !== null}
