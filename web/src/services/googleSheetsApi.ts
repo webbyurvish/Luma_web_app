@@ -15,8 +15,10 @@ import type {
   RawNote,
   RawSip,
   RawTransaction,
+  RawVaultItem,
   TransactionsApiResponse,
 } from '@/types'
+import type { VaultMeta } from '@/lib/vaultCrypto'
 import { getAuthToken, reportAuthRequired } from '@/lib/auth'
 import { normalizeSheetRows } from '@/lib/sheetValues'
 
@@ -694,40 +696,97 @@ export interface AuthStatus {
   configured: boolean
   /** Requests without a valid session are refused. */
   enforced: boolean
+  /** Session length the script grants (older deployments omit it). */
+  sessionMinutes?: number
 }
+
+let authStatusPromise: Promise<AuthStatus> | null = null
 
 /**
  * Read-only; open even without a session. An older deployment answers "Unknown action", which
  * reads as "not configured" — and the sign-in POST is only ever sent after this says configured,
  * so an old script never receives it (it would treat it as a Shortcut transaction).
+ * Shared per page load: the sign-in screen fires it on open, which also wakes the script up
+ * so the passcode check that follows answers faster.
  */
-export async function getAuthStatus(): Promise<AuthStatus> {
-  try {
-    const body = await fetchJson<{ success: boolean; auth?: AuthStatus }>('authstatus')
-    return body.success && body.auth ? body.auth : { configured: false, enforced: false }
-  } catch (err) {
-    if (err instanceof AuthRequiredError) return { configured: true, enforced: true }
-    throw err
-  }
+export function getAuthStatus(): Promise<AuthStatus> {
+  authStatusPromise ??= fetchJson<{ success: boolean; auth?: AuthStatus }>('authstatus')
+    .then((body) => (body.success && body.auth ? body.auth : { configured: false, enforced: false }))
+    .catch((err: unknown) => {
+      authStatusPromise = null
+      if (err instanceof AuthRequiredError) return { configured: true, enforced: true }
+      throw err
+    })
+  return authStatusPromise
 }
 
-/** Exchanges the passcode for a signed session token. Never retried (a retry could burn an attempt). */
-export async function signIn(passcode: string, remember: boolean): Promise<{ token: string; expiresAt: number }> {
-  const result = await withSlot(true, () =>
-    fetchTextNow(
-      buildEndpoint('auth'),
-      { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ authLogin: passcode, remember }) },
-      45_000,
-    ),
-  ).catch((cause: unknown) => {
-    throw new GoogleSheetsApiError(cause instanceof AttemptTimeout ? 'Google is slow to respond. Please try again.' : 'Could not reach Luma. Check your connection.')
-  })
-  let body: { success?: boolean; error?: string; token?: string; expiresAt?: number }
-  try {
-    body = JSON.parse(result.text)
-  } catch {
-    throw new GoogleSheetsApiError("Luma didn't answer properly. Please try again.")
+/**
+ * Exchanges the passcode for a signed session token.
+ *
+ * Google's redirect hop sometimes stalls for 20–30s even though the script answered in under a
+ * second. So if the first attempt is still out after a few seconds, an identical second one goes
+ * out and whichever answers first wins. Both carry the same attemptId, so a wrong passcode is
+ * still counted only once towards the lockout.
+ */
+export async function signIn(passcode: string): Promise<{ token: string; expiresAt: number }> {
+  const status = await getAuthStatus()
+  if (!status.configured) throw new GoogleSheetsApiError('No passcode is set up yet — see Settings → Security.')
+
+  const attemptId = crypto.randomUUID()
+  const init: RequestInit = { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ authLogin: passcode, attemptId }) }
+  type Answer = { success?: boolean; error?: string; token?: string; expiresAt?: number; locked?: boolean }
+
+  const attempt = async (): Promise<Answer> => {
+    // Straight to fetch (no queue, no auth-required side effects): nothing else may delay this.
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 30_000)
+    try {
+      const response = await fetch(getApiUrl() + (getApiUrl().includes('?') ? '&' : '?') + 'action=auth', { ...init, signal: controller.signal })
+      const text = await response.text()
+      const body = JSON.parse(text) as Answer & { authRequired?: boolean }
+      // A stalled hop can make Google replay the URL as a GET, which never reached the check.
+      if (body.authRequired || /Unknown action/.test(body.error ?? '')) throw new Error('replayed')
+      return body
+    } finally {
+      clearTimeout(timer)
+    }
   }
+
+  const body = await new Promise<Answer>((resolve, reject) => {
+    let done = false
+    let failures = 0
+    let launched = 0
+    const launch = () => {
+      launched++
+      attempt().then(
+        (answer) => {
+          if (done) return
+          done = true
+          clearTimeout(hedge)
+          resolve(answer)
+        },
+        () => {
+          if (done) return
+          failures++
+          if (failures >= 2 || launched >= 2) {
+            if (failures >= launched) {
+              done = true
+              clearTimeout(hedge)
+              reject(new GoogleSheetsApiError('Could not reach Luma. Check your connection and try again.'))
+            }
+            return
+          }
+          clearTimeout(hedge)
+          launch()
+        },
+      )
+    }
+    const hedge = setTimeout(() => {
+      if (!done && launched < 2) launch()
+    }, 5_000)
+    launch()
+  })
+
   if (!body.success || !body.token || !body.expiresAt) throw new GoogleSheetsApiError(body.error || "That passcode isn't right.")
   return { token: body.token, expiresAt: body.expiresAt }
 }
@@ -739,4 +798,78 @@ export async function signOutEverywhere(): Promise<void> {
   )
   const body = JSON.parse(result.text) as { success?: boolean; error?: string }
   if (!body.success) throw new GoogleSheetsApiError(body.error || "Couldn't sign out other devices.")
+}
+
+/* Vault (Luma_Vault in Apps Script). Only ciphertext crosses the wire — see lib/vaultCrypto.
+ * Same gate as Drive/AI: a vaultOp POST to an older deployment would otherwise be appended as an
+ * iPhone-Shortcut transaction, so every write first confirms the script knows about the vault. */
+
+export interface VaultStatus {
+  available: boolean
+  ready: boolean
+}
+
+export async function getVaultStatus(): Promise<VaultStatus> {
+  const body = await fetchJson<{ success: boolean; error?: string; vault?: VaultStatus }>('vaultstatus')
+  if (/Unknown action/i.test(body.error ?? '') || !body.vault) return { available: false, ready: false }
+  if (!body.success) throw new GoogleSheetsApiError(body.error || "Couldn't reach your vault.")
+  if (body.vault.available) vaultCapability = Promise.resolve()
+  return body.vault
+}
+
+let vaultCapability: Promise<void> | null = null
+
+function requireVault(): Promise<void> {
+  vaultCapability ??= getVaultStatus()
+    .then((status) => {
+      if (!status.available) throw new GoogleSheetsApiError('The vault needs the latest Apps Script deployment. Deploy it, then reload.')
+    })
+    .catch((err: unknown) => {
+      vaultCapability = null
+      throw err
+    })
+  return vaultCapability
+}
+
+export async function getVault(): Promise<{ meta: VaultMeta | null; items: RawVaultItem[] }> {
+  await requireVault()
+  const body = await fetchJson<{ success: boolean; error?: string; meta?: VaultMeta | null; items?: RawVaultItem[] }>('vault')
+  if (!body.success) throw new GoogleSheetsApiError(body.error || "Couldn't load your vault.")
+  return { meta: body.meta ?? null, items: body.items ?? [] }
+}
+
+/** One vault write. Read back, never retried (a retried create would duplicate the item). */
+async function vaultOp<T = Record<string, unknown>>(payload: Record<string, unknown>): Promise<T> {
+  await requireVault()
+  let result: { status: number; ok: boolean; text: string }
+  try {
+    result = await fetchTextWithin(
+      buildEndpoint('vault'),
+      { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) },
+      60_000,
+      undefined,
+      true,
+    )
+  } catch (cause) {
+    if (cause instanceof AuthRequiredError) throw cause
+    throw new GoogleSheetsApiError(
+      cause instanceof AttemptTimeout ? 'Google is taking too long to confirm. Reload the vault in a moment to check.' : 'Could not reach Google. Check your connection and try again.',
+    )
+  }
+  let body: { success?: boolean; error?: string } & T
+  try {
+    body = JSON.parse(result.text)
+  } catch {
+    throw new GoogleSheetsApiError("Google didn't confirm the change. Reload the vault in a moment to check.")
+  }
+  if (!body.success) throw new GoogleSheetsApiError(body.error || 'The vault could not be updated.')
+  return body
+}
+
+export const vaultApi = {
+  setup: (meta: VaultMeta) => vaultOp<{ meta: VaultMeta }>({ vaultOp: 'setup', meta }),
+  save: (data: string, id?: string) => vaultOp<{ item: RawVaultItem }>({ vaultOp: 'save', data, ...(id ? { id } : {}) }),
+  remove: (id: string) => vaultOp({ vaultOp: 'delete', id }),
+  rekey: (meta: VaultMeta, items: { id: string; data: string }[]) => vaultOp<{ meta: VaultMeta }>({ vaultOp: 'rekey', meta, items }),
+  reset: () => vaultOp({ vaultOp: 'reset', confirm: 'ERASE VAULT' }),
 }

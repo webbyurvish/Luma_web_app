@@ -7,6 +7,7 @@ import { Udhaar } from '@/pages/Udhaar'
 import { Tasks } from '@/pages/Tasks'
 import { Documents } from '@/pages/Documents'
 import { Notes } from '@/pages/Notes'
+import { Vault } from '@/pages/Vault'
 import { Assistant } from '@/pages/Assistant'
 import { Settings } from '@/pages/Settings'
 import { NotFound } from '@/pages/NotFound'
@@ -22,6 +23,7 @@ function App() {
         <Route path="/tasks" element={<Tasks />} />
         <Route path="/documents" element={<Documents />} />
         <Route path="/notes" element={<Notes />} />
+        <Route path="/vault" element={<Vault />} />
         <Route path="/assistant" element={<Assistant />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<NotFound />} />

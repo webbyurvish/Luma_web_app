@@ -17,16 +17,21 @@
  *       Shortcut key, and prints the key in the execution log.
  *    3. Deploy a new version, open the app and sign in.
  *    4. Add  "key": "<that key>"  to the iPhone Shortcut's JSON.
- *    5. Script Properties → add LUMA_AUTH_ENFORCE = true. From now on every
- *       request without a valid token/key is refused.
+ *    5. That's it: once LUMA_PASSCODE is set, every request without a valid
+ *       token/key is refused. (Emergency only: LUMA_AUTH_ENFORCE = false
+ *       switches the check off again.)
+ *
+ *  Sessions last at most 2 hours, on every device, then the passcode is
+ *  needed again.
  *
  *  Changing LUMA_PASSCODE doesn't end existing sessions; use "Sign out
  *  everywhere" in the app (or run lumaSignOutEverywhere()) for that.
  * ============================================================================
  */
 
-var LUMA_AUTH_SESSION_REMEMBER_MS = 30 * 24 * 60 * 60 * 1000;
-var LUMA_AUTH_SESSION_SHORT_MS = 12 * 60 * 60 * 1000;
+/** Hard limit for every session. Tokens promising more (older 30-day ones) are refused. */
+var LUMA_AUTH_SESSION_MS = 2 * 60 * 60 * 1000;
+var LUMA_AUTH_CLOCK_SLACK_MS = 5 * 60 * 1000;
 var LUMA_AUTH_MAX_FAILURES = 10;
 var LUMA_AUTH_LOCKOUT_SECONDS = 15 * 60;
 
@@ -38,8 +43,9 @@ function lumaAuthConfigured_() {
   return String(lumaAuthProps_().getProperty('LUMA_PASSCODE') || '').length >= 8;
 }
 
+/** Fail-closed: a configured passcode protects everything unless explicitly switched off. */
 function lumaAuthEnforced_() {
-  return String(lumaAuthProps_().getProperty('LUMA_AUTH_ENFORCE') || '').trim().toLowerCase() === 'true' && lumaAuthConfigured_();
+  return lumaAuthConfigured_() && String(lumaAuthProps_().getProperty('LUMA_AUTH_ENFORCE') || '').trim().toLowerCase() !== 'false';
 }
 
 function lumaAuthSecret_() {
@@ -79,8 +85,8 @@ function lumaSafeEquals_(a, b) {
   return diff === 0;
 }
 
-function lumaIssueToken_(remember) {
-  var expiresAt = Date.now() + (remember ? LUMA_AUTH_SESSION_REMEMBER_MS : LUMA_AUTH_SESSION_SHORT_MS);
+function lumaIssueToken_() {
+  var expiresAt = Date.now() + LUMA_AUTH_SESSION_MS;
   var body = lumaB64Url_(JSON.stringify({ exp: expiresAt, v: lumaAuthVersion_() }));
   return { token: body + '.' + lumaHmac_(body), expiresAt: expiresAt };
 }
@@ -91,7 +97,9 @@ function lumaTokenValid_(token) {
   if (!lumaSafeEquals_(lumaHmac_(parts[0]), parts[1])) return false;
   try {
     var payload = JSON.parse(lumaFromB64Url_(parts[0]));
-    return Number(payload.exp) > Date.now() && Number(payload.v) === lumaAuthVersion_();
+    var exp = Number(payload.exp);
+    var now = Date.now();
+    return exp > now && exp - now <= LUMA_AUTH_SESSION_MS + LUMA_AUTH_CLOCK_SLACK_MS && Number(payload.v) === lumaAuthVersion_();
   } catch (err) {
     return false;
   }
@@ -101,10 +109,14 @@ function lumaTokenValid_(token) {
 function lumaShortcutKeyAllowed_(e, payload) {
   var key = lumaAuthProps_().getProperty('LUMA_SHORTCUT_KEY');
   if (!key || !lumaSafeEquals_(payload.key, key)) return false;
-  if (payload.operation || payload.aiTask || payload.driveOp || payload.authLogin || payload.authLogoutAll) return false;
+  if (payload.operation || payload.aiTask || payload.driveOp || payload.vaultOp || payload.authLogin || payload.authLogoutAll) return false;
   if (String(payload.recordType || '').toLowerCase() === 'udhaar') return true;
-  var action = String((e.parameter && e.parameter.action) || payload.action || '').trim().toLowerCase();
-  return !action || action === 'transaction';
+  // Both places an action can hide (query and body) must say "add a transaction".
+  var addOnly = function (value) {
+    var action = String(value || '').trim().toLowerCase();
+    return !action || action === 'transaction';
+  };
+  return addOnly(e.parameter && e.parameter.action) && addOnly(payload.action);
 }
 
 function lumaAuthDenied_() {
@@ -117,7 +129,7 @@ function lumaAuthDenied_() {
 function lumaAuthGateGet_(e) {
   var action = String((e && e.parameter && e.parameter.action) || '').trim().toLowerCase();
   if (action === 'authstatus') {
-    return lumaJson_({ success: true, auth: { configured: lumaAuthConfigured_(), enforced: lumaAuthEnforced_() } });
+    return lumaJson_({ success: true, auth: { configured: lumaAuthConfigured_(), enforced: lumaAuthEnforced_(), sessionMinutes: LUMA_AUTH_SESSION_MS / 60000 } });
   }
   if (!lumaAuthEnforced_() || action === 'health' || action === '') return null;
   return lumaTokenValid_(e.parameter.t) ? null : lumaAuthDenied_();
@@ -152,14 +164,18 @@ function lumaLogin_(payload) {
 
   var ok = lumaSafeEquals_(lumaHmac_(String(payload.authLogin || '')), lumaHmac_(lumaAuthProps_().getProperty('LUMA_PASSCODE')));
   if (!ok) {
-    cache.put('luma_auth_failures', String(failures + 1), LUMA_AUTH_LOCKOUT_SECONDS);
+    // The app may send one attempt twice when Google's redirect stalls; count it once.
+    var attemptId = String(payload.attemptId || '').replace(/[^A-Za-z0-9-]/g, '').slice(0, 40);
+    var counted = attemptId && cache.get('luma_auth_attempt_' + attemptId);
+    if (attemptId && !counted) cache.put('luma_auth_attempt_' + attemptId, '1', LUMA_AUTH_LOCKOUT_SECONDS);
+    if (!counted) cache.put('luma_auth_failures', String(failures + 1), LUMA_AUTH_LOCKOUT_SECONDS);
     Utilities.sleep(600); // slows guessing a little more
     var left = LUMA_AUTH_MAX_FAILURES - failures - 1;
     return { success: false, error: left > 0 ? "That passcode isn't right." : 'Too many wrong attempts. Try again in 15 minutes.', locked: left <= 0 };
   }
 
   cache.remove('luma_auth_failures');
-  var issued = lumaIssueToken_(payload.remember !== false);
+  var issued = lumaIssueToken_();
   return { success: true, token: issued.token, expiresAt: issued.expiresAt };
 }
 
@@ -175,7 +191,7 @@ function setupLumaAuth() {
     props.setProperty('LUMA_SHORTCUT_KEY', key);
   }
   Logger.log('Passcode set: ' + (lumaAuthConfigured_() ? 'yes' : 'NO — add LUMA_PASSCODE (8+ characters) in Script Properties'));
-  Logger.log('Enforced: ' + (lumaAuthEnforced_() ? 'yes' : 'not yet — add LUMA_AUTH_ENFORCE = true when the app and Shortcut are ready'));
+  Logger.log('Enforced: ' + (lumaAuthEnforced_() ? 'yes' : 'NO — add LUMA_PASSCODE (and remove LUMA_AUTH_ENFORCE = false if present)'));
   Logger.log('iPhone Shortcut key (add "key": "<this>" to the Shortcut JSON): ' + key);
 }
 

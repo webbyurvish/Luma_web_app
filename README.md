@@ -63,11 +63,20 @@ npm run dev
 
 ## Security notes
 
-- **Passcode gate** (`apps-script/Luma_Auth.js`): with `LUMA_PASSCODE` and `LUMA_AUTH_ENFORCE=true`
-  set in Script Properties, every request needs a signed, expiring session token from signing in;
-  the web app shows a sign-in screen. 10 wrong attempts lock sign-in for 15 minutes. Settings →
-  Security has sign-out and "sign out everywhere". Setup order: set the passcode → run
-  `setupLumaAuth()` → deploy and sign in → add the printed key to the iPhone Shortcut → enforce.
+- **Passcode gate** (`apps-script/Luma_Auth.js`): fail-closed — as soon as `LUMA_PASSCODE` is set in
+  Script Properties, every request needs a signed session token from signing in
+  (`LUMA_AUTH_ENFORCE=false` is an emergency off switch only). Sessions last **2 hours** on every
+  device; the app then signs out by itself and wipes its cached copy of the data. 10 wrong attempts
+  lock sign-in for 15 minutes. Settings → Security has sign-out and "sign out everywhere".
+  Setup order: set the passcode → run `setupLumaAuth()` → add the printed key to the iPhone
+  Shortcut → deploy.
+- **Vault** (`apps-script/Luma_Vault.js`, `web/src/lib/vaultCrypto.ts`): passwords, cards, bank
+  details and IDs are encrypted in the browser (AES-256-GCM, key from a master password via
+  PBKDF2-SHA256, 600k iterations). The script and the hidden `Vault` sheet only hold ciphertext;
+  the master password can't be recovered (forgetting it means erasing the vault). The vault locks
+  after 5 idle minutes and whenever the session ends, and is never sent to the AI assistant.
+- The Vercel deployment sends security headers (`web/vercel.json`): a strict Content Security
+  Policy, no framing, no referrer, no search indexing.
 - The **iPhone Shortcut** sends `"key": "<LUMA_SHORTCUT_KEY>"` in its JSON; that key can only add a
   transaction or an udhaar entry.
 - `.env` (the Apps Script web app URL) is git-ignored. It still ends up in the built JavaScript, so

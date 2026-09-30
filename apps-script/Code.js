@@ -18,6 +18,10 @@ function doGet(e) {
   var gate = lumaAuthGateGet_(e);
   if (gate) return gate;
 
+  // Encrypted vault (Luma_Vault). Null for every other action.
+  var vaultGet = tryHandleLumaVaultGet_(e);
+  if (vaultGet) return vaultGet;
+
   // Luma Documents in Google Drive (Luma_Drive). Null for every other action.
   var driveGet = tryHandleLumaDriveGet_(e);
   if (driveGet) return driveGet;
@@ -235,6 +239,10 @@ function doPost(e) {
   // Passcode gate (Luma_Auth): handles sign-in, refuses unauthenticated writes once enforced.
   var gate = lumaAuthGatePost_(e);
   if (gate) return gate;
+
+  // Encrypted vault writes carry a "vaultOp" field; everything else gets null.
+  var vault = tryHandleLumaVault_(e);
+  if (vault) return vault;
 
   // Document operations (Luma_Drive) carry a "driveOp" field; everything else gets null.
   var drive = tryHandleLumaDrive_(e);

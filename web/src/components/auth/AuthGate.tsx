@@ -1,61 +1,157 @@
-import { type FormEvent, type ReactNode, useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
-import { Eye, EyeOff, Lock } from 'lucide-react'
+import { type FormEvent, type ReactNode, useEffect, useRef, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { Clock, Eye, EyeOff, Lock } from 'lucide-react'
 import { LogoMark } from '@/components/layout/Logo'
 import { Button } from '@/components/ui/Button'
-import { clearAuthSession, getAuthToken, onAuthRequired, passcodeKnownRequired, rememberPasscodeRequired, setAuthSession } from '@/lib/auth'
+import { clearAuthSession, getAuthToken, getSessionExpiry, onAuthRequired, rememberPasscodeRequired, setAuthSession } from '@/lib/auth'
 import { getAuthStatus, signIn } from '@/services/googleSheetsApi'
 import { cn } from '@/lib/cn'
 
 type GateState = 'signin' | 'ready'
 
+/** The countdown pill appears this long before the session ends. */
+const WARN_BEFORE_MS = 5 * 60 * 1000
+
 /**
- * Shows the app only to a signed-in user once a passcode is set up in Apps Script — without
- * ever blocking on Google to decide:
- * - Has a session → the app opens at once; if the script refuses it, we drop to sign-in.
- * - A passcode was required last time → sign-in straight away.
- * - Otherwise the app opens and checks in the background; if a passcode is (now) required,
- *   the first refused request — or the background check — switches to sign-in.
+ * Fail-closed: without a live session nothing but the sign-in screen renders — on any device.
+ * A session lasts 2 hours; when it ends (timer, another tab signing out, or the script
+ * refusing a request) every cached copy of the data is wiped and the passcode is asked again.
  */
 export function AuthGate({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<GateState>(() => (!getAuthToken() && passcodeKnownRequired() ? 'signin' : 'ready'))
-  const [expired, setExpired] = useState(false)
+  const [state, setState] = useState<GateState>(() => (getAuthToken() ? 'ready' : 'signin'))
+  const [reason, setReason] = useState<'expired' | 'refused' | null>(null)
+  // Once the app has rendered in this page, stale in-memory data exists: a later sign-in reloads.
+  const appShown = useRef(state === 'ready')
+  useEffect(() => {
+    if (state === 'ready') appShown.current = true
+  }, [state])
 
   useEffect(
     () =>
       onAuthRequired(() => {
-        rememberPasscodeRequired(true)
-        setExpired(true)
+        setReason('refused')
         setState('signin')
       }),
     [],
   )
 
-  // Background check (read-only). Keeps the remembered answer current.
+  // Ends the session on time — also after sleep/background, when timers are late — and follows other tabs.
   useEffect(() => {
+    if (state !== 'ready') return
+    const check = () => {
+      if (getAuthToken()) return
+      clearAuthSession()
+      setReason('expired')
+      setState('signin')
+    }
+    const expiry = getSessionExpiry()
+    const timer = expiry ? window.setTimeout(check, Math.max(0, expiry - Date.now()) + 50) : undefined
+    const interval = window.setInterval(check, 15_000)
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === null || e.key === 'luma:auth:v1') check()
+    }
+    document.addEventListener('visibilitychange', check)
+    window.addEventListener('focus', check)
+    window.addEventListener('storage', onStorage)
+    check()
+    return () => {
+      window.clearTimeout(timer)
+      window.clearInterval(interval)
+      document.removeEventListener('visibilitychange', check)
+      window.removeEventListener('focus', check)
+      window.removeEventListener('storage', onStorage)
+    }
+  }, [state])
+
+  // Signed out: find out whether a passcode is needed at all (a fresh setup has none yet).
+  useEffect(() => {
+    if (state !== 'signin') return
     let cancelled = false
     getAuthStatus()
       .then((status) => {
         if (cancelled) return
         rememberPasscodeRequired(status.configured)
-        if (status.configured && !getAuthToken()) setState('signin')
+        if (!status.configured) setState('ready')
       })
       .catch(() => {})
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [state])
 
-  if (state === 'ready') return <>{children}</>
-  return <SignInScreen expired={expired} />
+  const onSignedIn = () => {
+    if (appShown.current) {
+      window.location.reload()
+      return
+    }
+    setReason(null)
+    setState('ready')
+  }
+
+  if (state === 'ready')
+    return (
+      <>
+        {children}
+        <SessionCountdown />
+      </>
+    )
+  return <SignInScreen reason={reason} onSignedIn={onSignedIn} />
 }
 
-function SignInScreen({ expired }: { expired: boolean }) {
+/** A small pill in the last minutes of the session, so the sign-out never comes as a surprise. */
+function SessionCountdown() {
+  const [left, setLeft] = useState<number | null>(null)
+
+  useEffect(() => {
+    const tick = () => {
+      const expiry = getSessionExpiry()
+      setLeft(expiry ? expiry - Date.now() : null)
+    }
+    tick()
+    const id = window.setInterval(tick, 1000)
+    return () => window.clearInterval(id)
+  }, [])
+
+  const show = left !== null && left > 0 && left <= WARN_BEFORE_MS
+  const minutes = Math.floor((left ?? 0) / 60000)
+  const seconds = Math.floor(((left ?? 0) % 60000) / 1000)
+  return (
+    <AnimatePresence>
+      {show && (
+        <motion.div
+          role="status"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 12 }}
+          className="fixed bottom-4 left-1/2 z-[70] flex -translate-x-1/2 items-center gap-2 rounded-full border border-warning/30 bg-card px-3.5 py-2 text-[11.5px] text-ink shadow-hover"
+        >
+          <Clock size={13} className="text-warning" />
+          Session ends in{' '}
+          <span className="font-mono-figure font-semibold">
+            {minutes}:{String(seconds).padStart(2, '0')}
+          </span>{' '}
+          — save what you're working on.
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+}
+
+function SignInScreen({ reason, onSignedIn }: { reason: 'expired' | 'refused' | null; onSignedIn: () => void }) {
   const [passcode, setPasscode] = useState('')
   const [show, setShow] = useState(false)
-  const [remember, setRemember] = useState(true)
   const [busy, setBusy] = useState(false)
+  const [slow, setSlow] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!busy) return
+    const id = window.setTimeout(() => setSlow(true), 4000)
+    return () => {
+      window.clearTimeout(id)
+      setSlow(false)
+    }
+  }, [busy])
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
@@ -63,16 +159,23 @@ function SignInScreen({ expired }: { expired: boolean }) {
     setBusy(true)
     setError(null)
     try {
-      const { token, expiresAt } = await signIn(passcode, remember)
-      // Start clean: drop anything cached by a previous session, then load everything with the new one.
+      const { token, expiresAt } = await signIn(passcode)
+      // Start clean: nothing from an earlier session survives, then load with the new one.
       clearAuthSession()
       setAuthSession(token, expiresAt)
-      window.location.reload()
+      setPasscode('')
+      onSignedIn()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't sign in.")
       setBusy(false)
     }
   }
+
+  const title = reason === 'expired' ? 'Session ended' : reason === 'refused' ? 'Please sign in again' : 'Welcome back'
+  const subtitle =
+    reason === 'expired'
+      ? 'For your safety Luma signs out after 2 hours. Enter your passcode to continue.'
+      : 'Enter your passcode to open your ledger.'
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-bg px-4 py-10">
@@ -84,10 +187,8 @@ function SignInScreen({ expired }: { expired: boolean }) {
         className="w-full max-w-sm rounded-hero border border-border bg-card px-7 py-8 shadow-hover"
       >
         <LogoMark size={40} />
-        <h1 className="mt-5 font-display text-2xl italic text-ink">{expired ? 'Please sign in again' : 'Welcome back'}</h1>
-        <p className="mt-1.5 text-xs leading-relaxed text-ink-soft">
-          {expired ? 'Your session ended. Enter your passcode to open your ledger.' : 'Enter your passcode to open your ledger.'}
-        </p>
+        <h1 className="mt-5 font-display text-2xl italic text-ink">{title}</h1>
+        <p className="mt-1.5 text-xs leading-relaxed text-ink-soft">{subtitle}</p>
 
         <label htmlFor="passcode" className="mt-6 mb-1.5 block text-xs font-medium text-ink-soft">
           Passcode
@@ -126,18 +227,14 @@ function SignInScreen({ expired }: { expired: boolean }) {
           </p>
         )}
 
-        <label className="mt-4 flex cursor-pointer items-center gap-2 text-xs text-ink-soft">
-          <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} className="h-3.5 w-3.5 accent-rust" />
-          Keep me signed in on this device for 30 days
-        </label>
-
-        <Button type="submit" size="lg" className="mt-6 w-full" loading={busy} loadingText="Checking…" disabled={!passcode}>
+        <Button type="submit" size="lg" className="mt-6 w-full" loading={busy} loadingText={slow ? 'Google is slow, still checking…' : 'Checking…'} disabled={!passcode}>
           Sign in
         </Button>
 
         <p className="mt-6 flex items-start gap-1.5 text-[10.5px] leading-relaxed text-ink-muted">
           <Lock size={11} className="mt-0.5 shrink-0" />
-          Your passcode is checked by your own Google Apps Script and is never stored in this browser.
+          Checked by your own Google Apps Script and never stored. You stay signed in for 2 hours on this device, then Luma locks
+          itself and clears its copy of your data.
         </p>
       </motion.form>
     </div>

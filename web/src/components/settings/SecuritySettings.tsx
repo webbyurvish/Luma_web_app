@@ -5,16 +5,15 @@ import { Button } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { useToast } from '@/context/ToastContext'
-import { clearAuthSession, getAuthToken } from '@/lib/auth'
+import { clearAuthSession, getAuthToken, getSessionExpiry } from '@/lib/auth'
 import { getAuthStatus, signOutEverywhere, type AuthStatus } from '@/services/googleSheetsApi'
 import { getErrorMessage } from '@/lib/errors'
 
 const STEPS = [
   { title: 'Choose a passcode', body: 'Apps Script editor → Project Settings → Script Properties → add LUMA_PASSCODE (8+ characters).' },
   { title: 'Create the keys', body: 'Run setupLumaAuth() once. Its log shows your iPhone Shortcut key.' },
-  { title: 'Deploy and sign in', body: 'Deploy a new version, reload Luma and sign in with the passcode.' },
   { title: 'Update the iPhone Shortcut', body: 'Add a "key" field with that value to the JSON the Shortcut sends.' },
-  { title: 'Switch protection on', body: 'Add Script Property LUMA_AUTH_ENFORCE = true. From then on, nobody gets in without the passcode.' },
+  { title: 'Deploy a new version', body: 'Protection switches on by itself once the passcode is set. If LUMA_AUTH_ENFORCE = false is in Script Properties, delete it.' },
 ]
 
 export function SecuritySettings() {
@@ -24,6 +23,7 @@ export function SecuritySettings() {
   const [confirmAll, setConfirmAll] = useState(false)
   const [busy, setBusy] = useState(false)
   const signedIn = !!getAuthToken()
+  const sessionEnds = getSessionExpiry()
 
   useEffect(() => {
     getAuthStatus()
@@ -69,6 +69,12 @@ export function SecuritySettings() {
               <>
                 <p className="font-semibold">Protected with your passcode</p>
                 <p className="text-ink-soft">Every request to your data needs a signed-in session. Your iPhone Shortcut can only add entries.</p>
+                {sessionEnds && (
+                  <p className="mt-1 text-ink-soft">
+                    Sessions last 2 hours. This one ends at{' '}
+                    <span className="font-semibold text-ink">{new Date(sessionEnds).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>.
+                  </p>
+                )}
               </>
             ) : (
               <>
@@ -85,7 +91,7 @@ export function SecuritySettings() {
       {status && !status.enforced && (
         <ol className="mt-5 space-y-3">
           {STEPS.map((step, i) => {
-            const done = (i === 0 && status.configured) || (i === 2 && signedIn)
+            const done = i === 0 && status.configured
             return (
               <li key={step.title} className="flex gap-3">
                 <span

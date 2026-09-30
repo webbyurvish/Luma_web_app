@@ -12,6 +12,7 @@ export const pageMeta: Record<string, PageMeta> = {
   '/tasks': { title: 'Tasks', subtitle: 'Stay on top of what matters today' },
   '/documents': { title: 'Documents', subtitle: 'Keep every important file organized' },
   '/notes': { title: 'Notes', subtitle: 'Everything you want to remember' },
+  '/vault': { title: 'Vault', subtitle: 'Passwords, cards, bank details and IDs — encrypted on your device' },
   '/settings': { title: 'Settings', subtitle: 'Manage your profile and preferences' },
 }
 
