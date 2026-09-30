@@ -12,6 +12,7 @@ import type {
   SIP,
   SIPFrequency,
 } from '@/types'
+import { str } from './sheetValues'
 
 const ACCOUNT_TYPE_MAP: Record<string, AccountType> = {
   bank: 'bank',
@@ -25,7 +26,7 @@ const ACCOUNT_TYPE_MAP: Record<string, AccountType> = {
 
 function normalizeAccountType(raw: string | null): AccountType {
   if (!raw) return 'other'
-  return ACCOUNT_TYPE_MAP[raw.trim().toLowerCase()] ?? 'other'
+  return ACCOUNT_TYPE_MAP[str(raw).trim().toLowerCase()] ?? 'other'
 }
 
 const INVESTMENT_TYPE_MAP: Record<string, InvestmentType> = {
@@ -40,7 +41,7 @@ const INVESTMENT_TYPE_MAP: Record<string, InvestmentType> = {
 
 function normalizeInvestmentType(raw: string | null): InvestmentType {
   if (!raw) return 'other'
-  return INVESTMENT_TYPE_MAP[raw.trim().toLowerCase()] ?? 'other'
+  return INVESTMENT_TYPE_MAP[str(raw).trim().toLowerCase()] ?? 'other'
 }
 
 const SIP_FREQUENCY_MAP: Record<string, SIPFrequency> = {
@@ -50,7 +51,7 @@ const SIP_FREQUENCY_MAP: Record<string, SIPFrequency> = {
 
 function normalizeSipFrequency(raw: string | null): SIPFrequency {
   if (!raw) return 'monthly'
-  return SIP_FREQUENCY_MAP[raw.trim().toLowerCase()] ?? 'monthly'
+  return SIP_FREQUENCY_MAP[str(raw).trim().toLowerCase()] ?? 'monthly'
 }
 
 const LIABILITY_TYPE_MAP: Record<string, LiabilityType> = {
@@ -63,7 +64,7 @@ const LIABILITY_TYPE_MAP: Record<string, LiabilityType> = {
 
 function normalizeLiabilityType(raw: string | null): LiabilityType {
   if (!raw) return 'other'
-  return LIABILITY_TYPE_MAP[raw.trim().toLowerCase()] ?? 'other'
+  return LIABILITY_TYPE_MAP[str(raw).trim().toLowerCase()] ?? 'other'
 }
 
 /** Reverse of the maps above — the Title Case labels the sheet's own dropdowns use (per ?action=lists). */
@@ -100,14 +101,14 @@ export function normalizeAccount(raw: RawAccount): FinancialAccount {
   const now = new Date().toISOString()
   return {
     id: raw.accountId,
-    name: raw.accountName?.trim() || raw.institution?.trim() || 'Unnamed account',
+    name: str(raw.accountName).trim() || str(raw.institution).trim() || 'Unnamed account',
     type: normalizeAccountType(raw.accountType),
-    institution: raw.institution?.trim() || undefined,
-    accountNumberLast4: raw.accountNumberLast4?.trim() || undefined,
+    institution: str(raw.institution).trim() || undefined,
+    accountNumberLast4: str(raw.accountNumberLast4).trim() || undefined,
     balance: raw.currentBalance ?? raw.openingBalance ?? 0,
-    currency: raw.currency?.trim() || 'INR',
+    currency: str(raw.currency).trim() || 'INR',
     isActive: raw.isActive ?? true,
-    notes: raw.notes?.trim() || undefined,
+    notes: str(raw.notes).trim() || undefined,
     createdAt: raw.createdAt || now,
     updatedAt: raw.updatedAt || raw.createdAt || now,
   }
@@ -117,16 +118,16 @@ export function normalizeInvestment(raw: RawInvestment): Investment {
   const now = new Date().toISOString()
   return {
     id: raw.investmentId,
-    name: raw.investmentName?.trim() || raw.platform?.trim() || 'Unnamed investment',
+    name: str(raw.investmentName).trim() || str(raw.platform).trim() || 'Unnamed investment',
     type: normalizeInvestmentType(raw.investmentType),
-    platformAccountId: raw.accountId?.trim() || undefined,
+    platformAccountId: str(raw.accountId).trim() || undefined,
     investedAmount: raw.investedAmount ?? 0,
     currentValue: raw.currentValue ?? raw.investedAmount ?? 0,
     quantity: raw.quantity ?? undefined,
     averagePrice: raw.averagePrice ?? undefined,
     currentPrice: raw.currentPrice ?? undefined,
     purchaseDate: raw.purchaseDate ?? undefined,
-    notes: raw.notes?.trim() || undefined,
+    notes: str(raw.notes).trim() || undefined,
     createdAt: raw.createdAt || now,
     updatedAt: raw.updatedAt || raw.createdAt || now,
   }
@@ -136,17 +137,17 @@ export function normalizeSip(raw: RawSip): SIP {
   const now = new Date().toISOString()
   return {
     id: raw.sipId,
-    name: raw.sipName?.trim() || raw.fundName?.trim() || 'Unnamed SIP',
-    fundName: raw.fundName?.trim() || raw.sipName?.trim() || 'Unnamed fund',
-    platformAccountId: raw.accountId?.trim() || undefined,
+    name: str(raw.sipName).trim() || str(raw.fundName).trim() || 'Unnamed SIP',
+    fundName: str(raw.fundName).trim() || str(raw.sipName).trim() || 'Unnamed fund',
+    platformAccountId: str(raw.accountId).trim() || undefined,
     amount: raw.amount ?? 0,
     frequency: normalizeSipFrequency(raw.frequency),
     debitDay: raw.debitDay ?? undefined,
     startDate: raw.startDate ?? undefined,
     endDate: raw.endDate ?? undefined,
-    category: raw.category?.trim() || undefined,
+    category: str(raw.category).trim() || undefined,
     isActive: raw.isActive ?? true,
-    notes: raw.notes?.trim() || undefined,
+    notes: str(raw.notes).trim() || undefined,
     createdAt: raw.createdAt || now,
     updatedAt: raw.updatedAt || raw.createdAt || now,
   }
@@ -156,10 +157,10 @@ export function normalizeLiability(raw: RawLiability): Liability {
   const now = new Date().toISOString()
   return {
     id: raw.liabilityId,
-    name: raw.name?.trim() || raw.institution?.trim() || 'Unnamed liability',
+    name: str(raw.name).trim() || str(raw.institution).trim() || 'Unnamed liability',
     type: normalizeLiabilityType(raw.type),
     amount: raw.outstandingAmount ?? raw.originalAmount ?? 0,
-    notes: raw.notes?.trim() || undefined,
+    notes: str(raw.notes).trim() || undefined,
     createdAt: raw.createdAt || now,
     updatedAt: raw.updatedAt || raw.createdAt || now,
   }

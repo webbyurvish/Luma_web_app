@@ -1,5 +1,6 @@
 import { formatTime, normalizeMonthLabel, toIstDateKey } from './formatDate'
 import type { CategoryId, RawTransaction, Transaction, TransactionType } from '@/types'
+import { str } from './sheetValues'
 
 const KNOWN_CATEGORIES: Record<string, CategoryId> = {
   food: 'food',
@@ -18,11 +19,11 @@ const KNOWN_CATEGORIES: Record<string, CategoryId> = {
 
 /** Maps a free-text sheet category to a known icon/color bucket. Unrecognized text safely becomes 'other'. */
 function normalizeCategoryId(raw: string): CategoryId {
-  return KNOWN_CATEGORIES[raw.trim().toLowerCase()] ?? 'other'
+  return KNOWN_CATEGORIES[str(raw).trim().toLowerCase()] ?? 'other'
 }
 
 function normalizeType(raw: string): TransactionType | null {
-  const value = raw.trim().toLowerCase()
+  const value = str(raw).trim().toLowerCase()
   if (value === 'expense') return 'expense'
   if (value === 'income') return 'income'
   return null
@@ -30,11 +31,11 @@ function normalizeType(raw: string): TransactionType | null {
 
 /** Builds the row's display line: prefer merchant, then subcategory, then category, else a clear fallback. */
 function resolveDescription(row: RawTransaction): string {
-  const merchant = row.merchant?.trim()
+  const merchant = str(row.merchant).trim()
   if (merchant) return merchant
-  const subcategory = row.subcategory?.trim()
+  const subcategory = str(row.subcategory).trim()
   if (subcategory) return subcategory
-  const category = row.category?.trim()
+  const category = str(row.category).trim()
   if (category) return category
   return 'Unknown'
 }
@@ -73,7 +74,7 @@ export function normalizeTransactions(rows: RawTransaction[], onSkip?: (row: Raw
       return
     }
 
-    const category = row.category?.trim() || 'Other'
+    const category = str(row.category).trim() || 'Other'
 
     result.push({
       id: `sheet-${toIstDateKey(timestamp)}-${index}-${amount}`,
@@ -82,15 +83,15 @@ export function normalizeTransactions(rows: RawTransaction[], onSkip?: (row: Raw
       type,
       date: toIstDateKey(timestamp),
       time: formatTime(timestamp),
-      payment: row.paymentMethod?.trim() || 'Other',
+      payment: str(row.paymentMethod).trim() || 'Other',
       amount,
       status: 'successful',
       rawCategory: category,
-      rawSubcategory: row.subcategory?.trim() || undefined,
-      merchant: row.merchant?.trim() || undefined,
-      note: row.note?.trim() || undefined,
+      rawSubcategory: str(row.subcategory).trim() || undefined,
+      merchant: str(row.merchant).trim() || undefined,
+      note: str(row.note).trim() || undefined,
       month: normalizeMonthLabel(row.month, timestamp),
-      sourceId: row.id?.trim() || undefined,
+      sourceId: str(row.id).trim() || undefined,
     })
   })
 

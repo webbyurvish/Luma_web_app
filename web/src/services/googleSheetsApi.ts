@@ -18,6 +18,7 @@ import type {
   TransactionsApiResponse,
 } from '@/types'
 import { getAuthToken, reportAuthRequired } from '@/lib/auth'
+import { normalizeSheetRows } from '@/lib/sheetValues'
 
 export class GoogleSheetsApiError extends Error {
   constructor(message: string) {
@@ -195,7 +196,7 @@ export async function getTransactions(signal?: AbortSignal): Promise<RawTransact
   if (!Array.isArray(payload.transactions)) {
     throw new GoogleSheetsApiError('Google Sheets API response was missing the transactions list.')
   }
-  return payload.transactions
+  return normalizeSheetRows(payload.transactions)
 }
 
 /** Lightweight reachability check against ?action=health — not used for the main data flow. */
@@ -212,7 +213,7 @@ async function fetchList<T>(action: string, signal?: AbortSignal): Promise<T[]> 
   if (!Array.isArray(payload.data)) {
     throw new GoogleSheetsApiError(`Google Sheets API response was missing the ${action} list.`)
   }
-  return payload.data
+  return normalizeSheetRows(payload.data)
 }
 
 /**
@@ -358,6 +359,11 @@ export async function getBootstrap(signal?: AbortSignal): Promise<NonNullable<Bo
   if (import.meta.env.DEV && payload.errors && Object.keys(payload.errors).length > 0) {
     console.warn('[getBootstrap] Some collections failed server-side:', payload.errors)
   }
+  // Same cleanup as the per-collection routes (dates stored as numbers, etc.).
+  const data = payload.data as Record<string, unknown>
+  Object.keys(data).forEach((key) => {
+    if (Array.isArray(data[key])) data[key] = normalizeSheetRows(data[key] as unknown[])
+  })
   return payload.data
 }
 

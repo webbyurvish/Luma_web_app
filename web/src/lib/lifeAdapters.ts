@@ -12,8 +12,9 @@ import {
   type UdhaarStatus,
   type UdhaarSummary,
 } from '@/types'
+import { str } from './sheetValues'
 
-const dateKeyOrUndefined = (raw: string | null | undefined) => (raw && raw.trim() ? toIstDateKey(raw) : undefined)
+const dateKeyOrUndefined = (raw: string | null | undefined) => (raw && str(raw).trim() ? toIstDateKey(raw) : undefined)
 const textOrUndefined = (raw: string | number | null | undefined) => {
   const value = raw === null || raw === undefined ? '' : String(raw).trim()
   return value || undefined
@@ -25,10 +26,10 @@ const textOrUndefined = (raw: string | number | null | undefined) => {
 export function normalizeUdhaarRows(rows: RawUdhaar[]): UdhaarEntry[] {
   const entries: UdhaarEntry[] = []
   rows.forEach((row) => {
-    const id = row.udhaarId?.trim()
-    const person = row.person?.trim()
+    const id = str(row.udhaarId).trim()
+    const person = str(row.person).trim()
     const amount = Number(row.amount)
-    const typeText = row.type?.trim().toLowerCase()
+    const typeText = str(row.type).trim().toLowerCase()
     if (!id || !person || !Number.isFinite(amount) || amount <= 0) return
     if (typeText !== 'given' && typeText !== 'repayment') return
     entries.push({
@@ -126,15 +127,15 @@ const PRIORITIES: Record<string, TaskPriority> = { low: 'low', medium: 'medium',
 const STATUSES: TaskStatus[] = ['Todo', 'In Progress', 'Completed', 'Cancelled']
 
 export function normalizeTask(raw: RawTask): Task {
-  const statusText = raw.status?.trim() ?? ''
+  const statusText = str(raw.status).trim() ?? ''
   const status = STATUSES.find((s) => s.toLowerCase() === statusText.toLowerCase()) ?? 'Todo'
   const completedFlag = raw.isCompleted === true || String(raw.isCompleted).toLowerCase() === 'true'
   return {
     id: raw.taskId,
-    title: raw.title?.trim() || 'Untitled task',
+    title: str(raw.title).trim() || 'Untitled task',
     description: textOrUndefined(raw.description),
     dueDate: dateKeyOrUndefined(raw.dueDate),
-    priority: PRIORITIES[raw.priority?.trim().toLowerCase() ?? ''] ?? 'medium',
+    priority: PRIORITIES[str(raw.priority).trim().toLowerCase() ?? ''] ?? 'medium',
     category: textOrUndefined(raw.category),
     status,
     completed: completedFlag || status === 'Completed',

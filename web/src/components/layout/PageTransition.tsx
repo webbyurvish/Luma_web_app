@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useLocation, useOutlet } from 'react-router-dom'
 import { pageTransition } from '@/lib/motion'
+import { PageErrorBoundary } from './PageErrorBoundary'
 
 export function PageTransition() {
   const location = useLocation()
@@ -15,7 +16,8 @@ export function PageTransition() {
         animate="animate"
         exit="exit"
       >
-        {outlet}
+        {/* keyed by route, so moving to another page clears a previous page error */}
+        <PageErrorBoundary key={location.pathname}>{outlet}</PageErrorBoundary>
       </motion.div>
     </AnimatePresence>
   )

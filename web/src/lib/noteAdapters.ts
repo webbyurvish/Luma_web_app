@@ -1,9 +1,9 @@
 import type { Note, NoteInput, RawNote } from '@/types'
+import { str } from './sheetValues'
 
 function parseTags(raw: string | null): string[] {
   if (!raw) return []
-  return raw
-    .split(',')
+  return str(raw).split(',')
     .map((tag) => tag.trim())
     .filter(Boolean)
 }
@@ -12,9 +12,9 @@ export function normalizeNote(raw: RawNote): Note {
   const now = new Date().toISOString()
   return {
     id: raw.noteId,
-    title: raw.title?.trim() || 'Untitled note',
+    title: str(raw.title).trim() || 'Untitled note',
     content: raw.content ?? '',
-    category: raw.category?.trim() || 'personal',
+    category: str(raw.category).trim() || 'personal',
     tags: parseTags(raw.tags),
     createdAt: raw.createdAt || now,
     updatedAt: raw.updatedAt || raw.createdAt || now,
