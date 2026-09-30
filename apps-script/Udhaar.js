@@ -447,7 +447,8 @@ function validateUdhaarData_(data) {
       dueDate:       type === UDHAAR.TYPE_REPAYMENT ? null : dueDate,
       description:   String(data.description || '').trim(),
       paymentMethod: String(data.paymentMethod || data.payment || '').trim(),
-      note:          String(data.note || '').trim()
+      note:          String(data.note || '').trim(),
+      accountId:     String(data.accountId || '').trim()
     }
   };
 }
@@ -479,6 +480,11 @@ function saveUdhaarTransaction_(v) {
   applyUdhaarRowFormulas_(sh, row);
   applyUdhaarRowFormat_(sh, row);
   var lifecycleId = assignUdhaarLifecycleFields_(sh, row);
+  try {
+    lumaLinkNewUdhaar_(sh, row, v.accountId); // Luma_Ledger: record the account + update its balance
+  } catch (ledgerError) {
+    Logger.log('lumaLinkNewUdhaar_ skipped: ' + ledgerError.message);
+  }
 
   var delta       = v.type === UDHAAR.TYPE_GIVEN ? v.amount : -v.amount;
   var outstanding = round2_(before.outstanding + delta);

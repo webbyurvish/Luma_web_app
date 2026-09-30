@@ -135,6 +135,8 @@ function readTransactions_(spreadsheet, includeVoided) {
   const idCol = rawHeaders.indexOf("Transaction ID");
   const statusCol = rawHeaders.indexOf("Status");
   const voidedAtCol = rawHeaders.indexOf("Voided At");
+  const accountCol = rawHeaders.indexOf("Account ID");
+  const toAccountCol = rawHeaders.indexOf("To Account ID");
 
   // Fields 0-9 are read by fixed index, so any column beyond J is ignored
   // and the response shape for existing fields cannot change when the
@@ -155,7 +157,9 @@ function readTransactions_(spreadsheet, includeVoided) {
       month: row[9] || "",
       id: idCol >= 0 ? (row[idCol] || "") : "",
       status: statusCol >= 0 ? (row[statusCol] || "Active") : "Active",
-      voidedAt: voidedAtCol >= 0 && row[voidedAtCol] ? formatDate(row[voidedAtCol]) : null
+      voidedAt: voidedAtCol >= 0 && row[voidedAtCol] ? formatDate(row[voidedAtCol]) : null,
+      accountId: accountCol >= 0 ? String(row[accountCol] || "") : "",
+      toAccountId: toAccountCol >= 0 ? String(row[toAccountCol] || "") : ""
     }));
 }
 
@@ -295,10 +299,18 @@ function doPost(e) {
     // Give the new row its Transaction ID / Status so it can be edited and
     // deleted from the app. Additive and isolated: any failure here is only
     // logged, so the save and the response the Shortcut sees are unchanged.
+    var newRow = sheet.getLastRow();
     try {
-      assignTransactionLifecycleFields_(sheet, sheet.getLastRow());
+      assignTransactionLifecycleFields_(sheet, newRow);
     } catch (lifecycleError) {
       Logger.log('assignTransactionLifecycleFields_ skipped: ' + lifecycleError.message);
+    }
+    // Link the account(s) the money moved through and update their balances (Luma_Ledger).
+    // Isolated like the above: a problem here never fails the save.
+    try {
+      lumaLinkNewTransaction_(sheet, newRow, data);
+    } catch (ledgerError) {
+      Logger.log('lumaLinkNewTransaction_ skipped: ' + ledgerError.message);
     }
 
     return ContentService

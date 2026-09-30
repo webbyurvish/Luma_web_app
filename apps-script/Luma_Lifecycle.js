@@ -496,6 +496,7 @@ function deleteTransaction_(id) {
     var found = findTransactionRow_(id);
     if (!found) throw new Error('Transaction not found: ' + id);
 
+    lumaRebalance_(lumaTxnEntry_(found.sh, found.row, found.headers), null); // give the money back
     copyRowToDeletedRecords_(found.sh, found.row, found.headers, id);
     found.sh.deleteRow(found.row);
 
@@ -547,8 +548,10 @@ function voidTransaction_(id) {
     var updatedAtCol = lumaNamedCol_(found.headers, 'Updated At');
     if (!statusCol || !voidedAtCol) throw new Error('Lifecycle columns missing on Transactions — run setupLumaLifecycle() first.');
 
+    var before = lumaTxnEntry_(found.sh, found.row, found.headers);
     var now = new Date();
     found.sh.getRange(found.row, statusCol).setValue('Voided');
+    if (!before.voided) lumaRebalance_(before, null);
     found.sh.getRange(found.row, voidedAtCol).setValue(now);
     if (updatedAtCol) found.sh.getRange(found.row, updatedAtCol).setValue(now);
 
@@ -563,6 +566,7 @@ function updateTransaction_(id, payload) {
     if (!found) throw new Error('Transaction not found: ' + id);
     var sh = found.sh, row = found.row;
     var updatedFields = [];
+    var before = lumaTxnEntry_(sh, row, found.headers);
 
     Object.keys(LUMA_TRANSACTION_FIXED_COLS).forEach(function (key) {
       if (!(key in payload)) return;
@@ -581,6 +585,12 @@ function updateTransaction_(id, payload) {
       sh.getRange(row, 10).setValue(transactionMonth_(newDate, new Date()));
       updatedFields.push('month');
     }
+
+    if ('accountId' in payload || 'toAccountId' in payload) {
+      lumaWriteTxnAccounts_(sh, row, payload);
+      updatedFields.push('accounts');
+    }
+    lumaRebalance_(before, lumaTxnEntry_(sh, row, lumaHeaders_(sh)));
 
     var updatedAtCol = lumaNamedCol_(found.headers, 'Updated At');
     if (updatedAtCol) sh.getRange(row, updatedAtCol).setValue(new Date());
@@ -674,6 +684,7 @@ function updateUdhaarRecord_(id, payload) {
     if (!found) throw new Error('Udhaar record not found: ' + id);
     var sh = found.sh, row = found.row;
     var updatedFields = [];
+    var before = lumaUdhaarEntry_(sh, row, found.headers);
 
     Object.keys(LUMA_UDHAAR_EDITABLE_FIXED).forEach(function (key) {
       if (!(key in payload)) return;
@@ -685,6 +696,13 @@ function updateUdhaarRecord_(id, payload) {
       sh.getRange(row, col).setValue(value);
       updatedFields.push(key);
     });
+
+    var accountCol = lumaNamedCol_(found.headers, 'Account ID');
+    if ('accountId' in payload && accountCol) {
+      sh.getRange(row, accountCol).setValue(String(payload.accountId || '').trim());
+      updatedFields.push('accountId');
+    }
+    lumaRebalance_(before, lumaUdhaarEntry_(sh, row, found.headers));
 
     var updatedAtCol = lumaNamedCol_(found.headers, 'Updated At');
     if (updatedAtCol) sh.getRange(row, updatedAtCol).setValue(new Date());
@@ -719,6 +737,7 @@ function deleteUdhaarRecord_(id) {
     var found = findUdhaarRow_(id);
     if (!found) throw new Error('Udhaar record not found: ' + id);
 
+    lumaRebalance_(lumaUdhaarEntry_(found.sh, found.row, found.headers), null);
     copyRowToDeletedRecords_(found.sh, found.row, found.headers, id);
     found.sh.deleteRow(found.row);
 
