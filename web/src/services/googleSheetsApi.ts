@@ -19,6 +19,7 @@ import type {
   TransactionsApiResponse,
 } from '@/types'
 import type { VaultMeta } from '@/lib/vaultCrypto'
+import type { FolderSpec } from '@/lib/familyFolders'
 import { getAuthToken, reportAuthRequired } from '@/lib/auth'
 import { normalizeSheetRows } from '@/lib/sheetValues'
 
@@ -679,6 +680,9 @@ async function driveOp<T = Record<string, unknown>>(payload: Record<string, unkn
 
 export const driveApi = {
   createFolder: (parentId: string, name: string) => driveOp<{ folder: DriveFolder }>({ driveOp: 'createFolder', parentId, name }),
+  /** A whole nested structure in one request; existing folders are reused. Up to ~4 minutes for big trees. */
+  createTree: (parentId: string, tree: FolderSpec[]) =>
+    driveOp<{ created: number; existing: number; incomplete: boolean; folders: DriveFolder[] }>({ driveOp: 'createTree', parentId, tree }, 300_000),
   renameFolder: (folderId: string, name: string) => driveOp({ driveOp: 'renameFolder', folderId, name }),
   moveFolder: (folderId: string, targetId: string) => driveOp({ driveOp: 'moveFolder', folderId, targetId }),
   trashFolder: (folderId: string) => driveOp<{ trashedFiles: number }>({ driveOp: 'trashFolder', folderId }),

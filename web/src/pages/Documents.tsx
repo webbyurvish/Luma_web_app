@@ -1,7 +1,7 @@
 import { type DragEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { CalendarClock, ChevronRight, ExternalLink, FolderPlus, FolderTree as FolderTreeIcon, LayoutGrid, List, RefreshCw, Search, UploadCloud } from 'lucide-react'
+import { CalendarClock, ChevronRight, ExternalLink, FolderPlus, FolderTree as FolderTreeIcon, LayoutGrid, List, RefreshCw, Search, UploadCloud, Users } from 'lucide-react'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -18,6 +18,8 @@ import { FolderNameDialog, FolderPickerDialog } from '@/components/documents/Fol
 import { UploadTray } from '@/components/documents/UploadTray'
 import { driveLinks, expiryState } from '@/components/documents/driveLinks'
 import { useDriveDocuments } from '@/hooks/useDriveDocuments'
+import { FamilyStructureWizard } from '@/components/documents/FamilyStructureWizard'
+import type { FolderSpec } from '@/lib/familyFolders'
 import { useToast } from '@/context/ToastContext'
 import { getErrorMessage } from '@/lib/errors'
 import { todayIstDateKey } from '@/lib/formatDate'
@@ -56,6 +58,17 @@ export function Documents() {
   const [openFile, setOpenFile] = useState<{ file: DriveFile; edit: boolean } | null>(null)
   const [dragging, setDragging] = useState(false)
   const [treeOpen, setTreeOpen] = useState(false)
+  const [familyOpen, setFamilyOpen] = useState(false)
+
+  const createFamilyTree = async (spec: FolderSpec[]) => {
+    const result = await drive.createTree(rootId, spec)
+    showToast(
+      result.incomplete
+        ? `Created ${result.created} folders — Google ran out of time, run it again to finish the rest`
+        : `Created ${result.created} folders${result.existing ? ` (${result.existing} already existed and were kept)` : ''}`,
+      result.incomplete ? 'error' : 'success',
+    )
+  }
   const dragDepth = useRef(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -270,6 +283,9 @@ export function Documents() {
               aria-label="Refresh"
             >
               <span className="hidden xl:inline">Refresh</span>
+            </Button>
+            <Button variant="secondary" size="sm" icon={<Users size={13} />} onClick={() => setFamilyOpen(true)} aria-label="Family folders" title="Set up folders for every family member and account">
+              <span className="hidden md:inline">Family folders</span>
             </Button>
             <Button variant="secondary" size="sm" icon={<FolderPlus size={13} />} onClick={() => setDialog({ type: 'newFolder' })} aria-label="New folder">
               <span className="hidden sm:inline">New folder</span>
@@ -522,6 +538,7 @@ export function Documents() {
       />
 
       <UploadTray uploads={drive.uploads} onClear={drive.clearFinishedUploads} />
+      <FamilyStructureWizard open={familyOpen} rootId={rootId} childFolders={childFolders} onClose={() => setFamilyOpen(false)} onCreate={createFamilyTree} />
 
       {/* Folder tree for phones and tablets */}
       <SlideOver open={treeOpen} onClose={() => setTreeOpen(false)} title="Folders" subtitle="Luma Documents in your Google Drive">

@@ -3,6 +3,7 @@ import { driveApi, getDriveTree } from '@/services/googleSheetsApi'
 import { mutateLocal } from '@/lib/remoteStore'
 import { useRemoteList } from './useRemoteData'
 import type { DriveFile, DriveFileDetails, DriveFolder, DriveTree } from '@/types'
+import type { FolderSpec } from '@/lib/familyFolders'
 
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 
@@ -114,6 +115,29 @@ export function useDriveDocuments() {
     [optimistic],
   )
 
+  /** Builds a nested structure (e.g. the family template) under parentId in one request. */
+  const createTree = useCallback(
+    async (parentId: string, spec: FolderSpec[]) => {
+      let result
+      try {
+        result = await driveApi.createTree(parentId, spec)
+      } catch (err) {
+        // An older script deployment doesn't know this operation yet.
+        if (err instanceof Error && /Unknown document operation/.test(err.message)) {
+          throw new Error('Deploy the latest Apps Script version first (clasp push → Deploy → New version), then try again.')
+        }
+        throw err
+      }
+      editTree((t) => {
+        const known = new Set(t.folders.map((f) => f.id))
+        return { ...t, folders: [...t.folders, ...result.folders.filter((f) => !known.has(f.id))] }
+      })
+      void refetch()
+      return result
+    },
+    [refetch],
+  )
+
   const renameFolder = useCallback(
     (folderId: string, name: string) =>
       optimistic((t) => ({ ...t, folders: t.folders.map((f) => (f.id === folderId ? { ...f, name } : f)) }), () => driveApi.renameFolder(folderId, name)),
@@ -215,6 +239,7 @@ export function useDriveDocuments() {
     error,
     refetch,
     createFolder,
+    createTree,
     renameFolder,
     moveFolder,
     trashFolder,

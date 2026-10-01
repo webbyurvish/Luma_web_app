@@ -489,6 +489,50 @@ function lumaDriveOp_(p) {
     return { success: true, folder: { id: created.getId(), name: created.getName(), parentId: parent.getId() } };
   }
 
+  if (op === 'createTree') {
+    // A whole folder structure in one request (e.g. the family template). Folders that already
+    // exist are reused, so running it again only fills in what's missing — never duplicates.
+    var base = lumaFolderInRoot_(p.parentId || root.getId(), root, true);
+    var nodes = Array.isArray(p.tree) ? p.tree : [];
+    var total = 0;
+    (function count(list, depth) {
+      if (depth > 8) throw new Error('The structure is nested too deeply.');
+      list.forEach(function (n) { total++; count(Array.isArray(n && n.children) ? n.children : [], depth + 1); });
+    })(nodes, 1);
+    if (!total) throw new Error('Nothing to create.');
+    if (total > 600) throw new Error('That is too many folders for one go (max 600).');
+
+    var started = Date.now();
+    var knownTree = lumaKnownFolders_();
+    var result = { success: true, created: 0, existing: 0, incomplete: false, folders: [] };
+    var findChild = function (parent, name) {
+      var it = parent.getFoldersByName(name);
+      while (it.hasNext()) {
+        var f = it.next();
+        if (!f.isTrashed()) return f;
+      }
+      return null;
+    };
+    var walk = function (parent, list) {
+      for (var i = 0; i < list.length; i++) {
+        // Apps Script stops at 6 minutes; leave in time so the caller can simply run it again.
+        if (Date.now() - started > 270000) { result.incomplete = true; return; }
+        var folderName = lumaCleanName_(list[i] && list[i].name, 'folder');
+        var folder = findChild(parent, folderName);
+        if (folder) result.existing++;
+        else { folder = parent.createFolder(folderName); result.created++; }
+        knownTree[folder.getId()] = 1;
+        result.folders.push({ id: folder.getId(), name: folderName, parentId: parent.getId(), createdAt: new Date().toISOString() });
+        var kids = Array.isArray(list[i].children) ? list[i].children : [];
+        if (kids.length) walk(folder, kids);
+        if (result.incomplete) return;
+      }
+    };
+    walk(base, nodes);
+    lumaRememberFolders_(knownTree);
+    return result;
+  }
+
   if (op === 'renameFolder') {
     var folder = lumaFolderInRoot_(p.folderId, root, false);
     folder.setName(lumaCleanName_(p.name, 'folder'));
