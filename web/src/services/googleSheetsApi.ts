@@ -16,6 +16,8 @@ import type {
   RawSip,
   RawTransaction,
   RawVaultItem,
+  RawBill,
+  RawBudget,
   TransactionsApiResponse,
 } from '@/types'
 import type { VaultMeta } from '@/lib/vaultCrypto'
@@ -876,4 +878,80 @@ export const vaultApi = {
   remove: (id: string) => vaultOp({ vaultOp: 'delete', id }),
   rekey: (meta: VaultMeta, items: { id: string; data: string }[]) => vaultOp<{ meta: VaultMeta }>({ vaultOp: 'rekey', meta, items }),
   reset: () => vaultOp({ vaultOp: 'reset', confirm: 'ERASE VAULT' }),
+}
+
+/* Bills & budgets (Luma_Planning in Apps Script). Same rule as Drive/AI/Vault: every write first
+ * confirms the script knows these routes — an older deployment would otherwise append a
+ * `{ action: 'bill' }` POST to Transactions as an iPhone-Shortcut expense. */
+
+let planningCapability: Promise<void> | null = null
+
+function requirePlanning(): Promise<void> {
+  planningCapability ??= fetchJson<{ success: boolean; error?: string }>('bills')
+    .then((body) => {
+      if (!body.success) throw new GoogleSheetsApiError(/Unknown action/i.test(body.error ?? '') ? PLANNING_NEEDS_DEPLOY : body.error || "Couldn't reach your bills.")
+    })
+    .catch((err: unknown) => {
+      planningCapability = null
+      throw err
+    })
+  return planningCapability
+}
+
+export const PLANNING_NEEDS_DEPLOY = 'Bills and budgets need the latest Apps Script deployment (clasp push → Deploy → New version).'
+
+async function fetchPlanningList<T>(action: 'bills' | 'budgets', signal?: AbortSignal): Promise<T[]> {
+  try {
+    const rows = await fetchList<T>(action, signal)
+    planningCapability ??= Promise.resolve()
+    return rows
+  } catch (err) {
+    if (err instanceof GoogleSheetsApiError && /Unknown action/i.test(err.message)) throw new GoogleSheetsApiError(PLANNING_NEEDS_DEPLOY)
+    throw err
+  }
+}
+
+export const getBills = (signal?: AbortSignal) => fetchPlanningList<RawBill>('bills', signal)
+export const getBudgets = (signal?: AbortSignal) => fetchPlanningList<RawBudget>('budgets', signal)
+
+const planningWrite = async (action: 'bill' | 'budget', payload: Record<string, unknown>) => {
+  await requirePlanning()
+  return postEntity(action, payload)
+}
+
+export const createBill = (payload: Record<string, unknown>) => planningWrite('bill', payload)
+export const updateBill = (id: string, payload: Record<string, unknown>) => planningWrite('bill', { operation: 'update', id, ...payload })
+export const deleteBill = (id: string) => planningWrite('bill', { operation: 'delete', id })
+export const createBudget = (payload: Record<string, unknown>) => planningWrite('budget', payload)
+export const updateBudget = (id: string, payload: Record<string, unknown>) => planningWrite('budget', { operation: 'update', id, ...payload })
+export const deleteBudget = (id: string) => planningWrite('budget', { operation: 'delete', id })
+
+/**
+ * Marks a bill paid: the script records the expense (moving the linked account's balance) and
+ * rolls the due date forward. `dueDate` is the one on screen, so a second tap — or another
+ * device — can't record the same payment twice. Never retried.
+ */
+export async function payBill(id: string, details: { dueDate: string; amount: number; date: string; accountId?: string; paymentMethod?: string }) {
+  await requirePlanning()
+  let result: { status: number; ok: boolean; text: string }
+  try {
+    result = await fetchTextWithin(
+      buildEndpoint('bill'),
+      { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ operation: 'pay', id, ...details }) },
+      60_000,
+      undefined,
+      true,
+    )
+  } catch (cause) {
+    if (cause instanceof AuthRequiredError) throw cause
+    throw new GoogleSheetsApiError("Google didn't confirm the payment. Refresh in a moment to see whether it was recorded.")
+  }
+  let body: { success?: boolean; error?: string; nextDueDate?: string | null; alreadyPaid?: boolean }
+  try {
+    body = JSON.parse(result.text)
+  } catch {
+    throw new GoogleSheetsApiError("Google didn't confirm the payment. Refresh in a moment to see whether it was recorded.")
+  }
+  if (!body.success) throw Object.assign(new GoogleSheetsApiError(body.error || "Couldn't mark the bill paid."), { alreadyPaid: !!body.alreadyPaid })
+  return { nextDueDate: body.nextDueDate ?? null }
 }

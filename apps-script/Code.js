@@ -22,6 +22,10 @@ function doGet(e) {
   var vaultGet = tryHandleLumaVaultGet_(e);
   if (vaultGet) return vaultGet;
 
+  // Bills and budgets (Luma_Planning). Null for every other action.
+  var planningGet = tryHandleLumaPlanningGet_(e);
+  if (planningGet) return planningGet;
+
   // Luma Documents in Google Drive (Luma_Drive). Null for every other action.
   var driveGet = tryHandleLumaDriveGet_(e);
   if (driveGet) return driveGet;
@@ -243,6 +247,10 @@ function doPost(e) {
   // Encrypted vault writes carry a "vaultOp" field; everything else gets null.
   var vault = tryHandleLumaVault_(e);
   if (vault) return vault;
+
+  // Bills and budgets (action: "bill" | "budget"), including marking a bill paid.
+  var planning = tryHandleLumaPlanning_(e);
+  if (planning) return planning;
 
   // Document operations (Luma_Drive) carry a "driveOp" field; everything else gets null.
   var drive = tryHandleLumaDrive_(e);

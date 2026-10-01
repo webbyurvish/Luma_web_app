@@ -13,7 +13,7 @@ import { getBootstrap } from '@/services/googleSheetsApi'
  *    renders at once and only the background re-sync is waited on.
  */
 
-export type RemoteKey = 'accounts' | 'investments' | 'sips' | 'liabilities' | 'transactions' | 'notes' | 'udhaar' | 'tasks' | 'documents' | 'drive'
+export type RemoteKey = 'accounts' | 'investments' | 'sips' | 'liabilities' | 'transactions' | 'notes' | 'udhaar' | 'tasks' | 'documents' | 'drive' | 'bills' | 'budgets'
 
 export interface EntrySnapshot {
   /** Raw API rows, or null until something (cache or network) has provided them. */

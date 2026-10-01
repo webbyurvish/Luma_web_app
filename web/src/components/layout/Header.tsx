@@ -1,14 +1,13 @@
-import { useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { Bell, Menu, Search } from 'lucide-react'
+import { Menu, Search } from 'lucide-react'
 import { getPageMeta } from './pageMeta'
 import { useSidebar } from '@/context/SidebarContext'
 import { Avatar } from '@/components/ui/Avatar'
+import { NotificationBell } from './NotificationBell'
 
 export function Header() {
   const location = useLocation()
   const { openMobile } = useSidebar()
-  const [hasNotifications] = useState(true)
   const meta = getPageMeta(location.pathname)
 
   return (
@@ -38,14 +37,7 @@ export function Header() {
           <span className="flex-1 text-left">Search</span>
           <kbd className="shrink-0 rounded-xs border border-border px-1 py-0.5 font-mono-figure text-[9px] text-ink-muted">⌘K</kbd>
         </button>
-        <button
-          type="button"
-          aria-label="Notifications"
-          className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border border-border text-ink-soft transition-colors hover:border-ink-soft hover:text-ink"
-        >
-          <Bell size={15} />
-          {hasNotifications && <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-rust" aria-hidden="true" />}
-        </button>
+        <NotificationBell />
         <Avatar name="Urvish Krina" size={32} className="hidden sm:flex" />
       </div>
     </header>
