@@ -77,12 +77,12 @@ export interface CategoryDef {
 }
 
 export const CATEGORIES: CategoryDef[] = [
-  { key: 'identity', folder: '01 Identity & Certificates', label: 'Identity', hint: 'Aadhaar, PAN, passport, birth/marriage certificates' },
-  { key: 'banking', folder: '02 Banking', label: 'Banking', hint: 'One folder per bank account' },
-  { key: 'cards', folder: '03 Cards', label: 'Cards', hint: 'One folder per credit card' },
+  { key: 'identity', folder: 'Identity & Certificates', label: 'Identity', hint: 'Aadhaar, PAN, passport, birth/marriage certificates' },
+  { key: 'banking', folder: 'Banking', label: 'Banking', hint: 'One folder per bank account' },
+  { key: 'cards', folder: 'Cards', label: 'Cards', hint: 'One folder per credit card' },
   {
     key: 'investments',
-    folder: '04 Investments',
+    folder: 'Investments',
     label: 'Investments',
     hint: 'MF, stocks, EPF/PPF/NPS, small savings, gold',
     sub: (role) =>
@@ -90,30 +90,30 @@ export const CATEGORIES: CategoryDef[] = [
         ? ['Sukanya Samriddhi & Small Savings', 'Mutual Funds']
         : ['Mutual Funds', 'Stocks & Demat', 'Retirement (EPF, PPF, NPS)', 'Small Savings (NSC, KVP, SCSS, SSY)', 'Gold & Bonds', 'Other'],
   },
-  { key: 'insurance', folder: '05 Insurance', label: 'Insurance', hint: 'Health, life, vehicle, claims', sub: () => ['Health', 'Life & Term', 'Vehicle', 'Home', 'Travel', 'Claims'] },
-  { key: 'loans', folder: '06 Loans & Credit', label: 'Loans', hint: 'Loan papers, CIBIL, money lent', sub: () => ['Credit Reports', 'Money Lent or Borrowed'] },
-  { key: 'tax', folder: '07 Tax', label: 'Tax', hint: 'By financial year: Form 16, AIS, ITR, proofs' },
-  { key: 'work', folder: '08 Work & Income', label: 'Work', hint: 'Offer letters, payslips, PF', sub: () => ['Employment', 'Payslips', 'PF & Gratuity'] },
-  { key: 'property', folder: '09 Property', label: 'Property', hint: 'Deeds, property tax, rent', sub: () => ['Rent Agreements & Receipts'] },
-  { key: 'vehicles', folder: '10 Vehicles', label: 'Vehicles', hint: 'RC, insurance, PUC, service' },
+  { key: 'insurance', folder: 'Insurance', label: 'Insurance', hint: 'Health, life, vehicle, claims', sub: () => ['Health', 'Life & Term', 'Vehicle', 'Home', 'Travel', 'Claims'] },
+  { key: 'loans', folder: 'Loans & Credit', label: 'Loans', hint: 'Loan papers, CIBIL, money lent', sub: () => ['Credit Reports', 'Money Lent or Borrowed'] },
+  { key: 'tax', folder: 'Tax', label: 'Tax', hint: 'By financial year: Form 16, AIS, ITR, proofs' },
+  { key: 'work', folder: 'Work & Income', label: 'Work', hint: 'Offer letters, payslips, PF', sub: () => ['Employment', 'Payslips', 'PF & Gratuity'] },
+  { key: 'property', folder: 'Property', label: 'Property', hint: 'Deeds, property tax, rent', sub: () => ['Rent Agreements & Receipts'] },
+  { key: 'vehicles', folder: 'Vehicles', label: 'Vehicles', hint: 'RC, insurance, PUC, service' },
   {
     key: 'health',
-    folder: '11 Health & Medical',
+    folder: 'Health & Medical',
     label: 'Health',
     hint: 'Reports, prescriptions, hospital stays',
     sub: (role) => ['Reports', 'Prescriptions', 'Hospital Stays', role === 'child' ? 'Vaccinations' : 'Vaccinations & Records'],
   },
-  { key: 'education', folder: '12 Education', label: 'Education', hint: 'Marksheets, degrees, school papers', sub: (role) => (role === 'child' ? ['School & Fee Receipts', 'Certificates'] : []) },
-  { key: 'legal', folder: '13 Legal & Estate', label: 'Legal', hint: 'Will, nominations, POA, agreements' },
+  { key: 'education', folder: 'Education', label: 'Education', hint: 'Marksheets, degrees, school papers', sub: (role) => (role === 'child' ? ['School & Fee Receipts', 'Certificates'] : []) },
+  { key: 'legal', folder: 'Legal & Estate', label: 'Legal', hint: 'Will, nominations, POA, agreements' },
   {
     key: 'government',
-    folder: '14 Government & Benefits',
+    folder: 'Government & Benefits',
     label: 'Government',
     hint: 'Pension, life certificate, scheme cards',
     sub: (role) => (role === 'parent' ? ['Pension & Life Certificate', 'Senior Citizen & Health Schemes'] : []),
   },
-  { key: 'purchases', folder: '15 Purchases & Warranties', label: 'Warranties', hint: 'Invoices, warranty cards, manuals' },
-  { key: 'business', folder: '16 Business & Freelance', label: 'Business', hint: 'GST, invoices, contracts', sub: () => ['GST & Registrations', 'Invoices', 'Contracts'] },
+  { key: 'purchases', folder: 'Purchases & Warranties', label: 'Warranties', hint: 'Invoices, warranty cards, manuals' },
+  { key: 'business', folder: 'Business & Freelance', label: 'Business', hint: 'GST, invoices, contracts', sub: () => ['GST & Registrations', 'Invoices', 'Contracts'] },
 ]
 
 export const ROLE_DEFAULTS: Record<PersonRole, CategoryKey[]> = {
@@ -141,7 +141,7 @@ function cardFolder(ref: AccountRef, fy: string): FolderSpec {
   return { name: accountFolderName(ref), children: [{ name: 'Statements', children: [{ name: fy }] }, { name: 'Agreement & Letters' }] }
 }
 
-function personFolder(person: PersonConfig, index: number, fy: string): FolderSpec {
+function personFolder(person: PersonConfig, fy: string): FolderSpec {
   const children: FolderSpec[] = CATEGORIES.filter((c) => person.categories.includes(c.key)).map((cat) => {
     let kids: FolderSpec[] = (cat.sub?.(person.role) ?? []).map((name) => ({ name }))
     if (cat.key === 'banking') kids = person.banks.filter((b) => b.label.trim()).map((b) => bankAccountFolder(b, fy))
@@ -151,16 +151,16 @@ function personFolder(person: PersonConfig, index: number, fy: string): FolderSp
     if (cat.key === 'work') kids = kids.map((k) => (k.name === 'Payslips' ? { name: 'Payslips', children: [{ name: fy }] } : k))
     return kids.length ? { name: cat.folder, children: kids } : { name: cat.folder }
   })
-  return { name: `${(index + 1) * 10} ${person.name.trim() || ROLE_LABELS[person.role]}`, children }
+  return { name: person.name.trim() || ROLE_LABELS[person.role], children }
 }
 
 export function buildFamilyTree(config: FamilyConfig, now = new Date()): FolderSpec[] {
   const fy = currentFy(now)
   const tree: FolderSpec[] = []
-  if (config.inbox) tree.push({ name: '00 Inbox (to sort)' })
+  if (config.inbox) tree.push({ name: 'Inbox (to sort)' })
   if (config.shared)
     tree.push({
-      name: '01 Family (Shared)',
+      name: 'Family (Shared)',
       children: [
         { name: 'Joint Accounts', children: config.joint.filter((j) => j.label.trim()).map((j) => bankAccountFolder(j, fy)) },
         { name: 'Home' },
@@ -170,9 +170,9 @@ export function buildFamilyTree(config: FamilyConfig, now = new Date()): FolderS
         { name: 'Household Staff' },
       ].map((f) => (f.children && !f.children.length ? { name: f.name } : f)),
     })
-  if (config.emergency) tree.push({ name: '02 Emergency Kit' })
-  config.people.forEach((p, i) => tree.push(personFolder(p, i, fy)))
-  if (config.archive) tree.push({ name: '99 Archive' })
+  if (config.emergency) tree.push({ name: 'Emergency Kit' })
+  config.people.forEach((p) => tree.push(personFolder(p, fy)))
+  if (config.archive) tree.push({ name: 'Archive' })
   return tree
 }
 

@@ -120,6 +120,11 @@ export function FamilyStructureWizard({ open, rootId, childFolders, onClose, onC
   }
 
   const missingNames = config.people.some((p) => !p.name.trim())
+  // Without number prefixes, equal names would share one folder.
+  const reserved = ['inbox (to sort)', 'family (shared)', 'emergency kit', 'archive']
+  const lowered = config.people.map((p) => p.name.trim().toLowerCase()).filter(Boolean)
+  const clash = lowered.find((n, i) => lowered.indexOf(n) !== i || reserved.includes(n))
+  const nameProblem = missingNames ? 'Give every family member a name.' : clash ? 'Each person needs a different name (and not the name of a shared folder).' : null
 
   return (
     <SlideOver
@@ -140,7 +145,7 @@ export function FamilyStructureWizard({ open, rootId, childFolders, onClose, onC
             <Button type="button" variant="secondary" size="sm" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="button" size="sm" onClick={() => void create()} loading={busy} loadingText="Creating…" disabled={counts.fresh === 0 || missingNames}>
+            <Button type="button" size="sm" onClick={() => void create()} loading={busy} loadingText="Creating…" disabled={counts.fresh === 0 || !!nameProblem}>
               {counts.fresh === 0 ? 'Everything exists' : `Create ${counts.fresh} folders`}
             </Button>
           </div>
@@ -150,13 +155,12 @@ export function FamilyStructureWizard({ open, rootId, childFolders, onClose, onC
       <div className="space-y-6">
         {/* People */}
         <section>
-          <SectionTitle n={1} title="Who is in the family?" hint="Each person gets their own numbered folder. Tick what they need — you can add more later." />
+          <SectionTitle n={1} title="Who is in the family?" hint="Each person gets their own folder. Tick what they need — you can add more later." />
           <div className="space-y-2.5">
-            {config.people.map((person, index) => (
+            {config.people.map((person) => (
               <PersonCard
                 key={person.id}
                 person={person}
-                index={index}
                 open={expanded === person.id}
                 onToggle={() => setExpanded((e) => (e === person.id ? null : person.id))}
                 onChange={(change) => updatePerson(person.id, change)}
@@ -182,11 +186,11 @@ export function FamilyStructureWizard({ open, rootId, childFolders, onClose, onC
         <section>
           <SectionTitle n={2} title="Shared folders" />
           <div className="space-y-1.5">
-            <Toggle checked={config.inbox} onChange={(v) => setConfig({ ...config, inbox: v })} title="00 Inbox (to sort)" hint="Drop new files here and file them later" />
+            <Toggle checked={config.inbox} onChange={(v) => setConfig({ ...config, inbox: v })} title="Inbox (to sort)" hint="Drop new files here and file them later" />
             <Toggle
               checked={config.shared}
               onChange={(v) => setConfig({ ...config, shared: v })}
-              title="01 Family (Shared)"
+              title="Family (Shared)"
               hint="Joint accounts, home, utilities, family insurance, travel"
             />
             {config.shared && (
@@ -199,8 +203,8 @@ export function FamilyStructureWizard({ open, rootId, childFolders, onClose, onC
                 />
               </div>
             )}
-            <Toggle checked={config.emergency} onChange={(v) => setConfig({ ...config, emergency: v })} title="02 Emergency Kit" hint="ID and insurance copies to open fast at a hospital" />
-            <Toggle checked={config.archive} onChange={(v) => setConfig({ ...config, archive: v })} title="99 Archive" hint="Closed accounts, expired policies — never delete" />
+            <Toggle checked={config.emergency} onChange={(v) => setConfig({ ...config, emergency: v })} title="Emergency Kit" hint="ID and insurance copies to open fast at a hospital" />
+            <Toggle checked={config.archive} onChange={(v) => setConfig({ ...config, archive: v })} title="Archive" hint="Closed accounts, expired policies — never delete" />
           </div>
         </section>
 
@@ -215,7 +219,7 @@ export function FamilyStructureWizard({ open, rootId, childFolders, onClose, onC
           </div>
         </section>
 
-        {missingNames && <p className="text-[11.5px] text-danger">Give every family member a name.</p>}
+        {nameProblem && <p className="text-[11.5px] text-danger">{nameProblem}</p>}
         {error && (
           <p role="alert" className="rounded-sm bg-danger-soft px-3 py-2 text-[11.5px] text-danger">
             {error}
@@ -252,14 +256,12 @@ function Toggle({ checked, onChange, title, hint }: { checked: boolean; onChange
 
 function PersonCard({
   person,
-  index,
   open,
   onToggle,
   onChange,
   onRemove,
 }: {
   person: PersonConfig
-  index: number
   open: boolean
   onToggle: () => void
   onChange: (change: Partial<PersonConfig>) => void
@@ -274,7 +276,6 @@ function PersonCard({
         <button type="button" onClick={onToggle} aria-label={open ? 'Collapse' : 'Expand'} aria-expanded={open} className="rounded-full p-1 text-ink-muted hover:bg-bg-soft hover:text-ink">
           {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </button>
-        <span className="w-6 shrink-0 font-mono-figure text-[11px] text-ink-muted">{(index + 1) * 10}</span>
         <div className="min-w-0 flex-1">
           <Input value={person.name} onChange={(e) => onChange({ name: e.target.value })} placeholder={`Name, e.g. ${person.role === 'parent' ? 'Papa' : person.role === 'child' ? 'Aarav' : ROLE_LABELS[person.role]}`} aria-label="Name" className="h-8" />
         </div>
@@ -293,7 +294,7 @@ function PersonCard({
         )}
       </div>
       {!open && (
-        <p className="-mt-1 truncate px-3 pb-2.5 pl-[68px] text-[10.5px] text-ink-muted">
+        <p className="-mt-1 truncate px-3 pb-2.5 pl-[42px] text-[10.5px] text-ink-muted">
           {person.categories.length} categories
           {person.banks.length > 0 && ` · ${person.banks.length} bank account${person.banks.length > 1 ? 's' : ''}`}
           {person.cards.length > 0 && ` · ${person.cards.length} card${person.cards.length > 1 ? 's' : ''}`}
