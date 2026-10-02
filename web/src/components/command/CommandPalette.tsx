@@ -6,6 +6,7 @@ import {
   ArrowLeftRight,
   CalendarClock,
   CornerDownLeft,
+  DatabaseBackup,
   FileText,
   HandCoins,
   KeyRound,
@@ -17,6 +18,7 @@ import {
   PiggyBank,
   Plus,
   Receipt,
+  ScanFace,
   Search,
   Sparkles,
   Undo2,
@@ -188,6 +190,8 @@ function PaletteBody({ onClose, onAdd }: { onClose: () => void; onAdd: (kind: Qu
       ['Budgets', '/finance', PiggyBank, { tab: 'budgets' }],
       ['Accounts', '/finance', Landmark, { tab: 'accounts' }],
       ['SIPs', '/finance', CalendarClock, { tab: 'sips' }],
+      ['Backups and export', '/settings', DatabaseBackup, { tab: 'backups' }],
+      ['Face ID sign-in', '/settings', ScanFace, { tab: 'security' }],
     ]
     pages.forEach(([title, to, icon, state]) =>
       push({ id: `page-${title}`, group: 'Go to', icon, title, meta: 'Page', run: () => go(to, state) }, q ? best(q, title) : 0),

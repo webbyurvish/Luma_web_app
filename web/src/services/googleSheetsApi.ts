@@ -704,6 +704,8 @@ export interface AuthStatus {
   enforced: boolean
   /** Session length the script grants (older deployments omit it). */
   sessionMinutes?: number
+  /** Face ID / fingerprint sign-in is available. */
+  devices?: boolean
 }
 
 let authStatusPromise: Promise<AuthStatus> | null = null
@@ -954,4 +956,117 @@ export async function payBill(id: string, details: { dueDate: string; amount: nu
   }
   if (!body.success) throw Object.assign(new GoogleSheetsApiError(body.error || "Couldn't mark the bill paid."), { alreadyPaid: !!body.alreadyPaid })
   return { nextDueDate: body.nextDueDate ?? null }
+}
+
+/* Backups & Excel export (Luma_Backup). Writes are gated on ?action=backupstatus like the other
+ * newer features, so an older deployment can never receive a backupOp POST. */
+
+export interface BackupStatus {
+  enabled: boolean
+  lastBackupAt: string | null
+  count: number
+  keep: number
+  folderUrl: string
+  recent: { id: string; name: string; createdAt: string; url: string }[]
+}
+
+export const BACKUP_NEEDS_DEPLOY = 'Backups need the latest Apps Script deployment (clasp push → Deploy → New version).'
+
+export async function getBackupStatus(): Promise<BackupStatus> {
+  const body = await fetchJson<{ success: boolean; error?: string; backup?: BackupStatus }>('backupstatus')
+  if (!body.success || !body.backup) throw new GoogleSheetsApiError(/Unknown action/i.test(body.error ?? '') ? BACKUP_NEEDS_DEPLOY : body.error || "Couldn't check your backups.")
+  return body.backup
+}
+
+async function backupOp<T>(op: 'now' | 'enable' | 'disable' | 'export'): Promise<T> {
+  await getBackupStatus() // capability check (and a fresh status for the caller's toast)
+  let result: { status: number; ok: boolean; text: string }
+  try {
+    result = await fetchTextWithin(
+      buildEndpoint('backup'),
+      { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ backupOp: op }) },
+      180_000,
+      undefined,
+      true,
+    )
+  } catch (cause) {
+    if (cause instanceof AuthRequiredError) throw cause
+    throw new GoogleSheetsApiError('Google is taking long to answer. Check the backups list again in a minute.')
+  }
+  let body: { success?: boolean; error?: string } & T
+  try {
+    body = JSON.parse(result.text)
+  } catch {
+    throw new GoogleSheetsApiError("Google didn't confirm. Check the backups list again in a minute.")
+  }
+  if (!body.success) throw new GoogleSheetsApiError(body.error || "That didn't work.")
+  return body
+}
+
+export const backupApi = {
+  now: () => backupOp<{ backup: { name: string; url: string; at: string }; status: BackupStatus }>('now'),
+  enable: () => backupOp<{ status: BackupStatus }>('enable'),
+  disable: () => backupOp<{ status: BackupStatus }>('disable'),
+  exportXlsx: () => backupOp<{ fileName: string; size: number; dataBase64: string }>('export'),
+}
+
+/* Face ID / fingerprint devices (Luma_Auth). Only offered when ?action=authstatus says devices. */
+
+export interface RegisteredDevice {
+  id: string
+  name: string
+  createdAt: string
+  lastUsedAt: string
+}
+
+async function authPost<T>(payload: Record<string, unknown>, withSession: boolean): Promise<{ success?: boolean; error?: string } & T> {
+  const url = withSession ? buildEndpoint('auth') : getApiUrl() + (getApiUrl().includes('?') ? '&' : '?') + 'action=auth'
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 40_000)
+  try {
+    const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload), signal: controller.signal })
+    const text = await response.text()
+    if (withSession) assertSignedIn(text)
+    return JSON.parse(text)
+  } catch (err) {
+    if (err instanceof AuthRequiredError) throw err
+    throw new GoogleSheetsApiError('Could not reach Luma. Check your connection and try again.')
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+export async function devicesSupported(): Promise<boolean> {
+  try {
+    const status = await getAuthStatus()
+    return !!status.devices
+  } catch {
+    return false
+  }
+}
+
+export async function enrollDevice(deviceName: string): Promise<{ deviceId: string; secret: string }> {
+  const body = await authPost<{ deviceId?: string; secret?: string }>({ deviceOp: 'enroll', deviceName }, true)
+  if (!body.success || !body.deviceId || !body.secret) throw new GoogleSheetsApiError(body.error || "Couldn't register this device.")
+  return { deviceId: body.deviceId, secret: body.secret }
+}
+
+export async function listDevices(): Promise<RegisteredDevice[]> {
+  const body = await authPost<{ devices?: RegisteredDevice[] }>({ deviceOp: 'list' }, true)
+  if (!body.success) throw new GoogleSheetsApiError(body.error || "Couldn't load your devices.")
+  return body.devices ?? []
+}
+
+export async function revokeDevice(deviceId: string): Promise<void> {
+  const body = await authPost({ deviceOp: 'revoke', deviceId }, true)
+  if (!body.success) throw new GoogleSheetsApiError(body.error || "Couldn't remove the device.")
+}
+
+/** Exchanges this device's secret (unlocked by Face ID) for a normal 2-hour session. */
+export async function signInWithDevice(deviceId: string, secret: string): Promise<{ token: string; expiresAt: number }> {
+  const status = await getAuthStatus()
+  if (!status.devices) throw new GoogleSheetsApiError('Face ID sign-in needs the latest Apps Script deployment.')
+  const body = await authPost<{ token?: string; expiresAt?: number; revoked?: boolean }>({ deviceLogin: secret, deviceId }, false)
+  if (!body.success || !body.token || !body.expiresAt) throw Object.assign(new GoogleSheetsApiError(body.error || "Couldn't sign in."), { revoked: !!body.revoked })
+  return { token: body.token, expiresAt: body.expiresAt }
 }

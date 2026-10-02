@@ -75,6 +75,13 @@ npm run dev
   PBKDF2-SHA256, 600k iterations). The script and the hidden `Vault` sheet only hold ciphertext;
   the master password can't be recovered (forgetting it means erasing the vault). The vault locks
   after 5 idle minutes and whenever the session ends, and is never sent to the AI assistant.
+- **Face ID / fingerprint sign-in** (`Luma_Auth.js`, `web/src/lib/deviceUnlock.ts`): a passkey with
+  the WebAuthn PRF extension unlocks a device secret stored encrypted in the browser; the script
+  keeps only an HMAC of it and swaps it for a normal 2-hour session. "Sign out everywhere" revokes
+  every device. Needs iOS 18 / a recent browser with passkeys; otherwise the passcode is used.
+- **Backups** (`Luma_Backup.js`): nightly copy of the spreadsheet into a "Luma Backups" Drive
+  folder (newest 30 kept), "Back up now" and a full Excel export in Settings → Backups.
+  Run `setupLumaBackups()` once in the editor to grant the permissions and switch it on.
 - The Vercel deployment sends security headers (`web/vercel.json`): a strict Content Security
   Policy, no framing, no referrer, no search indexing.
 - The **iPhone Shortcut** sends `"key": "<LUMA_SHORTCUT_KEY>"` in its JSON; that key can only add a

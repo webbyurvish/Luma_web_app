@@ -26,6 +26,10 @@ function doGet(e) {
   var planningGet = tryHandleLumaPlanningGet_(e);
   if (planningGet) return planningGet;
 
+  // Backups (Luma_Backup). Null for every other action.
+  var backupGet = tryHandleLumaBackupGet_(e);
+  if (backupGet) return backupGet;
+
   // Luma Documents in Google Drive (Luma_Drive). Null for every other action.
   var driveGet = tryHandleLumaDriveGet_(e);
   if (driveGet) return driveGet;
@@ -263,6 +267,10 @@ function doPost(e) {
   // Bills and budgets (action: "bill" | "budget"), including marking a bill paid.
   var planning = tryHandleLumaPlanning_(e);
   if (planning) return planning;
+
+  // Backups and the Excel export carry a "backupOp" field.
+  var backup = tryHandleLumaBackup_(e);
+  if (backup) return backup;
 
   // Document operations (Luma_Drive) carry a "driveOp" field; everything else gets null.
   var drive = tryHandleLumaDrive_(e);

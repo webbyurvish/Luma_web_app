@@ -1,10 +1,21 @@
 import { type FormEvent, type ReactNode, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Clock, Eye, EyeOff, Lock } from 'lucide-react'
+import { Clock, Eye, EyeOff, Lock, ScanFace } from 'lucide-react'
 import { LogoMark } from '@/components/layout/Logo'
 import { Button } from '@/components/ui/Button'
 import { clearAuthSession, getAuthToken, getSessionExpiry, onAuthRequired, rememberPasscodeRequired, setAuthSession } from '@/lib/auth'
-import { getAuthStatus, signIn } from '@/services/googleSheetsApi'
+import { devicesSupported, enrollDevice, getAuthStatus, signIn, signInWithDevice } from '@/services/googleSheetsApi'
+import { Modal } from '@/components/ui/Modal'
+import {
+  BiometricUnsupportedError,
+  biometricAvailable,
+  biometricLabel,
+  enrollThisDevice,
+  enrolledDevice,
+  forgetDevice,
+  isBiometricCancel,
+  unlockThisDevice,
+} from '@/lib/deviceUnlock'
 import { cn } from '@/lib/cn'
 
 type GateState = 'signin' | 'ready'
@@ -93,9 +104,92 @@ export function AuthGate({ children }: { children: ReactNode }) {
       <>
         {children}
         <SessionCountdown />
+        <BiometricOffer />
       </>
     )
   return <SignInScreen reason={reason} onSignedIn={onSignedIn} />
+}
+
+const OFFER_FLAG = 'luma-offer-biometric'
+const OFFER_DECLINED = 'lumaui:biometric-offer-declined'
+
+/** Right after a passcode sign-in: "Sign in with Face ID next time?" — once, on supported devices. */
+function BiometricOffer() {
+  const [show, setShow] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [done, setDone] = useState(false)
+  const label = biometricLabel()
+
+  useEffect(() => {
+    let flagged = false
+    try {
+      flagged = sessionStorage.getItem(OFFER_FLAG) === '1' && !localStorage.getItem(OFFER_DECLINED)
+      sessionStorage.removeItem(OFFER_FLAG)
+    } catch {
+      flagged = false
+    }
+    if (!flagged || enrolledDevice()) return
+    void Promise.all([biometricAvailable(), devicesSupported()]).then(([available, supported]) => {
+      if (available && supported) setShow(true)
+    })
+  }, [])
+
+  const close = (declined: boolean) => {
+    if (declined) {
+      try {
+        localStorage.setItem(OFFER_DECLINED, '1')
+      } catch {
+        // ignore
+      }
+    }
+    setShow(false)
+  }
+
+  const turnOn = async () => {
+    setBusy(true)
+    setError(null)
+    try {
+      await enrollThisDevice(enrollDevice)
+      setDone(true)
+      window.setTimeout(() => close(false), 1600)
+    } catch (err) {
+      if (!isBiometricCancel(err)) setError(err instanceof Error ? err.message : `Couldn't turn on ${label}.`)
+      if (err instanceof BiometricUnsupportedError) window.setTimeout(() => close(true), 3500)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Modal open={show} onClose={() => close(true)} busy={busy} title={done ? `${label} is on` : `Sign in with ${label} next time?`}>
+      <div className="flex flex-col items-center text-center">
+        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-rust/10 text-rust">
+          <ScanFace size={26} />
+        </span>
+        <p className="mt-3 max-w-xs text-xs leading-relaxed text-ink-soft">
+          {done
+            ? `Next time, unlock Luma on this device with ${label} instead of typing your passcode.`
+            : `Skip the passcode on this device. Your face or fingerprint never leaves this device — Luma only keeps a key that ${label} unlocks.`}
+        </p>
+        {error && (
+          <p role="alert" className="mt-3 text-[11.5px] text-danger">
+            {error}
+          </p>
+        )}
+        {!done && (
+          <div className="mt-5 flex w-full gap-2">
+            <Button variant="secondary" className="flex-1" onClick={() => close(true)} disabled={busy}>
+              Not now
+            </Button>
+            <Button className="flex-1" icon={<ScanFace size={14} />} loading={busy} loadingText="Setting up…" onClick={() => void turnOn()}>
+              Turn on
+            </Button>
+          </div>
+        )}
+      </div>
+    </Modal>
+  )
 }
 
 /** A small pill in the last minutes of the session, so the sign-out never comes as a surprise. */
@@ -143,6 +237,40 @@ function SignInScreen({ reason, onSignedIn }: { reason: 'expired' | 'refused' | 
   const [busy, setBusy] = useState(false)
   const [slow, setSlow] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [device, setDevice] = useState(() => enrolledDevice())
+  const [deviceReady, setDeviceReady] = useState(false)
+  const [deviceBusy, setDeviceBusy] = useState(false)
+  const label = biometricLabel()
+  const showDevice = !!device && deviceReady
+
+  useEffect(() => {
+    if (!device) return
+    void devicesSupported().then(setDeviceReady)
+  }, [device])
+
+  const unlockWithDevice = async () => {
+    if (deviceBusy || busy) return
+    setDeviceBusy(true)
+    setError(null)
+    try {
+      const { deviceId, secret } = await unlockThisDevice()
+      const { token, expiresAt } = await signInWithDevice(deviceId, secret)
+      clearAuthSession()
+      setAuthSession(token, expiresAt)
+      onSignedIn()
+    } catch (err) {
+      if (!isBiometricCancel(err)) {
+        if (err && typeof err === 'object' && 'revoked' in err && err.revoked) {
+          forgetDevice()
+          setDevice(null)
+          setError(`${label} sign-in was turned off for this device. Use your passcode.`)
+        } else {
+          setError(err instanceof Error ? err.message : `Couldn't unlock with ${label}.`)
+        }
+      }
+      setDeviceBusy(false)
+    }
+  }
 
   useEffect(() => {
     if (!busy) return
@@ -164,6 +292,11 @@ function SignInScreen({ reason, onSignedIn }: { reason: 'expired' | 'refused' | 
       clearAuthSession()
       setAuthSession(token, expiresAt)
       setPasscode('')
+      try {
+        sessionStorage.setItem(OFFER_FLAG, '1')
+      } catch {
+        // no offer this time
+      }
       onSignedIn()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't sign in.")
@@ -190,7 +323,20 @@ function SignInScreen({ reason, onSignedIn }: { reason: 'expired' | 'refused' | 
         <h1 className="mt-5 font-display text-2xl italic text-ink">{title}</h1>
         <p className="mt-1.5 text-xs leading-relaxed text-ink-soft">{subtitle}</p>
 
-        <label htmlFor="passcode" className="mt-6 mb-1.5 block text-xs font-medium text-ink-soft">
+        {showDevice && (
+          <>
+            <Button type="button" size="lg" className="mt-6 w-full" icon={<ScanFace size={17} />} loading={deviceBusy} loadingText="Unlocking…" onClick={() => void unlockWithDevice()}>
+              Unlock with {label}
+            </Button>
+            <div className="mt-5 flex items-center gap-3 text-[10.5px] uppercase tracking-[0.1em] text-ink-muted">
+              <span className="h-px flex-1 bg-border-soft" />
+              or use your passcode
+              <span className="h-px flex-1 bg-border-soft" />
+            </div>
+          </>
+        )}
+
+        <label htmlFor="passcode" className={cn('mb-1.5 block text-xs font-medium text-ink-soft', showDevice ? 'mt-4' : 'mt-6')}>
           Passcode
         </label>
         <div
@@ -203,7 +349,7 @@ function SignInScreen({ reason, onSignedIn }: { reason: 'expired' | 'refused' | 
             id="passcode"
             type={show ? 'text' : 'password'}
             autoComplete="current-password"
-            autoFocus
+            autoFocus={!device}
             value={passcode}
             onChange={(e) => setPasscode(e.target.value)}
             disabled={busy}
@@ -227,7 +373,7 @@ function SignInScreen({ reason, onSignedIn }: { reason: 'expired' | 'refused' | 
           </p>
         )}
 
-        <Button type="submit" size="lg" className="mt-6 w-full" loading={busy} loadingText={slow ? 'Google is slow, still checking…' : 'Checking…'} disabled={!passcode}>
+        <Button type="submit" size="lg" variant={showDevice ? 'secondary' : 'primary'} className="mt-6 w-full" loading={busy} loadingText={slow ? 'Google is slow, still checking…' : 'Checking…'} disabled={!passcode}>
           Sign in
         </Button>
 

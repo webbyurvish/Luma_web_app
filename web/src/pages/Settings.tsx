@@ -11,6 +11,9 @@ import { Avatar } from '@/components/ui/Avatar'
 import { useToast } from '@/context/ToastContext'
 import { tabContent } from '@/lib/motion'
 import { SecuritySettings } from '@/components/settings/SecuritySettings'
+import { BiometricSettings } from '@/components/settings/BiometricSettings'
+import { BackupSettings } from '@/components/settings/BackupSettings'
+import { useRouteIntent } from '@/hooks/useRouteIntent'
 
 const sections = [
   { id: 'profile', label: 'Profile' },
@@ -18,11 +21,15 @@ const sections = [
   { id: 'notifications', label: 'Notifications' },
   { id: 'finance', label: 'Finance' },
   { id: 'security', label: 'Security' },
+  { id: 'backups', label: 'Backups' },
 ]
 
 export function Settings() {
   const { showToast } = useToast()
   const [active, setActive] = useState('profile')
+  useRouteIntent((intent) => {
+    if (intent.tab) setActive(intent.tab)
+  })
   const [notifyExpense, setNotifyExpense] = useState(true)
   const [notifyUdhaar, setNotifyUdhaar] = useState(true)
   const [notifyTasks, setNotifyTasks] = useState(false)
@@ -34,7 +41,9 @@ export function Settings() {
 
   return (
     <div className="flex flex-col gap-4 pt-3">
-      <Tabs tabs={sections} active={active} onChange={setActive} className="w-fit" layoutId="settings-tabs-indicator" />
+      <div className="-mx-1 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
+        <Tabs tabs={sections} active={active} onChange={setActive} className="w-fit" layoutId="settings-tabs-indicator" />
+      </div>
 
       <motion.div key={active} variants={tabContent} initial="hidden" animate="visible" className="flex flex-col gap-4">
       {active === 'profile' && (
@@ -132,8 +141,12 @@ export function Settings() {
       )}
 
       {active === 'security' && (
-        <SecuritySettings />
+        <>
+          <SecuritySettings />
+          <BiometricSettings />
+        </>
       )}
+      {active === 'backups' && <BackupSettings />}
       </motion.div>
     </div>
   )
