@@ -36,8 +36,10 @@ interface Entry {
   generation: number
 }
 
-type BootstrapKey = 'accounts' | 'investments' | 'sips' | 'liabilities' | 'transactions' | 'udhaar'
-const BOOTSTRAP_KEYS: BootstrapKey[] = ['accounts', 'investments', 'sips', 'liabilities', 'transactions', 'udhaar']
+// Everything the first screen and the notification bell need, in one request. A key an older
+// deployment doesn't return simply falls back to its own route.
+type BootstrapKey = 'accounts' | 'investments' | 'sips' | 'liabilities' | 'transactions' | 'udhaar' | 'tasks' | 'bills' | 'budgets'
+const BOOTSTRAP_KEYS: BootstrapKey[] = ['accounts', 'investments', 'sips', 'liabilities', 'transactions', 'udhaar', 'tasks', 'bills', 'budgets']
 // v2: rows are cleaned by normalizeSheetRows before caching — v1 copies may hold raw serial dates.
 const CACHE_PREFIX = 'luma:cache:v2:'
 const CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000

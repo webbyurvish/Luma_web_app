@@ -1,11 +1,9 @@
-import { useMemo, useState } from 'react'
+import { lazy, Suspense, useMemo, useState } from 'react'
 import { CirclePlus } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { MonthSelector, monthValueToKey, type MonthValue } from '@/components/dashboard/MonthSelector'
 import { OverviewBand } from '@/components/dashboard/OverviewBand'
-import { SpendingChart } from '@/components/dashboard/SpendingChart'
-import { CategoryDonut } from '@/components/dashboard/CategoryDonut'
 import { QuickActions } from '@/components/dashboard/QuickActions'
 import { AIInsightCard } from '@/components/dashboard/AIInsightCard'
 import { RecentActivity } from '@/components/dashboard/RecentActivity'
@@ -15,6 +13,10 @@ import { FinanceSnapshotCard } from '@/components/dashboard/FinanceSnapshotCard'
 import { QuickActionModal } from '@/components/common/QuickActionModal'
 import { QuickAddBar } from '@/components/ai/QuickAddBar'
 import { ChartCardSkeleton } from '@/components/ui/Skeleton'
+
+// The charts library is the heaviest part of Home; the numbers render first, charts stream in.
+const SpendingChart = lazy(() => import('@/components/dashboard/SpendingChart').then((m) => ({ default: m.SpendingChart })))
+const CategoryDonut = lazy(() => import('@/components/dashboard/CategoryDonut').then((m) => ({ default: m.CategoryDonut })))
 import { useTransactions } from '@/hooks/useTransactions'
 import { currentIstMonth } from '@/lib/formatDate'
 import {
@@ -77,9 +79,13 @@ export function Dashboard() {
 
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
             <div className="xl:col-span-2">
-              <SpendingChart loading={loading} weeklyData={weeklySpending} monthlyData={monthlySpending} />
+              <Suspense fallback={<ChartCardSkeleton />}>
+                <SpendingChart loading={loading} weeklyData={weeklySpending} monthlyData={monthlySpending} />
+              </Suspense>
             </div>
-            <CategoryDonut loading={loading} data={categorySpending} totalExpense={summary.totalExpense} />
+            <Suspense fallback={<ChartCardSkeleton />}>
+              <CategoryDonut loading={loading} data={categorySpending} totalExpense={summary.totalExpense} />
+            </Suspense>
           </div>
 
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">

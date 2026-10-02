@@ -82,11 +82,23 @@ function doGet(e) {
     if (action === "bootstrap") {
       const data = {};
       const errors = {};
-      const lumaKeys = ["accounts", "investments", "sips", "liabilities", "udhaar"];
+      const lumaKeys = ["accounts", "investments", "sips", "liabilities", "udhaar", "tasks"];
 
       lumaKeys.forEach(key => {
         try {
           data[key] = readEntity_(LUMA_GET_ROUTES[key], false);
+        } catch (err) {
+          errors[key] = safeMessage_(err);
+        }
+      });
+
+      // Bills and budgets (Luma_Planning): the notification bell needs them on every page,
+      // so they ride along instead of costing two more round trips.
+      ["bills", "budgets"].forEach(key => {
+        try {
+          var planningSheet = LUMA_PLANNING_LISTS[key];
+          lumaPlanningSheet_(planningSheet);
+          data[key] = readEntity_(planningSheet, true);
         } catch (err) {
           errors[key] = safeMessage_(err);
         }

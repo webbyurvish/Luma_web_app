@@ -1,3 +1,5 @@
+import type { RawBill, RawBudget } from './planning'
+
 /** Raw transaction row exactly as the Google Apps Script Web App returns it.
  *  id/status/voidedAt are only populated once the sheet's lifecycle columns
  *  exist (backfillTransactionIds()) — id falls back to "" on older rows. */
@@ -158,6 +160,9 @@ export interface BootstrapApiResponse {
     liabilities: RawLiability[]
     transactions: RawTransaction[]
     udhaar: RawUdhaar[]
+    tasks: RawTask[]
+    bills: RawBill[]
+    budgets: RawBudget[]
   }>
   errors?: Record<string, string>
   error?: string
