@@ -4,6 +4,7 @@ import { getPageMeta } from './pageMeta'
 import { useSidebar } from '@/context/SidebarContext'
 import { Avatar } from '@/components/ui/Avatar'
 import { NotificationBell } from './NotificationBell'
+import { openCommandPalette } from '@/components/command/CommandPaletteHost'
 
 export function Header() {
   const location = useLocation()
@@ -31,11 +32,20 @@ export function Header() {
         <button
           type="button"
           aria-label="Search"
+          onClick={openCommandPalette}
           className="hidden items-center gap-2 rounded-sm border border-border bg-surface px-3 py-1.5 text-[11px] text-ink-muted transition-colors hover:border-ink-soft hover:text-ink lg:flex lg:w-52 xl:w-64"
         >
           <Search size={13} className="shrink-0" />
           <span className="flex-1 text-left">Search</span>
           <kbd className="shrink-0 rounded-xs border border-border px-1 py-0.5 font-mono-figure text-[9px] text-ink-muted">⌘K</kbd>
+        </button>
+        <button
+          type="button"
+          aria-label="Search"
+          onClick={openCommandPalette}
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border border-border text-ink-soft transition-colors hover:border-ink-soft hover:text-ink lg:hidden"
+        >
+          <Search size={15} />
         </button>
         <NotificationBell />
         <Avatar name="Urvish Krina" size={32} className="hidden sm:flex" />

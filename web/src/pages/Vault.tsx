@@ -10,6 +10,7 @@ import { VaultItemDetail } from '@/components/vault/VaultItemDetail'
 import { VaultItemEditor } from '@/components/vault/VaultItemEditor'
 import { ChangeMasterDialog, ResetVaultDialog } from '@/components/vault/VaultDialogs'
 import { useToast } from '@/context/ToastContext'
+import { useRouteIntent } from '@/hooks/useRouteIntent'
 import { deleteVaultItem, loadVault, lockVault, saveVaultItem, useVault } from '@/hooks/useVault'
 import { cn } from '@/lib/cn'
 import { getErrorMessage } from '@/lib/errors'
@@ -24,6 +25,13 @@ export function Vault() {
   const [filter, setFilter] = useState<Filter>('all')
   const [search, setSearch] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  useRouteIntent((intent) => {
+    if (intent.openId) {
+      setSelectedId(intent.openId)
+      setSearch('')
+      setFilter('all')
+    }
+  })
   const [editor, setEditor] = useState<{ item: VaultItem | null; type: VaultItemType | null } | null>(null)
   const [saving, setSaving] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<VaultItem | null>(null)

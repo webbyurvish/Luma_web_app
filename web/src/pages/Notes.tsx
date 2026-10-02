@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { NotebookText, Plus, Search } from 'lucide-react'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
@@ -15,6 +15,7 @@ import { NoteEditor } from '@/components/notes/NoteEditor'
 import { NoteDetail } from '@/components/notes/NoteDetail'
 import { NOTE_CATEGORIES } from '@/data/mockNotes'
 import { useNotes } from '@/hooks/useNotes'
+import { useRouteIntent } from '@/hooks/useRouteIntent'
 import { useToast } from '@/context/ToastContext'
 import type { Note, NoteInput } from '@/types'
 
@@ -26,6 +27,20 @@ export function Notes() {
   const [search, setSearch] = useState('')
 
   const [viewingNote, setViewingNote] = useState<Note | null>(null)
+  // The palette can open one note directly; it may arrive before the notes have loaded.
+  const [pendingNoteId, setPendingNoteId] = useState<string | null>(null)
+  useRouteIntent((intent) => {
+    if (intent.search !== undefined) setSearch(intent.search)
+    if (intent.openId) setPendingNoteId(intent.openId)
+  })
+  useEffect(() => {
+    if (!pendingNoteId) return
+    const note = notes.find((n) => n.id === pendingNoteId)
+    if (note) {
+      setViewingNote(note)
+      setPendingNoteId(null)
+    }
+  }, [pendingNoteId, notes])
   const [editorTarget, setEditorTarget] = useState<Note | 'new' | null>(null)
   const [archiveTarget, setArchiveTarget] = useState<Note | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Note | null>(null)

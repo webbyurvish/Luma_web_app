@@ -12,6 +12,7 @@ import { DeleteRecordDialog } from '@/components/ui/DeleteRecordDialog'
 import { TransactionEditor } from '@/components/transactions/TransactionEditor'
 import { QuickAddBar } from '@/components/ai/QuickAddBar'
 import { useTransactions } from '@/hooks/useTransactions'
+import { useRouteIntent } from '@/hooks/useRouteIntent'
 import { useAccounts } from '@/hooks/useFinanceCollections'
 import { getRecentTransactions } from '@/lib/transactionCalculations'
 import { useToast } from '@/context/ToastContext'
@@ -24,6 +25,10 @@ export function Transactions() {
   const { showToast } = useToast()
   const { transactions, loading, refreshing, error, refetch, createTransaction, creating, voidTransaction, voiding, updateTransaction, updating, deleteTransaction, deleting } = useTransactions()
   const [search, setSearch] = useState('')
+  useRouteIntent((intent) => {
+    if (intent.search !== undefined) setSearch(intent.search)
+    if (intent.accountId) setAccount(intent.accountId)
+  })
   const [type, setType] = useState<TransactionType | 'all'>('all')
   const [category, setCategory] = useState('all')
   const { accounts } = useAccounts()

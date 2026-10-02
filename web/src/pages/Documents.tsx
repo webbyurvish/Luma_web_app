@@ -18,6 +18,7 @@ import { FolderNameDialog, FolderPickerDialog } from '@/components/documents/Fol
 import { UploadTray } from '@/components/documents/UploadTray'
 import { driveLinks, expiryState } from '@/components/documents/driveLinks'
 import { useDriveDocuments } from '@/hooks/useDriveDocuments'
+import { useRouteIntent } from '@/hooks/useRouteIntent'
 import { FamilyStructureWizard } from '@/components/documents/FamilyStructureWizard'
 import type { FolderSpec } from '@/lib/familyFolders'
 import { useToast } from '@/context/ToastContext'
@@ -53,6 +54,9 @@ export function Documents() {
 
   const [currentId, setCurrentId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  useRouteIntent((intent) => {
+    if (intent.search !== undefined) setSearch(intent.search)
+  })
   const [view, setView] = useState<ViewMode>(loadView)
   const [dialog, setDialog] = useState<Dialog>(null)
   const [openFile, setOpenFile] = useState<{ file: DriveFile; edit: boolean } | null>(null)

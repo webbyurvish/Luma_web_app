@@ -3,6 +3,7 @@ import { Header } from './Header'
 import { PageTransition } from './PageTransition'
 import { SidebarProvider } from '@/context/SidebarContext'
 import { ToastProvider } from '@/context/ToastContext'
+import { CommandPaletteHost } from '@/components/command/CommandPaletteHost'
 
 export function AppShell() {
   return (
@@ -17,6 +18,7 @@ export function AppShell() {
             </main>
           </div>
         </div>
+        <CommandPaletteHost />
       </ToastProvider>
     </SidebarProvider>
   )
