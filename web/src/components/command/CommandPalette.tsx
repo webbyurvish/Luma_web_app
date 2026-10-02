@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
+import { serviceInText } from '@/lib/family'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -23,6 +24,10 @@ import {
   Sparkles,
   Undo2,
   Wallet,
+  Gift,
+  Smartphone,
+  UserRound,
+  ImageDown,
   type LucideIcon,
 } from 'lucide-react'
 import { QuickActionModal, type QuickActionKind } from '@/components/common/QuickActionModal'
@@ -32,6 +37,7 @@ import { useAccounts } from '@/hooks/useFinanceCollections'
 import { useBills } from '@/hooks/usePlanning'
 import { useTasks, useUdhaar } from '@/hooks/useLifeCollections'
 import { useNotes } from '@/hooks/useNotes'
+import { useImportantDates, useRecharges } from '@/hooks/useFamily'
 import { lockVault, useVault } from '@/hooks/useVault'
 import { useToast } from '@/context/ToastContext'
 import { getSnapshot, subscribe } from '@/lib/remoteStore'
@@ -106,6 +112,8 @@ function PaletteBody({ onClose, onAdd }: { onClose: () => void; onAdd: (kind: Qu
   const { people } = useUdhaar()
   const { tasks } = useTasks()
   const { notes } = useNotes()
+  const { recharges } = useRecharges()
+  const { dates: importantDates } = useImportantDates()
   const vault = useVault()
   const drive = useSyncExternalStore(
     (l) => subscribe('drive', l),
@@ -192,6 +200,10 @@ function PaletteBody({ onClose, onAdd }: { onClose: () => void; onAdd: (kind: Qu
       ['SIPs', '/finance', CalendarClock, { tab: 'sips' }],
       ['Backups and export', '/settings', DatabaseBackup, { tab: 'backups' }],
       ['Face ID sign-in', '/settings', ScanFace, { tab: 'security' }],
+      ['Birthdays and dates', '/family', Gift, { tab: 'dates' }],
+      ['Family recharges', '/family', Smartphone, { tab: 'recharges' }],
+      ['Form kit', '/family', UserRound, { tab: 'formkit' }],
+      ['Photo and signature resizer', '/family', ImageDown, { tab: 'resizer' }],
     ]
     pages.forEach(([title, to, icon, state]) =>
       push({ id: `page-${title}`, group: 'Go to', icon, title, meta: 'Page', run: () => go(to, state) }, q ? best(q, title) : 0),
@@ -216,6 +228,18 @@ function PaletteBody({ onClose, onAdd }: { onClose: () => void; onAdd: (kind: Qu
           score,
         )
       })
+      recharges.forEach((r) =>
+        push(
+          { id: `rch-${r.id}`, group: 'Family', icon: Smartphone, title: `${r.person}'s ${serviceInText(r.service)}`, detail: [r.provider, r.number, `expires ${formatDate(r.expiresOn)}`].filter(Boolean).join(' · '), meta: formatCurrency(r.amount), run: () => go('/family', { tab: 'recharges' }) },
+          best(q, r.person, r.service, r.provider, r.number),
+        ),
+      )
+      importantDates.forEach((d) =>
+        push(
+          { id: `date-${d.id}`, group: 'Family', icon: Gift, title: d.title || `${d.person}'s ${d.occasion.toLowerCase()}`, detail: formatDate(d.date.slice(0, 4) === '1900' ? `${new Date().getFullYear()}${d.date.slice(4)}` : d.date), run: () => go('/family', { tab: 'dates' }) },
+          best(q, d.person, d.title, d.occasion),
+        ),
+      )
       bills.forEach((b) =>
         push(
           { id: `bill-${b.id}`, group: 'Bills', icon: CalendarClock, title: b.name, detail: `${b.frequency} · due ${formatDate(b.nextDueDate)}`, meta: formatCurrency(b.amount), run: () => go('/finance', { tab: 'bills' }) },
@@ -259,7 +283,7 @@ function PaletteBody({ onClose, onAdd }: { onClose: () => void; onAdd: (kind: Qu
         )
     }
 
-    const order = ['Add', 'Actions', 'Go to', 'Transactions', 'Bills', 'Accounts', 'Udhaar', 'Tasks', 'Notes', 'Documents', 'Vault']
+    const order = ['Add', 'Actions', 'Go to', 'Family', 'Transactions', 'Bills', 'Accounts', 'Udhaar', 'Tasks', 'Notes', 'Documents', 'Vault']
     const grouped = order.flatMap((g) =>
       out
         .filter((i) => i.group === g)
@@ -267,7 +291,7 @@ function PaletteBody({ onClose, onAdd }: { onClose: () => void; onAdd: (kind: Qu
         .slice(0, q ? (g === 'Transactions' ? 6 : 4) : g === 'Actions' ? 8 : 0),
     )
     return grouped
-  }, [query, transactions, bills, accounts, people, tasks, notes, drive, vault, aiAdd, add, go, onClose, showToast])
+  }, [query, transactions, recharges, importantDates, bills, accounts, people, tasks, notes, drive, vault, aiAdd, add, go, onClose, showToast])
 
   useEffect(() => setActive(0), [query])
   useEffect(() => {

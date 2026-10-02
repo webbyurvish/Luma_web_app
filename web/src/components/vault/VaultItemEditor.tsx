@@ -241,6 +241,17 @@ function FieldInput({ def, value, onChange }: { def: VaultFieldDef; value: strin
       return <SecretInput id={id} value={value} onChange={onChange} generator={def.key === 'password' || def.key === 'netBankingPassword'} meter />
     case 'pin':
       return <SecretInput id={id} value={value} onChange={(v) => onChange(v.replace(/\D/g, '').slice(0, 8))} inputMode="numeric" />
+    case 'textarea':
+      return (
+        <textarea
+          id={id}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          rows={3}
+          placeholder={def.placeholder}
+          className="w-full resize-y rounded-sm border border-border bg-surface px-3 py-2 text-xs leading-relaxed text-ink placeholder:text-ink-muted focus:border-rust focus:outline-none"
+        />
+      )
     case 'select':
       return <ThemedSelect id={id} value={value} onChange={onChange} placeholder="Choose…" options={(def.options ?? []).map((o) => ({ value: o, label: o }))} />
     case 'cardNumber': {

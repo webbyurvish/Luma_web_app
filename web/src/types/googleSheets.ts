@@ -1,4 +1,5 @@
 import type { RawBill, RawBudget } from './planning'
+import type { RawImportantDate, RawRecharge } from './family'
 
 /** Raw transaction row exactly as the Google Apps Script Web App returns it.
  *  id/status/voidedAt are only populated once the sheet's lifecycle columns
@@ -163,6 +164,8 @@ export interface BootstrapApiResponse {
     tasks: RawTask[]
     bills: RawBill[]
     budgets: RawBudget[]
+    recharges: RawRecharge[]
+    importantdates: RawImportantDate[]
   }>
   errors?: Record<string, string>
   error?: string

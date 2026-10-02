@@ -82,6 +82,10 @@ npm run dev
 - **Backups** (`Luma_Backup.js`): nightly copy of the spreadsheet into a "Luma Backups" Drive
   folder (newest 30 kept), "Back up now" and a full Excel export in Settings → Backups.
   Run `setupLumaBackups()` once in the editor to grant the permissions and switch it on.
+- **Family** (`Luma_Family.js`, `/family`): important dates (birthdays, anniversaries,
+  remembrance days), family prepaid recharges with a "Recharged" history (and optional
+  expense), form kits stored as encrypted Vault items, and an on-device photo/signature
+  resizer for portal size limits. Dates and recharges also feed the bell and the daily email.
 - The Vercel deployment sends security headers (`web/vercel.json`): a strict Content Security
   Policy, no framing, no referrer, no search indexing.
 - The **iPhone Shortcut** sends `"key": "<LUMA_SHORTCUT_KEY>"` in its JSON; that key can only add a

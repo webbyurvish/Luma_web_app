@@ -137,7 +137,7 @@ export function VaultItemDetail({ item, reused, onEdit, onDelete, onToggleFavori
                 <div key={def.key} className="group flex items-center gap-2 px-3.5 py-2.5">
                   <div className="min-w-0 flex-1">
                     <dt className="text-[10px] font-medium uppercase tracking-[0.08em] text-ink-muted">{def.label}</dt>
-                    <dd className={cn('mt-0.5 break-all text-[13px] text-ink', (def.sensitive || def.kind === 'cardNumber') && 'font-mono-figure')}>
+                    <dd className={cn('mt-0.5 text-[13px] text-ink', def.kind === 'textarea' ? 'whitespace-pre-wrap break-words' : 'break-all', (def.sensitive || def.kind === 'cardNumber') && 'font-mono-figure')}>
                       {def.kind === 'url' && link ? (
                         <a href={link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-rust hover:underline">
                           {hostOf(value)} <ExternalLink size={11} />

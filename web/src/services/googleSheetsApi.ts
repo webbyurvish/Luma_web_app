@@ -18,6 +18,9 @@ import type {
   RawVaultItem,
   RawBill,
   RawBudget,
+  RawRecharge,
+  RawRechargeLog,
+  RawImportantDate,
   TransactionsApiResponse,
 } from '@/types'
 import type { VaultMeta } from '@/lib/vaultCrypto'
@@ -1069,4 +1072,78 @@ export async function signInWithDevice(deviceId: string, secret: string): Promis
   const body = await authPost<{ token?: string; expiresAt?: number; revoked?: boolean }>({ deviceLogin: secret, deviceId }, false)
   if (!body.success || !body.token || !body.expiresAt) throw Object.assign(new GoogleSheetsApiError(body.error || "Couldn't sign in."), { revoked: !!body.revoked })
   return { token: body.token, expiresAt: body.expiresAt }
+}
+
+/* Family: recharges and important dates (Luma_Family). Gated like bills — an older deployment
+ * never receives a recharge/importantdate POST (it would become a Shortcut transaction). */
+
+export const FAMILY_NEEDS_DEPLOY = 'Family features need the latest Apps Script deployment (clasp push → Deploy → New version).'
+let familyCapability: Promise<void> | null = null
+
+async function fetchFamilyList<T>(action: 'recharges' | 'rechargehistory' | 'importantdates', signal?: AbortSignal): Promise<T[]> {
+  try {
+    const rows = await fetchList<T>(action, signal)
+    familyCapability ??= Promise.resolve()
+    return rows
+  } catch (err) {
+    if (err instanceof GoogleSheetsApiError && /Unknown action/i.test(err.message)) throw new GoogleSheetsApiError(FAMILY_NEEDS_DEPLOY)
+    throw err
+  }
+}
+
+function requireFamily(): Promise<void> {
+  familyCapability ??= fetchJson<{ success: boolean; error?: string }>('recharges')
+    .then((body) => {
+      if (!body.success) throw new GoogleSheetsApiError(/Unknown action/i.test(body.error ?? '') ? FAMILY_NEEDS_DEPLOY : body.error || "Couldn't reach Luma.")
+    })
+    .catch((err: unknown) => {
+      familyCapability = null
+      throw err
+    })
+  return familyCapability
+}
+
+export const getRecharges = (signal?: AbortSignal) => fetchFamilyList<RawRecharge>('recharges', signal)
+export const getRechargeHistory = (signal?: AbortSignal) => fetchFamilyList<RawRechargeLog>('rechargehistory', signal)
+export const getImportantDates = (signal?: AbortSignal) => fetchFamilyList<RawImportantDate>('importantdates', signal)
+
+const familyWrite = async (action: 'recharge' | 'importantdate', payload: Record<string, unknown>) => {
+  await requireFamily()
+  return postEntity(action, payload)
+}
+
+export const createRecharge = (payload: Record<string, unknown>) => familyWrite('recharge', payload)
+export const updateRecharge = (id: string, payload: Record<string, unknown>) => familyWrite('recharge', { operation: 'update', id, ...payload })
+export const deleteRecharge = (id: string) => familyWrite('recharge', { operation: 'delete', id })
+export const createImportantDate = (payload: Record<string, unknown>) => familyWrite('importantdate', payload)
+export const updateImportantDate = (id: string, payload: Record<string, unknown>) => familyWrite('importantdate', { operation: 'update', id, ...payload })
+export const deleteImportantDate = (id: string) => familyWrite('importantdate', { operation: 'delete', id })
+
+/** Records a recharge done. Never retried; `expectedExpiry` stops a double tap from logging it twice. */
+export async function markRecharged(
+  id: string,
+  details: { expectedExpiry: string; date: string; amount: number; plan?: string; validityDays: number; recordExpense: boolean; accountId?: string; paymentMethod?: string },
+): Promise<{ validUntil: string; expenseRecorded: boolean }> {
+  await requireFamily()
+  let result: { status: number; ok: boolean; text: string }
+  try {
+    result = await fetchTextWithin(
+      buildEndpoint('recharge'),
+      { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ operation: 'recharged', id, ...details }) },
+      60_000,
+      undefined,
+      true,
+    )
+  } catch (cause) {
+    if (cause instanceof AuthRequiredError) throw cause
+    throw new GoogleSheetsApiError("Google didn't confirm. Refresh in a moment to see whether it was recorded.")
+  }
+  let body: { success?: boolean; error?: string; validUntil?: string; expenseRecorded?: boolean; alreadyDone?: boolean }
+  try {
+    body = JSON.parse(result.text)
+  } catch {
+    throw new GoogleSheetsApiError("Google didn't confirm. Refresh in a moment to see whether it was recorded.")
+  }
+  if (!body.success || !body.validUntil) throw Object.assign(new GoogleSheetsApiError(body.error || "Couldn't record the recharge."), { alreadyDone: !!body.alreadyDone })
+  return { validUntil: body.validUntil, expenseRecorded: !!body.expenseRecorded }
 }

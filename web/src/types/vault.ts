@@ -1,4 +1,4 @@
-export type VaultItemType = 'login' | 'card' | 'bank' | 'identity' | 'wifi' | 'note'
+export type VaultItemType = 'person' | 'login' | 'card' | 'bank' | 'identity' | 'wifi' | 'note'
 
 /** What gets encrypted — one JSON object per item. */
 export interface VaultItemContent {

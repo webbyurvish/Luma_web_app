@@ -1,4 +1,4 @@
-import { FileText, HandCoins, Home, ListChecks, LockKeyhole, NotebookText, Settings, Sparkles, Wallet, type LucideIcon } from 'lucide-react'
+import { FileText, HandCoins, Home, ListChecks, LockKeyhole, NotebookText, Users, Settings, Sparkles, Wallet, type LucideIcon } from 'lucide-react'
 
 export interface NavItem {
   to: string
@@ -31,6 +31,7 @@ export const navGroups: NavGroup[] = [
     items: [
       { to: '/tasks', label: 'Tasks', icon: ListChecks },
       { to: '/notes', label: 'Notes', icon: NotebookText },
+      { to: '/family', label: 'Family', icon: Users },
     ],
   },
   {

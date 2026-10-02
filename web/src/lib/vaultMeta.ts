@@ -1,7 +1,7 @@
-import { CreditCard, FileBadge, KeyRound, Landmark, StickyNote, Wifi, type LucideIcon } from 'lucide-react'
+import { CreditCard, FileBadge, KeyRound, Landmark, StickyNote, UserRound, Wifi, type LucideIcon } from 'lucide-react'
 import type { VaultItem, VaultItemContent, VaultItemType } from '@/types'
 
-export type VaultFieldKind = 'text' | 'secret' | 'url' | 'cardNumber' | 'expiry' | 'select' | 'pin'
+export type VaultFieldKind = 'text' | 'secret' | 'url' | 'cardNumber' | 'expiry' | 'select' | 'pin' | 'textarea'
 
 export interface VaultFieldDef {
   key: string
@@ -30,6 +30,37 @@ export interface VaultTypeMeta {
 }
 
 export const VAULT_TYPE_META: Record<VaultItemType, VaultTypeMeta> = {
+  person: {
+    label: 'Family member',
+    plural: 'Form kits',
+    icon: UserRound,
+    description: 'Everything forms ask for, one tap to copy',
+    titlePlaceholder: 'e.g. Mom — Sunita Sharma',
+    fields: [
+      { key: 'fullName', label: 'Full name (as on ID)', kind: 'text', copy: true },
+      { key: 'dob', label: 'Date of birth', kind: 'text', placeholder: 'DD/MM/YYYY', copy: true, half: true },
+      { key: 'gender', label: 'Gender', kind: 'select', options: ['Female', 'Male', 'Other'], half: true },
+      { key: 'fatherName', label: "Father's name", kind: 'text', copy: true },
+      { key: 'motherName', label: "Mother's name", kind: 'text', copy: true },
+      { key: 'spouseName', label: "Spouse's name", kind: 'text', copy: true },
+      { key: 'mobile', label: 'Mobile', kind: 'text', copy: true, inputMode: 'numeric', half: true },
+      { key: 'email', label: 'Email', kind: 'text', copy: true, inputMode: 'email', half: true },
+      { key: 'aadhaar', label: 'Aadhaar number', kind: 'text', copy: true, sensitive: true, showLast4: true, inputMode: 'numeric' },
+      { key: 'pan', label: 'PAN', kind: 'text', copy: true, sensitive: true, showLast4: true, half: true },
+      { key: 'voterId', label: 'Voter ID', kind: 'text', copy: true, sensitive: true, showLast4: true, half: true },
+      { key: 'passport', label: 'Passport number', kind: 'text', copy: true, sensitive: true, showLast4: true, half: true },
+      { key: 'passportExpiry', label: 'Passport valid till', kind: 'text', placeholder: 'DD/MM/YYYY', copy: true, half: true },
+      { key: 'drivingLicence', label: 'Driving licence', kind: 'text', copy: true, sensitive: true, showLast4: true },
+      { key: 'address', label: 'Address', kind: 'textarea', copy: true },
+      { key: 'pincode', label: 'PIN code', kind: 'text', copy: true, inputMode: 'numeric', half: true },
+      { key: 'bloodGroup', label: 'Blood group', kind: 'select', options: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'], half: true },
+      { key: 'bankAccount', label: 'Bank account number', kind: 'text', copy: true, sensitive: true, showLast4: true, inputMode: 'numeric' },
+      { key: 'ifsc', label: 'IFSC', kind: 'text', copy: true, half: true },
+      { key: 'occupation', label: 'Occupation', kind: 'text', copy: true, half: true },
+      { key: 'maritalStatus', label: 'Marital status', kind: 'select', options: ['Single', 'Married', 'Widowed', 'Divorced'], half: true },
+      { key: 'nationality', label: 'Nationality', kind: 'text', placeholder: 'Indian', copy: true, half: true },
+    ],
+  },
   login: {
     label: 'Login',
     plural: 'Logins',
@@ -245,6 +276,8 @@ export function itemSubtitle(item: VaultItemContent): string {
   const f = item.fields
   const last4 = (v?: string) => (v ? `•••• ${v.replace(/\s/g, '').slice(-4)}` : '')
   switch (item.type) {
+    case 'person':
+      return [f.fullName, f.dob].filter(Boolean).join(' · ') || 'Family member'
     case 'login':
       return f.username || hostOf(f.website) || 'Login'
     case 'card':

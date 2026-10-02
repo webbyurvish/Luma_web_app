@@ -30,6 +30,10 @@ function doGet(e) {
   var backupGet = tryHandleLumaBackupGet_(e);
   if (backupGet) return backupGet;
 
+  // Family recharges and important dates (Luma_Family). Null for every other action.
+  var familyGet = tryHandleLumaFamilyGet_(e);
+  if (familyGet) return familyGet;
+
   // Luma Documents in Google Drive (Luma_Drive). Null for every other action.
   var driveGet = tryHandleLumaDriveGet_(e);
   if (driveGet) return driveGet;
@@ -98,6 +102,17 @@ function doGet(e) {
 
       // Bills and budgets (Luma_Planning): the notification bell needs them on every page,
       // so they ride along instead of costing two more round trips.
+      // Recharges and important dates (Luma_Family), for the bell and the Family page.
+      ["recharges", "importantdates"].forEach(key => {
+        try {
+          var familySheet = LUMA_FAMILY_LISTS[key];
+          lumaFamilySheet_(familySheet);
+          data[key] = readEntity_(familySheet, true);
+        } catch (err) {
+          errors[key] = safeMessage_(err);
+        }
+      });
+
       ["bills", "budgets"].forEach(key => {
         try {
           var planningSheet = LUMA_PLANNING_LISTS[key];
@@ -271,6 +286,10 @@ function doPost(e) {
   // Backups and the Excel export carry a "backupOp" field.
   var backup = tryHandleLumaBackup_(e);
   if (backup) return backup;
+
+  // Family recharges and important dates (action: "recharge" | "importantdate").
+  var family = tryHandleLumaFamily_(e);
+  if (family) return family;
 
   // Document operations (Luma_Drive) carry a "driveOp" field; everything else gets null.
   var drive = tryHandleLumaDrive_(e);

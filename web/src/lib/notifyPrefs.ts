@@ -1,9 +1,11 @@
 import { useSyncExternalStore } from 'react'
 
 /** Which kinds of alerts the bell shows — per device, outside the luma:* data keys. */
-export type NotifyKind = 'bill' | 'budget' | 'task' | 'sip' | 'udhaar' | 'document'
+export type NotifyKind = 'bill' | 'budget' | 'task' | 'sip' | 'udhaar' | 'document' | 'recharge' | 'date'
 
 export const NOTIFY_KINDS: { kind: NotifyKind; title: string; detail: string }[] = [
+  { kind: 'date', title: 'Birthdays and important dates', detail: 'Before family birthdays, anniversaries and remembrance days' },
+  { kind: 'recharge', title: 'Recharges', detail: 'Before a family mobile, DTH or FASTag recharge runs out' },
   { kind: 'bill', title: 'Bills due', detail: 'Before each bill is due, and when one is overdue' },
   { kind: 'budget', title: 'Budget limits', detail: 'When a category reaches its warning level or goes over' },
   { kind: 'udhaar', title: 'Udhaar reminders', detail: "When money you're owed is due or late" },

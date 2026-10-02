@@ -10,6 +10,8 @@ import { useSips } from './useFinanceCollections'
 import { useTransactions } from './useTransactions'
 import type { DriveTree } from '@/types'
 import { useNotifyPrefs } from '@/lib/notifyPrefs'
+import { useImportantDates, useRecharges } from './useFamily'
+import { countLabel, dateTitle, expiryLabel, nextOccurrence, rechargeStatus, serviceInText } from '@/lib/family'
 
 export type NotificationTone = 'danger' | 'warn' | 'info'
 
@@ -17,7 +19,7 @@ export interface AppNotification {
   /** Stable per occurrence (e.g. bill + due date), so a dismissal doesn't hide next month's. */
   id: string
   tone: NotificationTone
-  kind: 'bill' | 'budget' | 'task' | 'sip' | 'udhaar' | 'document'
+  kind: 'bill' | 'budget' | 'task' | 'sip' | 'udhaar' | 'document' | 'recharge' | 'date'
   title: string
   detail: string
   /** Where tapping it goes. */
@@ -63,6 +65,8 @@ export function useNotifications() {
   const { sips } = useSips()
   const { people } = useUdhaar()
   const { transactions } = useTransactions()
+  const { recharges } = useRecharges()
+  const { dates } = useImportantDates()
   // Documents only count once the (heavy) Drive listing has been loaded by the Documents page.
   const drive = useSyncExternalStore(
     (l) => subscribe('drive', l),
@@ -139,6 +143,35 @@ export function useNotifications() {
       })
     })
 
+    recharges.forEach((r) => {
+      const { state, days } = rechargeStatus(r, today)
+      if (state !== 'expired' && state !== 'today' && state !== 'soon') return
+      out.push({
+        id: `recharge:${r.id}:${r.expiresOn}`,
+        tone: state === 'soon' ? 'warn' : 'danger',
+        kind: 'recharge',
+        title: `${r.person}'s ${serviceInText(r.service)}${r.provider ? ' · ' + r.provider : ''}`,
+        detail: `${expiryLabel(days)}${r.number ? ' · ' + r.number : ''}`,
+        to: '/family',
+        state: { tab: 'recharges' },
+      })
+    })
+
+    dates.forEach((d) => {
+      const next = nextOccurrence(d, today)
+      if (next.days > d.remindDaysBefore) return
+      const extra = countLabel(d, next.count)
+      out.push({
+        id: `date:${d.id}:${next.date}`,
+        tone: next.days === 0 ? 'warn' : 'info',
+        kind: 'date',
+        title: dateTitle(d),
+        detail: (next.days === 0 ? 'Today' : next.days === 1 ? 'Tomorrow' : `In ${next.days} days · ${formatDate(next.date)}`) + (extra ? ` · ${extra}` : ''),
+        to: '/family',
+        state: { tab: 'dates' },
+      })
+    })
+
     const tree = (drive.raw as DriveTree[] | null)?.[0]
     tree?.files.forEach((file) => {
       if (!file.expiryDate || file.expiryDate > addDays(today, 30)) return
@@ -153,7 +186,7 @@ export function useNotifications() {
     })
 
     return out.sort((a, b) => TONE_ORDER[a.tone] - TONE_ORDER[b.tone])
-  }, [bills, budgets, tasks, sips, people, transactions, drive, today, month])
+  }, [bills, budgets, tasks, sips, people, transactions, recharges, dates, drive, today, month])
 
   const visible = useMemo(() => all.filter((n) => prefs[n.kind] && !dismissed.has(n.id)), [all, dismissed, prefs])
 

@@ -37,6 +37,7 @@ const pageLoaders = {
   Tasks: withReload(() => import('@/pages/Tasks').then((m) => ({ default: m.Tasks }))),
   Documents: withReload(() => import('@/pages/Documents').then((m) => ({ default: m.Documents }))),
   Notes: withReload(() => import('@/pages/Notes').then((m) => ({ default: m.Notes }))),
+  Family: withReload(() => import('@/pages/Family').then((m) => ({ default: m.Family }))),
   Vault: withReload(() => import('@/pages/Vault').then((m) => ({ default: m.Vault }))),
   Assistant: withReload(() => import('@/pages/Assistant').then((m) => ({ default: m.Assistant }))),
   Settings: withReload(() => import('@/pages/Settings').then((m) => ({ default: m.Settings }))),
@@ -49,6 +50,7 @@ const Udhaar = lazy(pageLoaders.Udhaar)
 const Tasks = lazy(pageLoaders.Tasks)
 const Documents = lazy(pageLoaders.Documents)
 const Notes = lazy(pageLoaders.Notes)
+const Family = lazy(pageLoaders.Family)
 const Vault = lazy(pageLoaders.Vault)
 const Assistant = lazy(pageLoaders.Assistant)
 const Settings = lazy(pageLoaders.Settings)
@@ -82,6 +84,7 @@ function App() {
         <Route path="/tasks" element={<Tasks />} />
         <Route path="/documents" element={<Documents />} />
         <Route path="/notes" element={<Notes />} />
+        <Route path="/family" element={<Family />} />
         <Route path="/vault" element={<Vault />} />
         <Route path="/assistant" element={<Assistant />} />
         <Route path="/settings" element={<Settings />} />

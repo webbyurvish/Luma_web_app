@@ -341,13 +341,19 @@ function lumaDailyDigest(force) {
     });
   } catch (err) { Logger.log('digest documents: ' + err.message); }
 
-  var total = lines.bills.length + lines.tasks.length + lines.budgets.length + lines.documents.length;
+  var family = typeof lumaFamilyDigestLines_ === 'function' ? lumaFamilyDigestLines_(today) : { recharges: [], dates: [] };
+  lines.recharges = family.recharges;
+  lines.dates = family.dates;
+
+  var total = lines.bills.length + lines.tasks.length + lines.budgets.length + lines.documents.length + lines.recharges.length + lines.dates.length;
   if (!total && !force) return;
 
   var section = function (title, list) { return list.length ? title + '\n' + list.map(function (l) { return '  • ' + l; }).join('\n') + '\n\n' : ''; };
   var body =
     (total ? '' : 'Nothing needs your attention today. (Test email.)\n\n') +
+    section('Birthdays and important dates', lines.dates) +
     section('Bills', lines.bills) +
+    section('Recharges', lines.recharges) +
     section('Tasks', lines.tasks) +
     section('Budgets near or over the limit', lines.budgets) +
     section('Documents expiring', lines.documents) +

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Bell, BellOff, CalendarClock, CheckCheck, FileWarning, HandCoins, ListChecks, PiggyBank, Receipt, X, type LucideIcon } from 'lucide-react'
+import { Bell, BellOff, CalendarClock, CheckCheck, FileWarning, Gift, HandCoins, ListChecks, PiggyBank, Receipt, Smartphone, X, type LucideIcon } from 'lucide-react'
 import { useNotifications, type AppNotification, type NotificationTone } from '@/hooks/useNotifications'
 import { cn } from '@/lib/cn'
 
@@ -12,6 +12,8 @@ const KIND_ICON: Record<AppNotification['kind'], LucideIcon> = {
   sip: CalendarClock,
   udhaar: HandCoins,
   document: FileWarning,
+  recharge: Smartphone,
+  date: Gift,
 }
 
 const TONE: Record<NotificationTone, { dot: string; icon: string; label: string }> = {
