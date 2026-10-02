@@ -132,7 +132,7 @@ export function NotificationBell() {
                               type="button"
                               onClick={() => dismiss(n.id)}
                               aria-label="Dismiss"
-                              className="mt-0.5 rounded-full p-1 text-ink-muted opacity-60 transition-opacity hover:bg-card hover:text-ink group-hover:opacity-100"
+                              className="mt-0.5 rounded-full p-1 text-ink-muted pointer-fine:opacity-60 transition-opacity hover:bg-card hover:text-ink pointer-fine:group-hover:opacity-100"
                             >
                               <X size={12} />
                             </button>

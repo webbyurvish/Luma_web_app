@@ -30,7 +30,8 @@ const variantClasses: Record<ButtonVariant, string> = {
 }
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: 'h-7 px-2.5 text-[11px] gap-1.5',
+  // Touch screens get a taller small button (36px) — easier to hit with a thumb.
+  sm: 'h-7 pointer-coarse:h-9 px-2.5 pointer-coarse:px-3 text-[11px] gap-1.5',
   md: 'h-9 px-3.5 text-xs gap-1.5',
   lg: 'h-11 px-5 text-sm gap-2',
 }

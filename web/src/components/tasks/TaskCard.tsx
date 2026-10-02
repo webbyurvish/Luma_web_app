@@ -1,3 +1,4 @@
+import { RowActions } from '@/components/ui/RowActions'
 import { Archive, Check, Pencil, Trash2 } from 'lucide-react'
 import { Badge, type BadgeVariant } from '@/components/ui/Badge'
 import { Spinner } from '@/components/ui/Loader'
@@ -36,7 +37,7 @@ export function TaskCard({ task, toggling, overdue, onToggle, onEdit, onArchive,
         aria-pressed={task.completed}
         aria-busy={toggling || undefined}
         className={cn(
-          'flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-[1.5px] transition-colors disabled:cursor-wait',
+          'relative flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-[1.5px] transition-colors after:absolute after:-inset-2.5 after:content-[""] disabled:cursor-wait',
           toggling
             ? 'border-rust text-rust'
             : task.completed
@@ -48,41 +49,22 @@ export function TaskCard({ task, toggling, overdue, onToggle, onEdit, onArchive,
       </button>
 
       <div className="min-w-0 flex-1">
-        <p className={cn('truncate text-xs font-medium text-ink', task.completed && 'text-ink-muted line-through')}>{task.title}</p>
+        <p className={cn('line-clamp-2 break-words text-xs font-medium leading-snug text-ink sm:truncate', task.completed && 'text-ink-muted line-through')}>{task.title}</p>
         <p className={cn('mt-0.5 text-[10px] uppercase tracking-[0.04em]', overdue ? 'text-danger' : 'text-ink-muted')}>{meta}</p>
-      </div>
-
-      <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-        <button
-          type="button"
-          onClick={() => onEdit(task)}
-          aria-label={`Edit ${task.title}`}
-          className="rounded-full p-1.5 text-ink-muted transition-colors hover:bg-bg-soft hover:text-ink"
-        >
-          <Pencil size={13} />
-        </button>
-        <button
-          type="button"
-          onClick={() => onArchive(task)}
-          aria-label={`Archive ${task.title}`}
-          className="rounded-full p-1.5 text-ink-muted transition-colors hover:bg-warning-soft hover:text-warning"
-        >
-          <Archive size={13} />
-        </button>
-        <button
-          type="button"
-          onClick={() => onDelete(task)}
-          aria-label={`Delete ${task.title} permanently`}
-          title="Delete permanently"
-          className="rounded-full p-1.5 text-ink-muted transition-colors hover:bg-danger-soft hover:text-danger"
-        >
-          <Trash2 size={13} />
-        </button>
       </div>
 
       <Badge variant={priority.variant} className="shrink-0">
         {priority.label}
       </Badge>
+
+      <RowActions
+        label={`Actions for ${task.title}`}
+        actions={[
+          { label: 'Edit', ariaLabel: `Edit ${task.title}`, icon: <Pencil size={13} />, onClick: () => onEdit(task) },
+          { label: 'Archive', ariaLabel: `Archive ${task.title}`, icon: <Archive size={13} />, onClick: () => onArchive(task), tone: 'warning' },
+          { label: 'Delete', ariaLabel: `Delete ${task.title} permanently`, icon: <Trash2 size={13} />, onClick: () => onDelete(task), tone: 'danger' },
+        ]}
+      />
     </div>
   )
 }

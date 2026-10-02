@@ -15,7 +15,7 @@ function NavRow({ item, collapsed, onClick }: { item: NavItem; collapsed: boolea
       onClick={onClick}
       className={({ isActive }) =>
         cn(
-          'group relative flex items-center gap-2.5 rounded-xs py-1.5 text-[13px] transition-colors duration-150',
+          'group relative flex items-center gap-2.5 rounded-xs py-1.5 pointer-coarse:py-3 text-[13px] pointer-coarse:text-sm transition-colors duration-150',
           collapsed ? 'justify-center px-0' : 'pl-3.5 pr-2',
           isActive ? 'text-paper' : 'text-paper/55 hover:bg-paper/[0.06] hover:text-paper/85',
         )
@@ -50,7 +50,7 @@ export function Sidebar() {
     <>
       <aside
         className={cn(
-          'sticky top-0 z-30 hidden h-screen shrink-0 flex-col bg-ink-rail py-5 transition-[width] duration-200 md:flex',
+          'sticky top-0 z-30 hidden h-dvh shrink-0 flex-col bg-ink-rail py-5 transition-[width] duration-200 md:flex',
           collapsed ? 'w-[72px] px-0' : 'w-[224px]',
         )}
       >

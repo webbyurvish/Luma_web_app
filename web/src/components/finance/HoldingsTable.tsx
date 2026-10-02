@@ -19,7 +19,39 @@ export function HoldingsTable({ investments, accounts, onSelect }: HoldingsTable
   const platformName = (id?: string) => accounts.find((a) => a.id === id)?.name ?? '—'
 
   return (
-    <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+    <>
+    {/* Phones: one row per holding — name, type and value without sideways scrolling. */}
+    <ul className="-mx-1 divide-y divide-border-soft sm:hidden">
+      {investments.map((investment) => {
+        const meta = INVESTMENT_TYPE_META[investment.type]
+        const gain = investment.currentValue - investment.investedAmount
+        const pct = investment.investedAmount ? (gain / investment.investedAmount) * 100 : 0
+        return (
+          <li key={investment.id}>
+            <button type="button" onClick={() => onSelect(investment)} className="flex w-full items-center gap-3 px-1 py-3 text-left">
+              <span className="min-w-0 flex-1">
+                <span className="line-clamp-2 text-[13px] font-medium leading-snug text-ink">{investment.name}</span>
+                <span className="mt-0.5 block truncate text-[11px] text-ink-muted">
+                  <span className="font-semibold uppercase tracking-[0.05em]" style={{ color: meta.color }}>
+                    {meta.label}
+                  </span>{' '}
+                  · {platformName(investment.platformAccountId)}
+                </span>
+              </span>
+              <span className="shrink-0 text-right">
+                <span className="block font-mono-figure text-[13px] font-semibold text-ink">{formatCurrency(investment.currentValue)}</span>
+                <span className={cn('block font-mono-figure text-[11px] font-semibold', gain >= 0 ? 'text-success' : 'text-danger')}>
+                  {formatCurrency(gain, { signed: true })} ({pct >= 0 ? '+' : ''}
+                  {pct.toFixed(1)}%)
+                </span>
+              </span>
+            </button>
+          </li>
+        )
+      })}
+    </ul>
+
+    <div className="hidden overflow-x-auto sm:block">
       <table className="w-full min-w-[520px] border-collapse text-sm">
         <thead>
           <tr className="border-b border-border text-left text-[10px] font-semibold uppercase tracking-[0.06em] text-ink-muted">
@@ -66,5 +98,6 @@ export function HoldingsTable({ investments, accounts, onSelect }: HoldingsTable
         </tbody>
       </table>
     </div>
+    </>
   )
 }

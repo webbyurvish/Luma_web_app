@@ -30,7 +30,7 @@ export function RecentActivity({ loading, transactions }: RecentActivityProps) {
         title="Recent activity"
         subtitle="Latest movements across your accounts"
         action={
-          <Link to="/transactions" className="text-[10px] font-semibold uppercase tracking-[0.06em] text-rust hover:underline">
+          <Link to="/transactions" className="-mx-2 -my-2.5 inline-flex px-2 py-2.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-rust hover:underline">
             View all →
           </Link>
         }

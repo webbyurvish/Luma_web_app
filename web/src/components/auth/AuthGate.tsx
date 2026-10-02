@@ -238,15 +238,10 @@ function SignInScreen({ reason, onSignedIn }: { reason: 'expired' | 'refused' | 
   const [slow, setSlow] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [device, setDevice] = useState(() => enrolledDevice())
-  const [deviceReady, setDeviceReady] = useState(false)
   const [deviceBusy, setDeviceBusy] = useState(false)
   const label = biometricLabel()
-  const showDevice = !!device && deviceReady
-
-  useEffect(() => {
-    if (!device) return
-    void devicesSupported().then(setDeviceReady)
-  }, [device])
+  // Known locally, so it shows instantly; the script's support is checked when it's tapped.
+  const showDevice = !!device
 
   const unlockWithDevice = async () => {
     if (deviceBusy || busy) return
@@ -311,7 +306,7 @@ function SignInScreen({ reason, onSignedIn }: { reason: 'expired' | 'refused' | 
       : 'Enter your passcode to open your ledger.'
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-bg px-4 py-10">
+    <div className="flex min-h-dvh items-center justify-center bg-bg px-4 py-10">
       <motion.form
         onSubmit={submit}
         initial={{ opacity: 0, y: 12 }}

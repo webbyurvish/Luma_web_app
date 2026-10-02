@@ -49,7 +49,8 @@ export function Modal({ open, onClose, title, subtitle, children, className, bus
   return createPortal(
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+        // Phones: a bottom sheet (thumb-reachable, iOS-style); larger screens: a centred dialog.
+        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:px-4">
           <motion.button
             aria-label="Close modal"
             initial={{ opacity: 0 }}
@@ -71,7 +72,8 @@ export function Modal({ open, onClose, title, subtitle, children, className, bus
             animate="visible"
             exit="exit"
             className={cn(
-              'relative z-10 w-full max-w-md rounded-hero border border-border-soft bg-card p-6 shadow-hover outline-none',
+              // Never taller than the visible screen (100dvh shrinks with the iPhone keyboard); scrolls inside.
+              'relative z-10 max-h-[calc(100dvh-1.5rem)] w-full max-w-md overflow-y-auto overscroll-contain rounded-t-hero border border-border-soft bg-card p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-hover outline-none sm:max-h-[calc(100dvh-4rem)] sm:rounded-hero sm:p-6',
               className,
             )}
           >

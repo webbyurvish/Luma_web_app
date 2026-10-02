@@ -235,7 +235,7 @@ export function Documents() {
   return (
     <div className="grid grid-cols-1 gap-5 pt-3 lg:grid-cols-[220px_1fr]">
       <aside className="hidden lg:block">
-        <div className="sticky top-3 max-h-[calc(100vh-110px)] overflow-y-auto pr-1">
+        <div className="sticky top-3 max-h-[calc(100dvh-110px)] overflow-y-auto pr-1">
           <FolderTree
             rootId={rootId}
             childFolders={childFolders}

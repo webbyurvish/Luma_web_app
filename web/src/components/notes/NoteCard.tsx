@@ -1,3 +1,4 @@
+import { RowActions } from '@/components/ui/RowActions'
 import { Archive, NotebookText, Pencil, Trash2 } from 'lucide-react'
 import { formatDate } from '@/lib/formatDate'
 import type { Note } from '@/types'
@@ -27,39 +28,15 @@ export function NoteCard({ note, onView, onEdit, onArchive, onDelete }: NoteCard
         <p className="mt-auto font-mono-figure text-[10px] text-ink-muted">Updated {formatDate(note.updatedAt)}</p>
       </button>
 
-      <div className="absolute right-3 top-3 flex items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            onEdit(note)
-          }}
-          aria-label={`Edit ${note.title}`}
-          className="rounded-xs p-1.5 text-ink-muted transition-colors hover:bg-card hover:text-ink"
-        >
-          <Pencil size={13} />
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            onArchive(note)
-          }}
-          aria-label={`Archive ${note.title}`}
-          className="rounded-xs p-1.5 text-ink-muted transition-colors hover:bg-card hover:text-warning"
-        >
-          <Archive size={13} />
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            onDelete(note)
-          }}
-          aria-label={`Delete ${note.title} permanently`}
-          title="Delete permanently"
-          className="rounded-xs p-1.5 text-ink-muted transition-colors hover:bg-card hover:text-danger"
-        >
-          <Trash2 size={13} />
-        </button>
-      </div>
+      <RowActions
+        className="absolute right-2 top-2"
+        label={`Actions for ${note.title}`}
+        actions={[
+          { label: 'Edit', ariaLabel: `Edit ${note.title}`, icon: <Pencil size={13} />, onClick: () => onEdit(note) },
+          { label: 'Archive', ariaLabel: `Archive ${note.title}`, icon: <Archive size={13} />, onClick: () => onArchive(note), tone: 'warning' },
+          { label: 'Delete', ariaLabel: `Delete ${note.title} permanently`, icon: <Trash2 size={13} />, onClick: () => onDelete(note), tone: 'danger' },
+        ]}
+      />
     </div>
   )
 }

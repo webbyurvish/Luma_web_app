@@ -14,6 +14,7 @@ import { SecuritySettings } from '@/components/settings/SecuritySettings'
 import { BiometricSettings } from '@/components/settings/BiometricSettings'
 import { BackupSettings } from '@/components/settings/BackupSettings'
 import { useRouteIntent } from '@/hooks/useRouteIntent'
+import { NOTIFY_KINDS, setNotifyPref, useNotifyPrefs } from '@/lib/notifyPrefs'
 
 const sections = [
   { id: 'profile', label: 'Profile' },
@@ -30,9 +31,7 @@ export function Settings() {
   useRouteIntent((intent) => {
     if (intent.tab) setActive(intent.tab)
   })
-  const [notifyExpense, setNotifyExpense] = useState(true)
-  const [notifyUdhaar, setNotifyUdhaar] = useState(true)
-  const [notifyTasks, setNotifyTasks] = useState(false)
+  const notifyPrefs = useNotifyPrefs()
   const [theme, setTheme] = useState('light')
   const [currency, setCurrency] = useState('INR')
   const [defaultPayment, setDefaultPayment] = useState('UPI')
@@ -89,30 +88,19 @@ export function Settings() {
 
       {active === 'notifications' && (
         <Card hoverable className="max-w-2xl">
-          <CardHeader title="Notifications" subtitle="Choose what you want to be notified about" icon={<Bell size={17} className="text-ink-soft" />} />
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-ink">Expense alerts</p>
-                <p className="text-xs text-ink-soft">Get notified for large or unusual expenses</p>
+          <CardHeader title="Notifications" subtitle="What the bell alerts you about" icon={<Bell size={17} className="text-ink-soft" />} />
+          <div className="divide-y divide-border-soft">
+            {NOTIFY_KINDS.map((k) => (
+              <div key={k.kind} className="flex items-center justify-between gap-4 py-2.5">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-ink">{k.title}</p>
+                  <p className="text-xs text-ink-soft">{k.detail}</p>
+                </div>
+                <Switch checked={notifyPrefs[k.kind]} onChange={(on) => setNotifyPref(k.kind, on)} label={k.title} />
               </div>
-              <Switch checked={notifyExpense} onChange={setNotifyExpense} label="Expense alerts" />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-ink">Udhaar reminders</p>
-                <p className="text-xs text-ink-soft">Reminders for money you're owed</p>
-              </div>
-              <Switch checked={notifyUdhaar} onChange={setNotifyUdhaar} label="Udhaar reminders" />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-ink">Task reminders</p>
-                <p className="text-xs text-ink-soft">Daily summary of pending tasks</p>
-              </div>
-              <Switch checked={notifyTasks} onChange={setNotifyTasks} label="Task reminders" />
-            </div>
+            ))}
           </div>
+          <p className="mt-3 text-[11px] text-ink-muted">Changes apply to the bell right away, on this device.</p>
         </Card>
       )}
 

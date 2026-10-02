@@ -1,4 +1,4 @@
-import { Download, Search, SlidersHorizontal } from 'lucide-react'
+import { Download, Search } from 'lucide-react'
 import { Input } from '@/components/ui/Input'
 import { ThemedSelect } from '@/components/ui/ThemedSelect'
 import { Button } from '@/components/ui/Button'
@@ -58,7 +58,9 @@ export function TransactionsFilters({
             aria-label="Search transactions"
           />
         </div>
-        <div className="w-full sm:w-40">
+        {/* Phones: the three filters share one row. */}
+        <div className="grid grid-cols-3 gap-2 sm:flex sm:gap-3">
+        <div className="min-w-0 sm:w-40">
           <ThemedSelect
             value={type}
             onChange={(next) => onTypeChange(next as TransactionType | 'all')}
@@ -66,7 +68,7 @@ export function TransactionsFilters({
             aria-label="Filter by type"
           />
         </div>
-        <div className="w-full sm:w-44">
+        <div className="min-w-0 sm:w-44">
           <ThemedSelect
             value={account}
             onChange={onAccountChange}
@@ -78,20 +80,18 @@ export function TransactionsFilters({
             aria-label="Filter by account"
           />
         </div>
-        <div className="w-full sm:w-44">
+        <div className="min-w-0 sm:w-44">
           <ThemedSelect value={category} onChange={onCategoryChange} options={categoryOptions} aria-label="Filter by category" />
+        </div>
         </div>
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
-        <Button variant="secondary" size="sm" icon={<SlidersHorizontal size={13} />}>
-          Filter
-        </Button>
         <Button variant="secondary" size="sm" icon={<Download size={13} />} onClick={onExport}>
           Export
         </Button>
-        <Button size="sm" onClick={onAdd}>
-          Add Transaction
+        <Button size="sm" className="flex-1 sm:flex-none" onClick={onAdd}>
+          Add transaction
         </Button>
       </div>
     </div>

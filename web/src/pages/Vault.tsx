@@ -230,7 +230,7 @@ export function Vault() {
             {visible.length === 0 ? (
               <p className="px-4 py-10 text-center text-xs text-ink-muted">Nothing matches{search ? ` “${search}”` : ''}.</p>
             ) : (
-              <ul className="max-h-[calc(100vh-260px)] min-h-[200px] divide-y divide-border-soft overflow-y-auto">
+              <ul className="max-h-[calc(100dvh-260px)] min-h-[200px] divide-y divide-border-soft overflow-y-auto">
                 {visible.map((item) => {
                   const Icon = VAULT_TYPE_META[item.type].icon
                   const exp = itemExpiry(item)

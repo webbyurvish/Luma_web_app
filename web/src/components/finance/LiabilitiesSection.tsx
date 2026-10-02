@@ -1,3 +1,4 @@
+import { RowActions } from '@/components/ui/RowActions'
 import { useState } from 'react'
 import { Archive, Pencil, Plus, Trash2 } from 'lucide-react'
 import { Card, CardHeader } from '@/components/ui/Card'
@@ -116,33 +117,14 @@ export function LiabilitiesSection({ accounts }: LiabilitiesSectionProps) {
             <span className="text-ink-soft">{liability.name}</span>
             <div className="flex shrink-0 items-center gap-2">
               <span className="font-mono-figure font-semibold text-ink">{formatCurrency(liability.amount)}</span>
-              <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-                <button
-                  type="button"
-                  onClick={() => setEditorTarget(liability)}
-                  aria-label={`Edit ${liability.name}`}
-                  className="rounded-full p-1.5 text-ink-muted transition-colors hover:bg-bg-soft hover:text-ink"
-                >
-                  <Pencil size={13} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCloseTarget(liability)}
-                  aria-label={`Close ${liability.name}`}
-                  className="rounded-full p-1.5 text-ink-muted transition-colors hover:bg-warning-soft hover:text-warning"
-                >
-                  <Archive size={13} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDeleteTarget(liability)}
-                  aria-label={`Delete ${liability.name} permanently`}
-                  title="Delete permanently"
-                  className="rounded-full p-1.5 text-ink-muted transition-colors hover:bg-danger-soft hover:text-danger"
-                >
-                  <Trash2 size={13} />
-                </button>
-              </div>
+              <RowActions
+                label={`Actions for ${liability.name}`}
+                actions={[
+                  { label: 'Edit', ariaLabel: `Edit ${liability.name}`, icon: <Pencil size={13} />, onClick: () => setEditorTarget(liability) },
+                  { label: 'Close', ariaLabel: `Close ${liability.name}`, icon: <Archive size={13} />, onClick: () => setCloseTarget(liability), tone: 'warning' },
+                  { label: 'Delete', ariaLabel: `Delete ${liability.name} permanently`, icon: <Trash2 size={13} />, onClick: () => setDeleteTarget(liability), tone: 'danger' },
+                ]}
+              />
             </div>
           </li>
         ))}

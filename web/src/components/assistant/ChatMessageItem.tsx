@@ -77,7 +77,7 @@ function AssistantMessage({ message, animate, onRetry }: Required<Pick<ChatMessa
         )}
 
         {!message.error && done && (
-          <div className="mt-1.5 flex items-center gap-1 pl-3 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+          <div className="mt-1.5 flex items-center gap-1 pl-3 pointer-fine:opacity-0 transition-opacity pointer-fine:group-hover:opacity-100 focus-within:opacity-100">
             <button
               type="button"
               onClick={copy}

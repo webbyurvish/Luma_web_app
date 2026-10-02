@@ -1,3 +1,4 @@
+import { RowActions } from '@/components/ui/RowActions'
 import { Archive, Pencil, Trash2 } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { formatCurrency } from '@/lib/formatCurrency'
@@ -29,35 +30,14 @@ export function SipRow({ sip, platform, onEdit, onDeactivate, onDelete }: SipRow
         </p>
       </div>
       <span className="shrink-0 font-mono-figure text-xs font-semibold text-ink">{formatCurrency(sip.amount)}</span>
-      <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-        <button
-          type="button"
-          onClick={() => onEdit(sip)}
-          aria-label={`Edit ${sip.fundName}`}
-          className="rounded-full p-1.5 text-ink-muted transition-colors hover:bg-bg-soft hover:text-ink"
-        >
-          <Pencil size={13} />
-        </button>
-        {sip.isActive && (
-          <button
-            type="button"
-            onClick={() => onDeactivate(sip)}
-            aria-label={`Deactivate ${sip.fundName}`}
-            className="rounded-full p-1.5 text-ink-muted transition-colors hover:bg-warning-soft hover:text-warning"
-          >
-            <Archive size={13} />
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={() => onDelete(sip)}
-          aria-label={`Delete ${sip.fundName} permanently`}
-          title="Delete permanently"
-          className="rounded-full p-1.5 text-ink-muted transition-colors hover:bg-danger-soft hover:text-danger"
-        >
-          <Trash2 size={13} />
-        </button>
-      </div>
+      <RowActions
+        label={`Actions for ${sip.fundName}`}
+        actions={[
+          { label: 'Edit', ariaLabel: `Edit ${sip.fundName}`, icon: <Pencil size={13} />, onClick: () => onEdit(sip) },
+          { label: 'Deactivate', ariaLabel: `Deactivate ${sip.fundName}`, icon: <Archive size={13} />, onClick: () => onDeactivate(sip), tone: 'warning', hidden: !sip.isActive },
+          { label: 'Delete', ariaLabel: `Delete ${sip.fundName} permanently`, icon: <Trash2 size={13} />, onClick: () => onDelete(sip), tone: 'danger' },
+        ]}
+      />
     </div>
   )
 }

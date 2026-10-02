@@ -324,7 +324,7 @@ function PaletteBody({ onClose, onAdd }: { onClose: () => void; onAdd: (kind: Qu
           <kbd className="hidden shrink-0 rounded-xs border border-border px-1.5 py-0.5 font-mono-figure text-[10px] text-ink-muted sm:block">Esc</kbd>
         </div>
 
-        <div ref={listRef} role="listbox" className="max-h-[min(60vh,440px)] overflow-y-auto py-1.5">
+        <div ref={listRef} role="listbox" className="max-h-[min(60vh,440px)] overflow-y-auto py-1.5 pointer-coarse:max-h-[38vh]">
           {items.length === 0 ? (
             <p className="px-4 py-10 text-center text-xs text-ink-muted">Nothing found for “{query}”.</p>
           ) : (

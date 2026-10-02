@@ -154,7 +154,7 @@ export function Assistant() {
 
   return (
     <div className="grid grid-cols-1 gap-4 pt-3 lg:grid-cols-[1fr_232px]">
-      <Card variant="panel" className="flex h-[calc(100vh-130px)] min-h-[520px] flex-col p-0">
+      <Card variant="panel" className="flex h-[calc(100dvh-130px)] min-h-[520px] flex-col p-0">
         <header className="flex items-center justify-between gap-3 border-b border-border-soft px-5 py-3">
           <div className="flex items-center gap-2.5">
             <LumaSpark size={24} />

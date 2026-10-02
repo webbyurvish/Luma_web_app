@@ -187,6 +187,20 @@
 
   html {
     -webkit-font-smoothing: antialiased;
+    /* iPhone: no grey flash on every tap, and no double-tap zoom delay. */
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  /* Touch screens: icon buttons and links get a target of at least 36px (Apple asks for ~44pt);
+     what they look like on a desktop with a mouse is unchanged. */
+  @media (pointer: coarse) {
+    button:has(> svg:only-child),
+    a:has(> svg:only-child),
+    [role='button']:has(> svg:only-child) {
+      min-width: 36px;
+      min-height: 36px;
+    }
   }
 
   body {

@@ -9,6 +9,7 @@ import { useTasks, useUdhaar } from './useLifeCollections'
 import { useSips } from './useFinanceCollections'
 import { useTransactions } from './useTransactions'
 import type { DriveTree } from '@/types'
+import { useNotifyPrefs } from '@/lib/notifyPrefs'
 
 export type NotificationTone = 'danger' | 'warn' | 'info'
 
@@ -68,6 +69,7 @@ export function useNotifications() {
     () => getSnapshot('drive'),
   )
   const [dismissed, setDismissed] = useState(readDismissed)
+  const prefs = useNotifyPrefs()
 
   const all = useMemo<AppNotification[]>(() => {
     const out: AppNotification[] = []
@@ -153,7 +155,7 @@ export function useNotifications() {
     return out.sort((a, b) => TONE_ORDER[a.tone] - TONE_ORDER[b.tone])
   }, [bills, budgets, tasks, sips, people, transactions, drive, today, month])
 
-  const visible = useMemo(() => all.filter((n) => !dismissed.has(n.id)), [all, dismissed])
+  const visible = useMemo(() => all.filter((n) => prefs[n.kind] && !dismissed.has(n.id)), [all, dismissed, prefs])
 
   const dismiss = useCallback((id: string) => {
     setDismissed((prev) => {

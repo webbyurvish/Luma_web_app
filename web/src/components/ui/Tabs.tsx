@@ -20,7 +20,7 @@ export function Tabs({ tabs, active, onChange, className, layoutId = 'tabs-indic
           aria-selected={active === tab.id}
           onClick={() => onChange(tab.id)}
           className={cn(
-            'relative pb-2.5 text-xs font-medium uppercase tracking-[0.05em] transition-colors duration-150',
+            'relative shrink-0 whitespace-nowrap pb-2.5 pointer-coarse:pt-2 pointer-coarse:pb-3 text-xs font-medium uppercase tracking-[0.05em] transition-colors duration-150',
             active === tab.id ? 'text-ink' : 'text-ink-muted hover:text-ink-soft',
           )}
         >

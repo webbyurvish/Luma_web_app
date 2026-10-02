@@ -1,6 +1,7 @@
 import { cn } from '@/lib/cn'
 import { Archive, Pencil, Trash2 } from 'lucide-react'
 import { ACCOUNT_TYPE_META } from '@/lib/accountMeta'
+import { RowActions } from '@/components/ui/RowActions'
 import { formatCurrency } from '@/lib/formatCurrency'
 import type { FinancialAccount } from '@/types'
 
@@ -30,7 +31,7 @@ export function AccountRow({ account, onEdit, onArchive, onDelete, onOpen }: Acc
         <Icon size={13} />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-xs font-medium text-ink">{account.name}</p>
+        <p className="line-clamp-2 break-words text-xs font-medium leading-snug text-ink sm:truncate">{account.name}</p>
         <p className="truncate text-[10.5px] text-ink-muted">
           {meta.label}
           {account.accountNumberLast4 && <> · •••• {account.accountNumberLast4}</>}
@@ -42,33 +43,14 @@ export function AccountRow({ account, onEdit, onArchive, onDelete, onOpen }: Acc
         </p>
         {isCreditCard && account.balance > 0 && <p className="text-[10px] uppercase tracking-[0.05em] text-ink-muted">Outstanding</p>}
       </div>
-      <div onClick={(e) => e.stopPropagation()} className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-        <button
-          type="button"
-          onClick={() => onEdit(account)}
-          aria-label={`Edit ${account.name}`}
-          className="rounded-full p-1.5 text-ink-muted transition-colors hover:bg-bg-soft hover:text-ink"
-        >
-          <Pencil size={13} />
-        </button>
-        <button
-          type="button"
-          onClick={() => onArchive(account)}
-          aria-label={`Archive ${account.name}`}
-          className="rounded-full p-1.5 text-ink-muted transition-colors hover:bg-warning-soft hover:text-warning"
-        >
-          <Archive size={13} />
-        </button>
-        <button
-          type="button"
-          onClick={() => onDelete(account)}
-          aria-label={`Delete ${account.name} permanently`}
-          title="Delete permanently"
-          className="rounded-full p-1.5 text-ink-muted transition-colors hover:bg-danger-soft hover:text-danger"
-        >
-          <Trash2 size={13} />
-        </button>
-      </div>
+      <RowActions
+        label={`Actions for ${account.name}`}
+        actions={[
+          { label: 'Edit', ariaLabel: `Edit ${account.name}`, icon: <Pencil size={13} />, onClick: () => onEdit(account) },
+          { label: 'Archive', ariaLabel: `Archive ${account.name}`, icon: <Archive size={13} />, onClick: () => onArchive(account), tone: 'warning' },
+          { label: 'Delete', ariaLabel: `Delete ${account.name} permanently`, icon: <Trash2 size={13} />, onClick: () => onDelete(account), tone: 'danger' },
+        ]}
+      />
     </div>
   )
 }

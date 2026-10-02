@@ -137,7 +137,7 @@ export function BudgetsSection() {
                       <span className="font-mono-figure text-ink-soft">{formatCurrency(u.spent)}</span> of {formatCurrency(u.budget.monthlyLimit)} · alert at {u.budget.alertAtPercent}%
                     </p>
                   </div>
-                  <div className="flex shrink-0 items-center gap-0.5 opacity-70 transition-opacity group-hover:opacity-100">
+                  <div className="flex shrink-0 items-center gap-0.5 pointer-fine:opacity-70 transition-opacity pointer-fine:group-hover:opacity-100">
                     <button type="button" onClick={() => setEditor({ budget: u.budget })} aria-label={`Edit ${u.budget.category} budget`} className="rounded-full p-1.5 text-ink-muted hover:bg-bg-soft hover:text-ink">
                       <Pencil size={13} />
                     </button>

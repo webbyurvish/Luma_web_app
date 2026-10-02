@@ -79,7 +79,7 @@ export function BillsSection() {
   return (
     <div className="relative space-y-4">
       <SyncBar active={refreshing} className="rounded-none" />
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
         <Stat label="Bills per month" value={formatCurrency(monthlyBillTotal(bills))} hint={`${bills.filter((b) => b.isActive).length} active bills`} />
         <Stat label="Due in the next 7 days" value={formatCurrency(dueWeek.reduce((s, b) => s + b.bill.amount, 0))} hint={`${dueWeek.length} bill${dueWeek.length === 1 ? '' : 's'}`} />
         <Stat
@@ -90,9 +90,9 @@ export function BillsSection() {
         />
       </div>
 
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-xs text-ink-soft">Mark a bill paid and Luma records the expense, updates the account and moves it to the next due date.</p>
-        <Button size="sm" icon={<Plus size={13} />} onClick={() => setEditor('new')}>
+        <Button size="sm" className="shrink-0 self-start sm:self-auto" icon={<Plus size={13} />} onClick={() => setEditor('new')}>
           Add bill
         </Button>
       </div>
@@ -271,9 +271,9 @@ function PayBillDialog({
 
 function Stat({ label, value, hint, tone }: { label: string; value: string; hint: string; tone?: 'danger' | 'ok' }) {
   return (
-    <Card className="px-4 py-3.5">
-      <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-ink-muted">{label}</p>
-      <p className={cn('mt-1 font-mono-figure text-xl font-semibold', tone === 'danger' ? 'text-danger' : 'text-ink')}>{value}</p>
+    <Card className="min-w-0 px-3 py-3 sm:px-4 sm:py-3.5">
+      <p className="text-[9.5px] font-semibold uppercase leading-tight tracking-[0.06em] text-ink-muted sm:text-[10.5px] sm:tracking-[0.08em]">{label}</p>
+      <p className={cn('mt-1 truncate font-mono-figure text-[15px] font-semibold sm:text-xl', tone === 'danger' ? 'text-danger' : 'text-ink')}>{value}</p>
       <p className={cn('mt-0.5 text-[11px]', tone === 'ok' ? 'text-success' : 'text-ink-muted')}>{hint}</p>
     </Card>
   )

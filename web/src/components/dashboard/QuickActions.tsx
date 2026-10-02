@@ -38,7 +38,7 @@ export function QuickActions() {
             >
               <action.icon size={14} className={cn('shrink-0 transition-transform duration-150 group-hover:translate-x-0.5', action.color)} />
               <span className="flex-1">{action.label}</span>
-              <span className="text-ink-muted opacity-0 transition-opacity group-hover:opacity-100">→</span>
+              <span className="text-ink-muted pointer-fine:opacity-0 transition-opacity pointer-fine:group-hover:opacity-100">→</span>
             </button>
           </li>
         ))}

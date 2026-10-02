@@ -35,7 +35,7 @@ export function FinanceSnapshotCard() {
         title="Financial Snapshot"
         subtitle="Your complete money picture"
         action={
-          <Link to="/finance" className="text-[10px] font-semibold uppercase tracking-[0.06em] text-rust hover:underline">
+          <Link to="/finance" className="-mx-2 -my-2.5 inline-flex px-2 py-2.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-rust hover:underline">
             View finances →
           </Link>
         }
