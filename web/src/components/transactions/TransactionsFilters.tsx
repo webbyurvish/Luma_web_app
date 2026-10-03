@@ -1,4 +1,4 @@
-import { Download, Search } from 'lucide-react'
+import { Download, FileUp, Search } from 'lucide-react'
 import { Input } from '@/components/ui/Input'
 import { ThemedSelect } from '@/components/ui/ThemedSelect'
 import { Button } from '@/components/ui/Button'
@@ -30,6 +30,7 @@ interface TransactionsFiltersProps {
   onAccountChange: (value: string) => void
   accounts: FinancialAccount[]
   onExport: () => void
+  onImport: () => void
   onAdd: () => void
 }
 
@@ -44,6 +45,7 @@ export function TransactionsFilters({
   onAccountChange,
   accounts,
   onExport,
+  onImport,
   onAdd,
 }: TransactionsFiltersProps) {
   return (
@@ -87,6 +89,9 @@ export function TransactionsFilters({
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
+        <Button variant="secondary" size="sm" icon={<FileUp size={13} />} onClick={onImport}>
+          Import
+        </Button>
         <Button variant="secondary" size="sm" icon={<Download size={13} />} onClick={onExport}>
           Export
         </Button>

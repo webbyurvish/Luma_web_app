@@ -36,6 +36,8 @@ export interface Transaction {
   accountId?: string
   /** Transfers only: the account the money moved to. */
   toAccountId?: string
+  /** Statement reference (e.g. the UPI transaction ID of an imported Google Pay payment). */
+  reference?: string
   /** Original, un-mapped category text from the data source — used for grouping so a real
    *  category the fixed CategoryId set doesn't recognize isn't lost inside "other". */
   rawCategory?: string

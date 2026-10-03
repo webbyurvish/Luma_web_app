@@ -9,6 +9,7 @@ import {
   CornerDownLeft,
   DatabaseBackup,
   FileText,
+  FileUp,
   HandCoins,
   KeyRound,
   Landmark,
@@ -177,6 +178,7 @@ function PaletteBody({ onClose, onAdd }: { onClose: () => void; onAdd: (kind: Qu
       ['Add task', ListChecks, 'task'],
       ['Add bill', Receipt, () => go('/finance', { tab: 'bills' })],
       ['Upload document', FileText, () => go('/documents')],
+      ['Import Google Pay statement', FileUp, () => go('/transactions', { tab: 'import-gpay' })],
       ...(vault.phase === 'unlocked' ? [['Lock vault', Lock, () => (lockVault(), onClose(), showToast('Vault locked'))] as [string, LucideIcon, () => void]] : []),
       [
         'Sign out',

@@ -20,6 +20,7 @@ export interface RawTransaction {
   voidedAt?: string | null
   accountId?: string | null
   toAccountId?: string | null
+  reference?: string | null
 }
 
 export interface TransactionsApiResponse {

@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/Card'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { DeleteRecordDialog } from '@/components/ui/DeleteRecordDialog'
 import { TransactionEditor } from '@/components/transactions/TransactionEditor'
+import { GpayImport } from '@/components/transactions/GpayImport'
 import { QuickAddBar } from '@/components/ai/QuickAddBar'
 import { useTransactions } from '@/hooks/useTransactions'
 import { useRouteIntent } from '@/hooks/useRouteIntent'
@@ -25,16 +26,18 @@ export function Transactions() {
   const { showToast } = useToast()
   const { transactions, loading, refreshing, error, refetch, createTransaction, creating, voidTransaction, voiding, updateTransaction, updating, deleteTransaction, deleting } = useTransactions()
   const [search, setSearch] = useState('')
-  useRouteIntent((intent) => {
-    if (intent.search !== undefined) setSearch(intent.search)
-    if (intent.accountId) setAccount(intent.accountId)
-  })
   const [type, setType] = useState<TransactionType | 'all'>('all')
   const [category, setCategory] = useState('all')
-  const { accounts } = useAccounts()
+  const { accounts, refetch: refetchAccounts } = useAccounts()
   // "View transactions" on an account lands here pre-filtered to it.
   const location = useLocation()
   const [account, setAccount] = useState<string>(() => (location.state as { accountId?: string } | null)?.accountId ?? 'all')
+  const [importOpen, setImportOpen] = useState(false)
+  useRouteIntent((intent) => {
+    if (intent.search !== undefined) setSearch(intent.search)
+    if (intent.accountId) setAccount(intent.accountId)
+    if (intent.tab === 'import-gpay') setImportOpen(true)
+  })
   const accountNames = useMemo(() => new Map(accounts.map((a) => [a.id, a.name])), [accounts])
   const [page, setPage] = useState(1)
   const [addOpen, setAddOpen] = useState(false)
@@ -125,6 +128,7 @@ export function Transactions() {
         }}
         accounts={accounts}
         onExport={() => showToast('Export is coming in a future phase', 'info')}
+        onImport={() => setImportOpen(true)}
         onAdd={() => setAddOpen(true)}
       />
 
@@ -154,6 +158,21 @@ export function Transactions() {
         onClose={() => setAddOpen(false)}
         onSave={handleCreate}
         saving={creating}
+      />
+
+      <GpayImport
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        transactions={transactions}
+        accounts={accounts}
+        onImported={(result) => {
+          const parts = [`Imported ${result.imported} payment${result.imported === 1 ? '' : 's'}`]
+          if (result.skipped) parts.push(`${result.skipped} already in Luma`)
+          if (result.failed) parts.push(`${result.failed} couldn't be saved`)
+          showToast(parts.join(' · '), result.failed ? 'error' : 'success')
+          void refetch()
+          void refetchAccounts()
+        }}
       />
 
       <ConfirmDialog

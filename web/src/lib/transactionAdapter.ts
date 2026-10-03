@@ -69,11 +69,19 @@ export function normalizeTransactions(rows: RawTransaction[], onSkip?: (row: Raw
       return
     }
 
-    const timestamp = row.timestamp || row.date
+    // The Date column is the day the money moved; Timestamp is when the row was saved. A
+    // back-dated entry (or an imported statement) must show its own date, not the save day.
+    const dated = str(row.date).trim()
+    const saved = str(row.timestamp).trim()
+    const dateUsable = /^\d{4}-\d{2}-\d{2}/.test(dated)
+    const timestamp = dateUsable ? dated : saved || dated
     if (!timestamp) {
       onSkip?.(row, 'missing timestamp')
       return
     }
+    // Time: from the Date itself when it carries one; else the save time if it was the same day.
+    const hasOwnTime = dateUsable && /T\d{2}:\d{2}/.test(dated) && !/T00:00(:00)?/.test(dated)
+    const timeSource = hasOwnTime ? dated : saved && toIstDateKey(saved) === toIstDateKey(timestamp) ? saved : ''
 
     const category = str(row.category).trim() || 'Other'
 
@@ -83,7 +91,7 @@ export function normalizeTransactions(rows: RawTransaction[], onSkip?: (row: Raw
       description: resolveDescription(row),
       type,
       date: toIstDateKey(timestamp),
-      time: formatTime(timestamp),
+      time: timeSource ? formatTime(timeSource) : '',
       payment: str(row.paymentMethod).trim() || 'Other',
       amount,
       status: 'successful',
@@ -95,6 +103,7 @@ export function normalizeTransactions(rows: RawTransaction[], onSkip?: (row: Raw
       sourceId: str(row.id).trim() || undefined,
       accountId: str(row.accountId).trim() || undefined,
       toAccountId: str(row.toAccountId).trim() || undefined,
+      reference: str(row.reference).trim() || undefined,
     })
   })
 

@@ -4,6 +4,13 @@ const formatter = new Intl.NumberFormat('en-IN', {
   maximumFractionDigits: 0,
 })
 
+const exactFormatter = new Intl.NumberFormat('en-IN', {
+  style: 'currency',
+  currency: 'INR',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+})
+
 const compactFormatter = new Intl.NumberFormat('en-IN', {
   style: 'currency',
   currency: 'INR',
@@ -11,8 +18,9 @@ const compactFormatter = new Intl.NumberFormat('en-IN', {
   maximumFractionDigits: 1,
 })
 
-export function formatCurrency(amount: number, options?: { compact?: boolean; signed?: boolean }): string {
-  const base = options?.compact ? compactFormatter.format(Math.abs(amount)) : formatter.format(Math.abs(amount))
+export function formatCurrency(amount: number, options?: { compact?: boolean; signed?: boolean; exact?: boolean }): string {
+  // exact keeps paise (₹356.50) where an amount must match a statement.
+  const base = (options?.compact ? compactFormatter : options?.exact && !Number.isInteger(amount) ? exactFormatter : formatter).format(Math.abs(amount))
   if (options?.signed) {
     return amount < 0 ? `-${base}` : `+${base}`
   }

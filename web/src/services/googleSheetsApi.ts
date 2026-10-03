@@ -1147,3 +1147,84 @@ export async function markRecharged(
   if (!body.success || !body.validUntil) throw Object.assign(new GoogleSheetsApiError(body.error || "Couldn't record the recharge."), { alreadyDone: !!body.alreadyDone })
   return { validUntil: body.validUntil, expenseRecorded: !!body.expenseRecorded }
 }
+
+/* Statement import (Luma_Import). Gated: an older deployment never receives an importOp POST. */
+
+export const IMPORT_NEEDS_DEPLOY = 'Statement import needs the latest Apps Script deployment (clasp push → Deploy → New version).'
+let importCapability: Promise<void> | null = null
+
+function requireImport(): Promise<void> {
+  importCapability ??= fetchJson<{ success: boolean; error?: string; import?: { gpay?: boolean } }>('importstatus')
+    .then((body) => {
+      if (!body.success || !body.import?.gpay) throw new GoogleSheetsApiError(/Unknown action/i.test(body.error ?? '') || body.success ? IMPORT_NEEDS_DEPLOY : body.error || "Couldn't reach Luma.")
+    })
+    .catch((err: unknown) => {
+      importCapability = null
+      throw err
+    })
+  return importCapability
+}
+
+export interface ImportRowInput {
+  date: string
+  time: string
+  amount: number
+  type: 'Expense' | 'Income'
+  category: string
+  subcategory: string
+  paymentMethod: string
+  merchant: string
+  note: string
+  accountId: string
+  reference: string
+}
+
+export interface ImportResult {
+  imported: number
+  skipped: number
+  failed: number
+}
+
+const IMPORT_CHUNK = 40
+
+/**
+ * Sends confirmed rows in small batches (each batch is one quick script run). Never retried;
+ * it's still safe to import the same statement again — rows whose UPI reference is already
+ * in the sheet are skipped by the script.
+ */
+export async function importTransactions(rows: ImportRowInput[], source: string, onProgress?: (done: number, total: number) => void): Promise<ImportResult> {
+  await requireImport()
+  const total: ImportResult = { imported: 0, skipped: 0, failed: 0 }
+  for (let i = 0; i < rows.length; i += IMPORT_CHUNK) {
+    const chunk = rows.slice(i, i + IMPORT_CHUNK)
+    let result: { status: number; ok: boolean; text: string }
+    const unconfirmed = () =>
+      new GoogleSheetsApiError(
+        `Google didn't confirm after ${total.imported} imported. Refresh to check — importing the same statement again is safe, already-saved payments are skipped.`,
+      )
+    try {
+      result = await fetchTextWithin(
+        buildEndpoint('import'),
+        { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ importOp: 'transactions', source, rows: chunk }) },
+        120_000,
+        undefined,
+        true,
+      )
+    } catch (cause) {
+      if (cause instanceof AuthRequiredError) throw cause
+      throw unconfirmed()
+    }
+    let body: { success?: boolean; error?: string; imported?: number; skipped?: number; failed?: unknown[] }
+    try {
+      body = JSON.parse(result.text)
+    } catch {
+      throw unconfirmed()
+    }
+    if (!body.success) throw new GoogleSheetsApiError(body.error || "Couldn't import the payments.")
+    total.imported += body.imported ?? 0
+    total.skipped += body.skipped ?? 0
+    total.failed += body.failed?.length ?? 0
+    onProgress?.(Math.min(i + IMPORT_CHUNK, rows.length), rows.length)
+  }
+  return total
+}

@@ -34,6 +34,10 @@ function doGet(e) {
   var familyGet = tryHandleLumaFamilyGet_(e);
   if (familyGet) return familyGet;
 
+  // Statement import (Luma_Import). Null for every other action.
+  var importGet = tryHandleLumaImportGet_(e);
+  if (importGet) return importGet;
+
   // Luma Documents in Google Drive (Luma_Drive). Null for every other action.
   var driveGet = tryHandleLumaDriveGet_(e);
   if (driveGet) return driveGet;
@@ -176,6 +180,7 @@ function readTransactions_(spreadsheet, includeVoided) {
   const voidedAtCol = rawHeaders.indexOf("Voided At");
   const accountCol = rawHeaders.indexOf("Account ID");
   const toAccountCol = rawHeaders.indexOf("To Account ID");
+  const referenceCol = rawHeaders.indexOf("Reference");
 
   // Fields 0-9 are read by fixed index, so any column beyond J is ignored
   // and the response shape for existing fields cannot change when the
@@ -198,7 +203,8 @@ function readTransactions_(spreadsheet, includeVoided) {
       status: statusCol >= 0 ? (row[statusCol] || "Active") : "Active",
       voidedAt: voidedAtCol >= 0 && row[voidedAtCol] ? formatDate(row[voidedAtCol]) : null,
       accountId: accountCol >= 0 ? String(row[accountCol] || "") : "",
-      toAccountId: toAccountCol >= 0 ? String(row[toAccountCol] || "") : ""
+      toAccountId: toAccountCol >= 0 ? String(row[toAccountCol] || "") : "",
+      reference: referenceCol >= 0 ? String(row[referenceCol] || "") : ""
     }));
 }
 
@@ -290,6 +296,10 @@ function doPost(e) {
   // Family recharges and important dates (action: "recharge" | "importantdate").
   var family = tryHandleLumaFamily_(e);
   if (family) return family;
+
+  // Bulk import of confirmed statement rows (Google Pay PDF) carries "importOp".
+  var imported = tryHandleLumaImport_(e);
+  if (imported) return imported;
 
   // Document operations (Luma_Drive) carry a "driveOp" field; everything else gets null.
   var drive = tryHandleLumaDrive_(e);
