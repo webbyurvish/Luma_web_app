@@ -26,16 +26,16 @@ export function normalizeMerchant(name: string): string {
 }
 
 const RULES: { test: RegExp; category: string; subcategory: string }[] = [
-  { test: /swiggy|bundl|zomato|eatsure|domino|pizza|mcdonald|kfc|burger|starbucks|cafe|restaurant|dhaba|biryani|haldiram|chaayos|bakery|sweets/, category: 'Food', subcategory: 'Restaurant' },
-  { test: /blinkit|grofers|zepto|bigbasket|instamart|dmart|avenue supermarts|reliance (fresh|smart|retail)|jiomart|more retail|metro cash|kirana|provision|dairy|milk|vegetable|fruits/, category: 'Food', subcategory: 'Groceries' },
+  { test: /swiggy|bundl|zomato|eatsure|domino|pizza|mcdonald|kfc|burger|starbucks|cafe|restaurant|dhaba|biryani|haldiram|chaayos|bakery|sweets|ice ?cream|juice|vada ?pa[vu]|\bpaa?n\b|soda|\bchai\b|\btea\b|nasta|farsan|dabeli|pani ?puri/, category: 'Food', subcategory: 'Restaurant' },
+  { test: /blinkit|grofers|zepto|bigbasket|instamart|dmart|avenue supermarts|reliance (fresh|smart|retail)|jiomart|more retail|metro cash|kirana|provision|flour|\batta\b|chakki|general store|dairy|milk|vegetable|fruits/, category: 'Food', subcategory: 'Groceries' },
   { test: /\buber\b|\bola\b|ani technologies|rapido|roppen|blusmart|namma yatri|\bauto\b/, category: 'Transport', subcategory: 'Cab' },
   { test: /irctc|railway/, category: 'Transport', subcategory: 'Train' },
   { test: /redbus|abhibus|ksrtc|msrtc|gsrtc|\bbus\b/, category: 'Transport', subcategory: 'Bus' },
   { test: /metro/, category: 'Transport', subcategory: 'Metro' },
   { test: /indigo|interglobe|air india|akasa|spicejet|vistara|makemytrip|goibibo|cleartrip|ixigo|easemytrip/, category: 'Transport', subcategory: 'Travel' },
-  { test: /petrol|petroleum|\bhpcl\b|\bbpcl\b|indian oil|iocl|\bfuel|shell|nayara|filling station|service station/, category: 'Transport', subcategory: 'Fuel' },
+  { test: /petrol|petroleum|\bhpcl\b|\bbpcl\b|indian oil|iocl|\bfuel|\bcng\b|shell|nayara|filling station|service station/, category: 'Transport', subcategory: 'Fuel' },
   { test: /fastag|toll|parking/, category: 'Transport', subcategory: 'Tolls & parking' },
-  { test: /\bjio\b|reliance jio|airtel|bharti|vodafone|\bvi\b|\bidea\b|bsnl|recharge/, category: 'Bills', subcategory: 'Mobile recharge' },
+  { test: /\bjio\b|reliance jio|airtel|bharti|vodafone|\bvi\b|\bidea\b|bsnl|recharge|telecom/, category: 'Bills', subcategory: 'Mobile recharge' },
   { test: /electricity|\bpower\b|discom|bescom|msedcl|mahavitaran|tata power|adani (electricity|energy)|torrent|uhbvn|dhbvn|pgvcl|mgvcl|ugvcl|dgvcl|tneb|tangedco|kseb|cesc|bses/, category: 'Bills', subcategory: 'Electricity' },
   { test: /\bgas\b|indane|bharat gas|hp gas|mahanagar gas|adani total|gujarat gas|igl\b/, category: 'Bills', subcategory: 'Gas' },
   { test: /broadband|fiber|fibre|act fibernet|hathway|excitel|tata play|dish ?tv|d2h|sun direct|dth/, category: 'Bills', subcategory: 'Internet & TV' },
@@ -134,6 +134,8 @@ export function matchBankAccount(accounts: FinancialAccount[], bankName: string,
   if (!bank) return ''
   const sameBank = active.filter((a) => {
     const names = [a.institution ?? '', a.name].map(squash).filter(Boolean)
+    // A same-bank account whose last 4 digits differ is a different account (HDFC ••4321 ≠ HDFC ••6667).
+    if (last4 && a.accountNumberLast4 && a.accountNumberLast4 !== last4) return false
     return a.type !== 'credit_card' && names.some((n) => n.includes(bank) || bank.includes(n) || initials(bankName) === n)
   })
   return sameBank.length === 1 ? sameBank[0].id : ''

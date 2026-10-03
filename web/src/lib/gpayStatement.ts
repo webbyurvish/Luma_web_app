@@ -51,8 +51,10 @@ function toIso(day: string, month: string, year: string): string | null {
 
 /** Text rows of every page, top to bottom, left to right. */
 export async function extractPdfLines(file: File, password?: string): Promise<string[]> {
-  const pdfjs = await import('pdfjs-dist')
-  const worker = await import('pdfjs-dist/build/pdf.worker.min.mjs?url')
+  // The legacy build carries fallbacks for very new JS (Map.getOrInsertComputed, Math.sumPrecise)
+  // that iPhone Safari doesn't have yet — the modern build fails there with "undefined is not a function".
+  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
+  const worker = await import('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url')
   pdfjs.GlobalWorkerOptions.workerSrc = worker.default
   let doc
   try {
@@ -87,7 +89,7 @@ const DATE_RE = /\b(\d{1,2})\s+([A-Za-z]{3,9}),?\s+(\d{4})\b/
 const TIME_RE = /\b(\d{1,2}:\d{2}\s*[AaPp][Mm])\b/
 const AMOUNT_RE = /(?:₹|Rs\.?|INR)\s*([\d,]+(?:\.\d{1,2})?)/
 const UPI_RE = /UPI\s+Transaction\s+ID\s*:?\s*([A-Za-z0-9]+)/i
-const DIRECTION_RE = /\b(Paid\s+to|Received\s+from|Self\s+transfer\s+to|Transferred\s+to|Sent\s+to)\s+(.*)$/i
+const DIRECTION_RE = /\b(Paid\s+to|Received\s+from|Self\s+transfer\s+to|Top-?up\s+to|Transferred\s+to|Sent\s+to)\s+(.*)$/i
 const ACCOUNT_RE = /\bPaid\s+(?:by|to)\s+(.+?)\s*(?:[Xx*•.]+\s*)?(\d{4})\s*$/i
 const NOISE_RE = /^(page\s+\d+|transaction statement|statement period|date\s*&\s*time|transaction details|amount$|note[:\s]|this is a system|google pay|sent\b|received\b(?!\s+from)|for any queries|https?:)/i
 
@@ -152,7 +154,8 @@ export function parseGpayLines(lines: string[]): GpayStatement {
     // After the transaction ID (or once a direction is known), "Paid by/to …1234" is the bank line.
     const account = ACCOUNT_RE.exec(line)
     if (account && cur.dirSet && (cur.reference || /\bbank\b/i.test(account[1]))) {
-      cur.bankName = account[1].replace(/\s+/g, ' ').trim()
+      // "UPI Lite | ICICI Bank 0381": spent from the Lite wallet, which the ICICI account tops up.
+      cur.bankName = account[1].replace(/^UPI\s+Lite\s*\|\s*/i, '').replace(/\s+/g, ' ').trim()
       cur.last4 = account[2]
       used = true
       continue
@@ -160,7 +163,7 @@ export function parseGpayLines(lines: string[]): GpayStatement {
     const direction = DIRECTION_RE.exec(line)
     if (direction && !cur.dirSet) {
       const word = direction[1].toLowerCase()
-      cur.direction = word.startsWith('received') ? 'credit' : word.startsWith('self') ? 'self' : 'debit'
+      cur.direction = word.startsWith('received') ? 'credit' : word.startsWith('self') || word.startsWith('top') ? 'self' : 'debit'
       cur.payee = direction[2]
       cur.dirSet = true
       used = true
