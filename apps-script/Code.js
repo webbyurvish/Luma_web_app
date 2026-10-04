@@ -38,6 +38,10 @@ function doGet(e) {
   var lifeGet = tryHandleLumaLifeGet_(e);
   if (lifeGet) return lifeGet;
 
+  // File tools: Office conversions through Drive (Luma_Convert). Null for every other action.
+  var convertGet = tryHandleLumaConvertGet_(e);
+  if (convertGet) return convertGet;
+
   // Statement import (Luma_Import). Null for every other action.
   var importGet = tryHandleLumaImportGet_(e);
   if (importGet) return importGet;
@@ -312,6 +316,10 @@ function doPost(e) {
   // Vehicles, vehicle logs and medical bills (action: "vehicle" | "vehiclelog" | "medicalbill").
   var life = tryHandleLumaLife_(e);
   if (life) return life;
+
+  // File conversions (Word/Excel/PowerPoint/PDF via Drive) carry "convertOp".
+  var convert = tryHandleLumaConvert_(e);
+  if (convert) return convert;
 
   // Bulk import of confirmed statement rows (Google Pay PDF) carries "importOp".
   var imported = tryHandleLumaImport_(e);

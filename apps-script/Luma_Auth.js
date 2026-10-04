@@ -109,7 +109,7 @@ function lumaTokenValid_(token) {
 function lumaShortcutKeyAllowed_(e, payload) {
   var key = lumaAuthProps_().getProperty('LUMA_SHORTCUT_KEY');
   if (!key || !lumaSafeEquals_(payload.key, key)) return false;
-  if (payload.operation || payload.aiTask || payload.driveOp || payload.vaultOp || payload.backupOp || payload.importOp || payload.deviceOp || payload.deviceLogin || payload.authLogin || payload.authLogoutAll) return false;
+  if (payload.operation || payload.aiTask || payload.driveOp || payload.vaultOp || payload.backupOp || payload.importOp || payload.convertOp || payload.deviceOp || payload.deviceLogin || payload.authLogin || payload.authLogoutAll) return false;
   if (String(payload.recordType || '').toLowerCase() === 'udhaar') return true;
   // Both places an action can hide (query and body) must say "add a transaction".
   var addOnly = function (value) {

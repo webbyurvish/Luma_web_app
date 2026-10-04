@@ -1,4 +1,4 @@
-import { CalendarRange, CarFront, FileText, HandCoins, HeartPulse, Home, ListChecks, LockKeyhole, NotebookText, Users, Settings, Sparkles, Wallet, type LucideIcon } from 'lucide-react'
+import { CalendarRange, CarFront, FileCog, FileText, HandCoins, HeartPulse, Home, ListChecks, LockKeyhole, NotebookText, Users, Settings, Sparkles, Wallet, type LucideIcon } from 'lucide-react'
 
 export interface NavItem {
   to: string
@@ -41,6 +41,7 @@ export const navGroups: NavGroup[] = [
     label: 'Library',
     items: [
       { to: '/documents', label: 'Documents', icon: FileText },
+      { to: '/tools', label: 'File tools', icon: FileCog },
       { to: '/vault', label: 'Vault', icon: LockKeyhole },
     ],
   },

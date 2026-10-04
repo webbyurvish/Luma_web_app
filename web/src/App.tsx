@@ -41,6 +41,7 @@ const pageLoaders = {
   MonthlyReview: withReload(() => import('@/pages/MonthlyReview').then((m) => ({ default: m.MonthlyReview }))),
   Vehicles: withReload(() => import('@/pages/Vehicles').then((m) => ({ default: m.Vehicles }))),
   Health: withReload(() => import('@/pages/Health').then((m) => ({ default: m.Health }))),
+  FileTools: withReload(() => import('@/pages/FileTools').then((m) => ({ default: m.FileTools }))),
   Vault: withReload(() => import('@/pages/Vault').then((m) => ({ default: m.Vault }))),
   Assistant: withReload(() => import('@/pages/Assistant').then((m) => ({ default: m.Assistant }))),
   Settings: withReload(() => import('@/pages/Settings').then((m) => ({ default: m.Settings }))),
@@ -57,6 +58,7 @@ const Family = lazy(pageLoaders.Family)
 const MonthlyReview = lazy(pageLoaders.MonthlyReview)
 const Vehicles = lazy(pageLoaders.Vehicles)
 const Health = lazy(pageLoaders.Health)
+const FileTools = lazy(pageLoaders.FileTools)
 const Vault = lazy(pageLoaders.Vault)
 const Assistant = lazy(pageLoaders.Assistant)
 const Settings = lazy(pageLoaders.Settings)
@@ -94,6 +96,7 @@ function App() {
         <Route path="/review" element={<MonthlyReview />} />
         <Route path="/vehicles" element={<Vehicles />} />
         <Route path="/health" element={<Health />} />
+        <Route path="/tools" element={<FileTools />} />
         <Route path="/vault" element={<Vault />} />
         <Route path="/assistant" element={<Assistant />} />
         <Route path="/settings" element={<Settings />} />

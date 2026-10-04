@@ -1,3 +1,5 @@
+import { PdfPasswordError, openPdf } from './pdfjs'
+
 /**
  * Reads a Google Pay (India) statement PDF on the device — the file never leaves the phone.
  *
@@ -32,14 +34,7 @@ export interface GpayStatement {
   lines: string[]
 }
 
-export class PdfPasswordError extends Error {
-  wrong: boolean
-  constructor(wrong: boolean) {
-    super(wrong ? 'That password is not right.' : 'This statement is password-protected.')
-    this.name = 'PdfPasswordError'
-    this.wrong = wrong
-  }
-}
+export { PdfPasswordError }
 
 const MONTHS: Record<string, number> = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, sept: 9, oct: 10, nov: 11, dec: 12 }
 
@@ -51,19 +46,14 @@ function toIso(day: string, month: string, year: string): string | null {
 
 /** Text rows of every page, top to bottom, left to right. */
 export async function extractPdfLines(file: File, password?: string): Promise<string[]> {
-  // The legacy build carries fallbacks for very new JS (Map.getOrInsertComputed, Math.sumPrecise)
-  // that iPhone Safari doesn't have yet — the modern build fails there with "undefined is not a function".
-  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
-  const worker = await import('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url')
-  pdfjs.GlobalWorkerOptions.workerSrc = worker.default
-  let doc
+  let opened
   try {
-    doc = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()), password }).promise
+    opened = await openPdf(await file.arrayBuffer(), password)
   } catch (err) {
-    const e = err as { name?: string; code?: number }
-    if (e?.name === 'PasswordException') throw new PdfPasswordError(e.code === 2)
+    if (err instanceof PdfPasswordError) throw err
     throw new Error("This doesn't look like a readable PDF. Download the statement again from Google Pay.")
   }
+  const { doc, close } = opened
   const lines: string[] = []
   for (let p = 1; p <= doc.numPages; p++) {
     const page = await doc.getPage(p)
@@ -81,7 +71,7 @@ export async function extractPdfLines(file: File, password?: string): Promise<st
       .sort((a, b) => b.y - a.y)
       .forEach((r) => lines.push(r.items.sort((a, b) => a.x - b.x).map((i) => i.s.trim()).join(' ').replace(/\s+/g, ' ').trim()))
   }
-  await doc.destroy()
+  await close()
   return lines
 }
 

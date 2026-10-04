@@ -1351,3 +1351,47 @@ export async function readSnap<T>(image: string, today: string, hints: { people:
   if (!body.success || !body.result) throw new GoogleSheetsApiError(body.error || "Luma couldn't read that photo.")
   return body.result
 }
+
+/* File tools: Office conversions through the user's Drive (Luma_Convert). Gated on convertstatus,
+ * so an older deployment never receives a convertOp POST. Never retried. */
+
+export const CONVERT_NEEDS_DEPLOY = 'Word, Excel and PowerPoint conversions need the latest Apps Script deployment (clasp push → Deploy → New version).'
+let convertCapability: Promise<{ sources: Record<string, string>; targets: Record<string, string[]> }> | null = null
+
+export function getConvertCapability() {
+  convertCapability ??= fetchJson<{ success: boolean; error?: string; convert?: { sources: Record<string, string>; targets: Record<string, string[]> } }>('convertstatus')
+    .then((body) => {
+      if (!body.success || !body.convert) throw new GoogleSheetsApiError(/Unknown action/i.test(body.error ?? '') || body.success ? CONVERT_NEEDS_DEPLOY : body.error || "Couldn't reach Luma.")
+      return body.convert
+    })
+    .catch((err: unknown) => {
+      convertCapability = null
+      throw err
+    })
+  return convertCapability
+}
+
+export async function convertOfficeFile(fileName: string, dataBase64: string, to: string, ocrLanguage?: string): Promise<{ fileName: string; mimeType: string; dataBase64: string }> {
+  await getConvertCapability()
+  let result: { status: number; ok: boolean; text: string }
+  try {
+    result = await fetchTextWithin(
+      buildEndpoint('convert'),
+      { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ convertOp: 'convert', fileName, dataBase64, to, ocrLanguage }) },
+      150_000,
+      undefined,
+      true,
+    )
+  } catch (cause) {
+    if (cause instanceof AuthRequiredError) throw cause
+    throw new GoogleSheetsApiError(cause instanceof AttemptTimeout ? 'Google took too long to convert this file. Try a smaller file.' : 'Could not reach Google. Check your connection and try again.')
+  }
+  let body: { success?: boolean; error?: string; fileName?: string; mimeType?: string; dataBase64?: string }
+  try {
+    body = JSON.parse(result.text)
+  } catch {
+    throw new GoogleSheetsApiError("Google didn't send the converted file back. Please try again.")
+  }
+  if (!body.success || !body.dataBase64 || !body.fileName) throw new GoogleSheetsApiError(body.error || "Couldn't convert the file.")
+  return { fileName: body.fileName, mimeType: body.mimeType || 'application/octet-stream', dataBase64: body.dataBase64 }
+}

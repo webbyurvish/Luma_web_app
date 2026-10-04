@@ -16,6 +16,7 @@ export const pageMeta: Record<string, PageMeta> = {
   '/review': { title: 'Monthly review', subtitle: 'Where the money went, and what changed' },
   '/vehicles': { title: 'Vehicles', subtitle: 'Papers, service and running cost' },
   '/health': { title: 'Health', subtitle: 'Medical bills and insurance claims for the family' },
+  '/tools': { title: 'File tools', subtitle: 'Convert, merge, split and shrink files — privately' },
   '/vault': { title: 'Vault', subtitle: 'Passwords, cards, bank details and IDs — encrypted on your device' },
   '/settings': { title: 'Settings', subtitle: 'Manage your profile and preferences' },
 }
