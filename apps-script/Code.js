@@ -34,6 +34,10 @@ function doGet(e) {
   var familyGet = tryHandleLumaFamilyGet_(e);
   if (familyGet) return familyGet;
 
+  // Vehicles and medical bills (Luma_Life). Null for every other action.
+  var lifeGet = tryHandleLumaLifeGet_(e);
+  if (lifeGet) return lifeGet;
+
   // Statement import (Luma_Import). Null for every other action.
   var importGet = tryHandleLumaImportGet_(e);
   if (importGet) return importGet;
@@ -116,6 +120,14 @@ function doGet(e) {
           errors[key] = safeMessage_(err);
         }
       });
+
+      // Vehicles (Luma_Life): insurance / PUC / service reminders in the bell.
+      try {
+        lumaLifeSheet_('Vehicles');
+        data.vehicles = readEntity_('Vehicles', true);
+      } catch (err) {
+        errors.vehicles = safeMessage_(err);
+      }
 
       ["bills", "budgets"].forEach(key => {
         try {
@@ -296,6 +308,10 @@ function doPost(e) {
   // Family recharges and important dates (action: "recharge" | "importantdate").
   var family = tryHandleLumaFamily_(e);
   if (family) return family;
+
+  // Vehicles, vehicle logs and medical bills (action: "vehicle" | "vehiclelog" | "medicalbill").
+  var life = tryHandleLumaLife_(e);
+  if (life) return life;
 
   // Bulk import of confirmed statement rows (Google Pay PDF) carries "importOp".
   var imported = tryHandleLumaImport_(e);

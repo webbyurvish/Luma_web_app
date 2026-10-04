@@ -36,7 +36,8 @@ interface GpayImportProps {
   onClose: () => void
   transactions: Transaction[]
   accounts: FinancialAccount[]
-  onImported: (result: ImportResult) => void
+  /** month = the statement's last month (yyyy-MM), for the review link. */
+  onImported: (result: ImportResult, month: string) => void
 }
 
 /** "BHARAT PETROLEUM CORPORATION" → "Bharat Petroleum Corporation"; mixed-case names stay as written. */
@@ -238,7 +239,7 @@ export function GpayImport({ open, onClose, transactions, accounts, onImported }
         'Google Pay',
         (done, total) => setProgress(`${done} of ${total} saved…`),
       )
-      onImported(result)
+      onImported(result, (statement?.to ?? '').slice(0, 7))
       close()
     } catch (err) {
       setError(getErrorMessage(err, "Couldn't import the payments."))

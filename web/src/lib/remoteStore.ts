@@ -13,7 +13,7 @@ import { getBootstrap } from '@/services/googleSheetsApi'
  *    renders at once and only the background re-sync is waited on.
  */
 
-export type RemoteKey = 'accounts' | 'investments' | 'sips' | 'liabilities' | 'transactions' | 'notes' | 'udhaar' | 'tasks' | 'documents' | 'drive' | 'bills' | 'budgets' | 'recharges' | 'rechargehistory' | 'importantdates'
+export type RemoteKey = 'accounts' | 'investments' | 'sips' | 'liabilities' | 'transactions' | 'notes' | 'udhaar' | 'tasks' | 'documents' | 'drive' | 'bills' | 'budgets' | 'recharges' | 'rechargehistory' | 'importantdates' | 'vehicles' | 'vehiclelogs' | 'medicalbills'
 
 export interface EntrySnapshot {
   /** Raw API rows, or null until something (cache or network) has provided them. */
@@ -38,8 +38,8 @@ interface Entry {
 
 // Everything the first screen and the notification bell need, in one request. A key an older
 // deployment doesn't return simply falls back to its own route.
-type BootstrapKey = 'accounts' | 'investments' | 'sips' | 'liabilities' | 'transactions' | 'udhaar' | 'tasks' | 'bills' | 'budgets' | 'recharges' | 'importantdates'
-const BOOTSTRAP_KEYS: BootstrapKey[] = ['accounts', 'investments', 'sips', 'liabilities', 'transactions', 'udhaar', 'tasks', 'bills', 'budgets', 'recharges', 'importantdates']
+type BootstrapKey = 'accounts' | 'investments' | 'sips' | 'liabilities' | 'transactions' | 'udhaar' | 'tasks' | 'bills' | 'budgets' | 'recharges' | 'importantdates' | 'vehicles'
+const BOOTSTRAP_KEYS: BootstrapKey[] = ['accounts', 'investments', 'sips', 'liabilities', 'transactions', 'udhaar', 'tasks', 'bills', 'budgets', 'recharges', 'importantdates', 'vehicles']
 // v2: rows are cleaned by normalizeSheetRows before caching — v1 copies may hold raw serial dates.
 const CACHE_PREFIX = 'luma:cache:v2:'
 const CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000

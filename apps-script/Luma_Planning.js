@@ -344,8 +344,11 @@ function lumaDailyDigest(force) {
   var family = typeof lumaFamilyDigestLines_ === 'function' ? lumaFamilyDigestLines_(today) : { recharges: [], dates: [] };
   lines.recharges = family.recharges;
   lines.dates = family.dates;
+  var life = typeof lumaLifeDigestLines_ === 'function' ? lumaLifeDigestLines_(today) : { vehicles: [], reminders: [] };
+  lines.vehicles = life.vehicles;
+  lines.reminders = life.reminders;
 
-  var total = lines.bills.length + lines.tasks.length + lines.budgets.length + lines.documents.length + lines.recharges.length + lines.dates.length;
+  var total = lines.bills.length + lines.tasks.length + lines.budgets.length + lines.documents.length + lines.recharges.length + lines.dates.length + lines.vehicles.length + lines.reminders.length;
   if (!total && !force) return;
 
   var section = function (title, list) { return list.length ? title + '\n' + list.map(function (l) { return '  • ' + l; }).join('\n') + '\n\n' : ''; };
@@ -354,9 +357,11 @@ function lumaDailyDigest(force) {
     section('Birthdays and important dates', lines.dates) +
     section('Bills', lines.bills) +
     section('Recharges', lines.recharges) +
+    section('Vehicles', lines.vehicles) +
     section('Tasks', lines.tasks) +
     section('Budgets near or over the limit', lines.budgets) +
     section('Documents expiring', lines.documents) +
+    section('Reminders', lines.reminders) +
     'Open Luma to act on these.\n— Luma';
   // Only ever to the script owner: nothing in a request can choose the recipient.
   MailApp.sendEmail(Session.getEffectiveUser().getEmail(), 'Luma · ' + (total ? total + ' thing' + (total > 1 ? 's' : '') + ' need attention' : 'daily digest is on'), body);

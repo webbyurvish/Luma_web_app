@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { CalendarRange, X } from 'lucide-react'
+import { monthName } from '@/lib/monthReview'
 import { TransactionsFilters } from '@/components/transactions/TransactionsFilters'
 import { TransactionsTable } from '@/components/transactions/TransactionsTable'
 import { ErrorState } from '@/components/ui/ErrorState'
@@ -33,6 +35,8 @@ export function Transactions() {
   const location = useLocation()
   const [account, setAccount] = useState<string>(() => (location.state as { accountId?: string } | null)?.accountId ?? 'all')
   const [importOpen, setImportOpen] = useState(false)
+  const [reviewMonth, setReviewMonth] = useState<string | null>(null)
+  const navigate = useNavigate()
   useRouteIntent((intent) => {
     if (intent.search !== undefined) setSearch(intent.search)
     if (intent.accountId) setAccount(intent.accountId)
@@ -132,6 +136,19 @@ export function Transactions() {
         onAdd={() => setAddOpen(true)}
       />
 
+      {reviewMonth && (
+        <Card className="flex items-center gap-3 py-3">
+          <CalendarRange size={18} className="shrink-0 text-rust" />
+          <button type="button" className="min-w-0 flex-1 text-left" onClick={() => navigate('/review', { state: { tab: reviewMonth } })}>
+            <p className="text-[13px] font-semibold text-ink">See your {monthName(reviewMonth, false)} review →</p>
+            <p className="text-[11px] text-ink-muted">Where the money went, what changed and the small spends that add up</p>
+          </button>
+          <button type="button" aria-label="Dismiss" className="rounded-full p-1.5 text-ink-muted hover:bg-bg-soft" onClick={() => setReviewMonth(null)}>
+            <X size={14} />
+          </button>
+        </Card>
+      )}
+
       {error ? (
         <ErrorState title="Couldn't load your transactions." description={error} onRetry={refetch} />
       ) : loading ? (
@@ -165,7 +182,8 @@ export function Transactions() {
         onClose={() => setImportOpen(false)}
         transactions={transactions}
         accounts={accounts}
-        onImported={(result) => {
+        onImported={(result, month) => {
+          if (result.imported && month) setReviewMonth(month)
           const parts = [`Imported ${result.imported} payment${result.imported === 1 ? '' : 's'}`]
           if (result.skipped) parts.push(`${result.skipped} already in Luma`)
           if (result.failed) parts.push(`${result.failed} couldn't be saved`)

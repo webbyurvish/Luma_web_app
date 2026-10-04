@@ -13,6 +13,9 @@ export const pageMeta: Record<string, PageMeta> = {
   '/documents': { title: 'Documents', subtitle: 'Keep every important file organized' },
   '/notes': { title: 'Notes', subtitle: 'Everything you want to remember' },
   '/family': { title: 'Family', subtitle: 'Dates, recharges and form details for everyone' },
+  '/review': { title: 'Monthly review', subtitle: 'Where the money went, and what changed' },
+  '/vehicles': { title: 'Vehicles', subtitle: 'Papers, service and running cost' },
+  '/health': { title: 'Health', subtitle: 'Medical bills and insurance claims for the family' },
   '/vault': { title: 'Vault', subtitle: 'Passwords, cards, bank details and IDs — encrypted on your device' },
   '/settings': { title: 'Settings', subtitle: 'Manage your profile and preferences' },
 }

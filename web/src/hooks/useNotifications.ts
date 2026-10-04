@@ -11,6 +11,9 @@ import { useTransactions } from './useTransactions'
 import type { DriveTree } from '@/types'
 import { useNotifyPrefs } from '@/lib/notifyPrefs'
 import { useImportantDates, useRecharges } from './useFamily'
+import { useVehicles } from './useLife'
+import { dueText, vehicleDues } from '@/lib/vehicles'
+import { monthName, shiftMonth } from '@/lib/monthReview'
 import { countLabel, dateTitle, expiryLabel, nextOccurrence, rechargeStatus, serviceInText } from '@/lib/family'
 
 export type NotificationTone = 'danger' | 'warn' | 'info'
@@ -19,7 +22,7 @@ export interface AppNotification {
   /** Stable per occurrence (e.g. bill + due date), so a dismissal doesn't hide next month's. */
   id: string
   tone: NotificationTone
-  kind: 'bill' | 'budget' | 'task' | 'sip' | 'udhaar' | 'document' | 'recharge' | 'date'
+  kind: 'bill' | 'budget' | 'task' | 'sip' | 'udhaar' | 'document' | 'recharge' | 'date' | 'vehicle' | 'import'
   title: string
   detail: string
   /** Where tapping it goes. */
@@ -67,6 +70,7 @@ export function useNotifications() {
   const { transactions } = useTransactions()
   const { recharges } = useRecharges()
   const { dates } = useImportantDates()
+  const { vehicles } = useVehicles()
   // Documents only count once the (heavy) Drive listing has been loaded by the Documents page.
   const drive = useSyncExternalStore(
     (l) => subscribe('drive', l),
@@ -172,6 +176,35 @@ export function useNotifications() {
       })
     })
 
+    vehicles.forEach((v) => {
+      if (!v.isActive) return
+      vehicleDues(v, today, null).forEach((d) => {
+        if (d.state !== 'overdue' && d.state !== 'today' && d.state !== 'soon') return
+        out.push({
+          id: `vehicle:${v.id}:${d.key}:${d.date}`,
+          tone: d.state === 'soon' ? 'warn' : 'danger',
+          kind: 'vehicle',
+          title: `${v.name} · ${d.key === 'puc' ? 'PUC' : d.key === 'service' ? 'service' : 'insurance'}`,
+          detail: `${d.key === 'service' ? 'Service due' : 'Expires'} ${dueText(d).toLowerCase()} (${formatDate(d.date)})`,
+          to: '/vehicles',
+        })
+      })
+    })
+
+    // Early in the month: last month's Google Pay statement, until a statement row from it exists.
+    const previous = shiftMonth(month, -1)
+    if (Number(today.slice(8, 10)) <= 10 && transactions.length && !transactions.some((t) => t.reference && t.date.slice(0, 7) === previous)) {
+      out.push({
+        id: `import:${previous}`,
+        tone: 'info',
+        kind: 'import',
+        title: `Import ${monthName(previous, false)}'s Google Pay statement`,
+        detail: 'Download it in Google Pay — Luma adds every payment and fills in categories it knows',
+        to: '/transactions',
+        state: { tab: 'import-gpay' },
+      })
+    }
+
     const tree = (drive.raw as DriveTree[] | null)?.[0]
     tree?.files.forEach((file) => {
       if (!file.expiryDate || file.expiryDate > addDays(today, 30)) return
@@ -186,7 +219,7 @@ export function useNotifications() {
     })
 
     return out.sort((a, b) => TONE_ORDER[a.tone] - TONE_ORDER[b.tone])
-  }, [bills, budgets, tasks, sips, people, transactions, recharges, dates, drive, today, month])
+  }, [bills, budgets, tasks, sips, people, transactions, recharges, dates, vehicles, drive, today, month])
 
   const visible = useMemo(() => all.filter((n) => prefs[n.kind] && !dismissed.has(n.id)), [all, dismissed, prefs])
 

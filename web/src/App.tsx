@@ -38,6 +38,9 @@ const pageLoaders = {
   Documents: withReload(() => import('@/pages/Documents').then((m) => ({ default: m.Documents }))),
   Notes: withReload(() => import('@/pages/Notes').then((m) => ({ default: m.Notes }))),
   Family: withReload(() => import('@/pages/Family').then((m) => ({ default: m.Family }))),
+  MonthlyReview: withReload(() => import('@/pages/MonthlyReview').then((m) => ({ default: m.MonthlyReview }))),
+  Vehicles: withReload(() => import('@/pages/Vehicles').then((m) => ({ default: m.Vehicles }))),
+  Health: withReload(() => import('@/pages/Health').then((m) => ({ default: m.Health }))),
   Vault: withReload(() => import('@/pages/Vault').then((m) => ({ default: m.Vault }))),
   Assistant: withReload(() => import('@/pages/Assistant').then((m) => ({ default: m.Assistant }))),
   Settings: withReload(() => import('@/pages/Settings').then((m) => ({ default: m.Settings }))),
@@ -51,6 +54,9 @@ const Tasks = lazy(pageLoaders.Tasks)
 const Documents = lazy(pageLoaders.Documents)
 const Notes = lazy(pageLoaders.Notes)
 const Family = lazy(pageLoaders.Family)
+const MonthlyReview = lazy(pageLoaders.MonthlyReview)
+const Vehicles = lazy(pageLoaders.Vehicles)
+const Health = lazy(pageLoaders.Health)
 const Vault = lazy(pageLoaders.Vault)
 const Assistant = lazy(pageLoaders.Assistant)
 const Settings = lazy(pageLoaders.Settings)
@@ -85,6 +91,9 @@ function App() {
         <Route path="/documents" element={<Documents />} />
         <Route path="/notes" element={<Notes />} />
         <Route path="/family" element={<Family />} />
+        <Route path="/review" element={<MonthlyReview />} />
+        <Route path="/vehicles" element={<Vehicles />} />
+        <Route path="/health" element={<Health />} />
         <Route path="/vault" element={<Vault />} />
         <Route path="/assistant" element={<Assistant />} />
         <Route path="/settings" element={<Settings />} />

@@ -10,6 +10,8 @@ import {
   DatabaseBackup,
   FileText,
   FileUp,
+  Fuel,
+  HeartPulse,
   HandCoins,
   KeyRound,
   Landmark,
@@ -179,6 +181,8 @@ function PaletteBody({ onClose, onAdd }: { onClose: () => void; onAdd: (kind: Qu
       ['Add bill', Receipt, () => go('/finance', { tab: 'bills' })],
       ['Upload document', FileText, () => go('/documents')],
       ['Import Google Pay statement', FileUp, () => go('/transactions', { tab: 'import-gpay' })],
+      ['Log fuel or service', Fuel, () => go('/vehicles')],
+      ['Add medical bill', HeartPulse, () => go('/health')],
       ...(vault.phase === 'unlocked' ? [['Lock vault', Lock, () => (lockVault(), onClose(), showToast('Vault locked'))] as [string, LucideIcon, () => void]] : []),
       [
         'Sign out',

@@ -21,6 +21,9 @@ import type {
   RawRecharge,
   RawRechargeLog,
   RawImportantDate,
+  RawMedicalBill,
+  RawVehicle,
+  RawVehicleLog,
   TransactionsApiResponse,
 } from '@/types'
 import type { VaultMeta } from '@/lib/vaultCrypto'
@@ -1227,4 +1230,80 @@ export async function importTransactions(rows: ImportRowInput[], source: string,
     onProgress?.(Math.min(i + IMPORT_CHUNK, rows.length), rows.length)
   }
   return total
+}
+
+/* Vehicles and medical bills (Luma_Life). Gated like Family: an older deployment never
+ * receives a vehicle/medicalbill POST (it would become a Shortcut transaction). */
+
+export const LIFE_NEEDS_DEPLOY = 'Vehicles and Health need the latest Apps Script deployment (clasp push → Deploy → New version).'
+let lifeCapability: Promise<void> | null = null
+
+async function fetchLifeList<T>(action: 'vehicles' | 'vehiclelogs' | 'medicalbills', signal?: AbortSignal): Promise<T[]> {
+  try {
+    const rows = await fetchList<T>(action, signal)
+    lifeCapability ??= Promise.resolve()
+    return rows
+  } catch (err) {
+    if (err instanceof GoogleSheetsApiError && /Unknown action/i.test(err.message)) throw new GoogleSheetsApiError(LIFE_NEEDS_DEPLOY)
+    throw err
+  }
+}
+
+function requireLife(): Promise<void> {
+  lifeCapability ??= fetchJson<{ success: boolean; error?: string }>('vehicles')
+    .then((body) => {
+      if (!body.success) throw new GoogleSheetsApiError(/Unknown action/i.test(body.error ?? '') ? LIFE_NEEDS_DEPLOY : body.error || "Couldn't reach Luma.")
+    })
+    .catch((err: unknown) => {
+      lifeCapability = null
+      throw err
+    })
+  return lifeCapability
+}
+
+export const getVehicles = (signal?: AbortSignal) => fetchLifeList<RawVehicle>('vehicles', signal)
+export const getVehicleLogs = (signal?: AbortSignal) => fetchLifeList<RawVehicleLog>('vehiclelogs', signal)
+export const getMedicalBills = (signal?: AbortSignal) => fetchLifeList<RawMedicalBill>('medicalbills', signal)
+
+type LifeAction = 'vehicle' | 'vehiclelog' | 'medicalbill'
+const lifeWrite = async (action: LifeAction, payload: Record<string, unknown>) => {
+  await requireLife()
+  return postEntity(action, payload)
+}
+
+export const createVehicle = (payload: Record<string, unknown>) => lifeWrite('vehicle', payload)
+export const updateVehicle = (id: string, payload: Record<string, unknown>) => lifeWrite('vehicle', { operation: 'update', id, ...payload })
+export const deleteVehicle = (id: string) => lifeWrite('vehicle', { operation: 'delete', id })
+export const createVehicleLog = (payload: Record<string, unknown>) => lifeWrite('vehiclelog', payload)
+export const updateVehicleLog = (id: string, payload: Record<string, unknown>) => lifeWrite('vehiclelog', { operation: 'update', id, ...payload })
+export const deleteVehicleLog = (id: string) => lifeWrite('vehiclelog', { operation: 'delete', id })
+export const createMedicalBill = (payload: Record<string, unknown>) => lifeWrite('medicalbill', payload)
+export const updateMedicalBill = (id: string, payload: Record<string, unknown>) => lifeWrite('medicalbill', { operation: 'update', id, ...payload })
+export const deleteMedicalBill = (id: string) => lifeWrite('medicalbill', { operation: 'delete', id })
+
+/** Many logs/bills in one request. Never retried: a timeout asks the user to refresh and check. */
+export async function createLifeBulk(action: 'vehiclelog' | 'medicalbill', rows: Record<string, unknown>[]): Promise<{ created: number; failed: number }> {
+  await requireLife()
+  let result: { status: number; ok: boolean; text: string }
+  const unconfirmed = () => new GoogleSheetsApiError("Google didn't confirm. Refresh in a moment to see what was saved.")
+  try {
+    result = await fetchTextWithin(
+      buildEndpoint(action),
+      { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ operation: 'bulk', rows }) },
+      90_000,
+      undefined,
+      true,
+    )
+  } catch (cause) {
+    if (cause instanceof AuthRequiredError) throw cause
+    throw unconfirmed()
+  }
+  let body: { success?: boolean; error?: string; created?: number; failed?: unknown[] }
+  try {
+    body = JSON.parse(result.text)
+  } catch {
+    throw unconfirmed()
+  }
+  if (!body.success) throw new GoogleSheetsApiError(body.error || "Couldn't save.")
+  return { created: body.created ?? 0, failed: body.failed?.length ?? 0 }
 }
