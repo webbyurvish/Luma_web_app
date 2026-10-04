@@ -1,16 +1,20 @@
-import { CATEGORY_META } from './categoryMeta'
 import { MONTH_ABBR, dateKeyToMonthLabel, todayIstDateKey, toIstDateKey } from './formatDate'
 import type { CategoryBreakdown, FinanceSummary, PaymentMethodBreakdown, SpendingPoint, Transaction } from '@/types'
 
-const CATEGORY_COLOR_FALLBACKS = [
-  'var(--color-rust)',
-  'var(--color-info)',
-  'var(--color-pink)',
-  'var(--color-warning)',
-  'var(--color-cyan)',
-  'var(--color-success)',
-  'var(--color-ai)',
-]
+/* Chart colours follow the category, never its rank: each known category owns a fixed slot of the
+ * validated chart palette (index.css --color-chart-*); the first other sheet category takes the
+ * spare slot, and any beyond it read as neutral instead of a generated hue. */
+const CATEGORY_CHART_SLOT: Record<string, string> = {
+  transport: 'var(--color-chart-1)',
+  food: 'var(--color-chart-2)',
+  entertainment: 'var(--color-chart-3)',
+  bills: 'var(--color-chart-4)',
+  shopping: 'var(--color-chart-5)',
+  health: 'var(--color-chart-6)',
+  home: 'var(--color-chart-7)',
+}
+const CATEGORY_COLOR_FALLBACKS = ['var(--color-chart-8)']
+const CATEGORY_COLOR_OVERFLOW = 'var(--color-ink-muted)'
 
 const PAYMENT_COLOR_MAP: Record<string, string> = {
   upi: 'var(--color-ai)',
@@ -47,16 +51,12 @@ export function calculateTodayExpense(transactions: Transaction[]): number {
   return transactions.filter((t) => isExpense(t) && toIstDateKey(t.date) === today).reduce((sum, t) => sum + t.amount, 0)
 }
 
-const CATEGORY_META_ENTRIES = new Map<string, (typeof CATEGORY_META)[keyof typeof CATEGORY_META]>(
-  Object.values(CATEGORY_META).map((meta) => [meta.id, meta]),
-)
-
 /** A deterministic color per category name so the same category always renders the same hue. */
 function colorForCategory(name: string, knownIndex: Map<string, number>): string {
-  const known = CATEGORY_META_ENTRIES.get(name.toLowerCase())
-  if (known) return known.color
+  const slot = CATEGORY_CHART_SLOT[name.toLowerCase()]
+  if (slot) return slot
   if (!knownIndex.has(name)) knownIndex.set(name, knownIndex.size)
-  return CATEGORY_COLOR_FALLBACKS[knownIndex.get(name)! % CATEGORY_COLOR_FALLBACKS.length]
+  return CATEGORY_COLOR_FALLBACKS[knownIndex.get(name)!] ?? CATEGORY_COLOR_OVERFLOW
 }
 
 /** Groups Expense transactions by their real sheet category — never collapsed to a fixed set. */

@@ -98,7 +98,7 @@ export function QuickAddBar({ className }: { className?: string }) {
               type="submit"
               aria-label="Fill in the form"
               disabled={!text.trim() || parsing}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ai text-[#F6F1E7] transition-opacity disabled:opacity-30"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ai text-on-accent transition-opacity disabled:opacity-30"
             >
               <ArrowRight size={14} />
             </button>

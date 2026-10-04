@@ -23,10 +23,10 @@ interface ButtonProps extends MotionSafeButtonAttributes {
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: 'bg-rust text-[#F6F1E7] hover:bg-rust-dark',
+  primary: 'bg-rust text-on-accent hover:bg-rust-dark',
   secondary: 'bg-transparent text-ink border border-border hover:bg-bg-soft',
   ghost: 'bg-transparent text-ink-soft hover:bg-bg-soft hover:text-ink',
-  danger: 'bg-danger text-[#F6F1E7] hover:opacity-90',
+  danger: 'bg-danger text-on-accent hover:opacity-90',
 }
 
 const sizeClasses: Record<ButtonSize, string> = {

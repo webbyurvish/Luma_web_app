@@ -18,7 +18,7 @@ export function Avatar({ name, size = 36, className, inverted }: AvatarProps) {
     <div
       className={cn(
         'flex shrink-0 items-center justify-center rounded-full font-display font-medium',
-        inverted ? 'bg-rust text-[#F6F1E7]' : 'bg-ink-rail text-paper',
+        inverted ? 'bg-rust text-on-accent' : 'bg-ink-rail text-rail-ink',
         className,
       )}
       style={{ width: size, height: size, fontSize: size * 0.4 }}

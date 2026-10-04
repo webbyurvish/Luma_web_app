@@ -3,10 +3,11 @@ interface LogoMarkProps {
   inverted?: boolean
 }
 
-export function LogoMark({ size = 30, inverted }: LogoMarkProps) {
+/** `inverted` is kept for callers; the mark reads the theme tokens either way. */
+export function LogoMark({ size = 30 }: LogoMarkProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <rect x="0.5" y="0.5" width="29" height="29" rx="4" fill={inverted ? '#F6F1E7' : '#B5482A'} />
+      <rect x="0.5" y="0.5" width="29" height="29" rx="4" fill="var(--color-rust)" />
       <text
         x="15"
         y="21.5"
@@ -15,7 +16,7 @@ export function LogoMark({ size = 30, inverted }: LogoMarkProps) {
         fontStyle="italic"
         fontWeight="600"
         fontSize="17"
-        fill={inverted ? '#B5482A' : '#F6F1E7'}
+        fill="var(--color-on-accent)"
       >
         L
       </text>
@@ -34,8 +35,8 @@ export function Logo({ collapsed, inverted }: LogoProps) {
       <LogoMark size={30} inverted={inverted} />
       {!collapsed && (
         <div className="leading-tight">
-          <p className={`font-display text-[15px] italic ${inverted ? 'text-paper' : 'text-ink'}`}>Luma</p>
-          <p className={`text-[10px] uppercase tracking-[0.12em] ${inverted ? 'text-paper/50' : 'text-ink-muted'}`}>Personal OS</p>
+          <p className={`font-display text-[15px] italic ${inverted ? 'text-rail-ink' : 'text-ink'}`}>Luma</p>
+          <p className={`text-[10px] uppercase tracking-[0.12em] ${inverted ? 'text-rail-ink/50' : 'text-ink-muted'}`}>Personal OS</p>
         </div>
       )}
     </div>

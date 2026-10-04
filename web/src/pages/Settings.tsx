@@ -15,6 +15,8 @@ import { BiometricSettings } from '@/components/settings/BiometricSettings'
 import { BackupSettings } from '@/components/settings/BackupSettings'
 import { useRouteIntent } from '@/hooks/useRouteIntent'
 import { NOTIFY_KINDS, setNotifyPref, useNotifyPrefs } from '@/lib/notifyPrefs'
+import { setThemePref, useThemePref, type ThemePref } from '@/lib/theme'
+import { cn } from '@/lib/cn'
 
 const sections = [
   { id: 'profile', label: 'Profile' },
@@ -32,7 +34,6 @@ export function Settings() {
     if (intent.tab) setActive(intent.tab)
   })
   const notifyPrefs = useNotifyPrefs()
-  const [theme, setTheme] = useState('light')
   const [currency, setCurrency] = useState('INR')
   const [defaultPayment, setDefaultPayment] = useState('UPI')
 
@@ -74,15 +75,7 @@ export function Settings() {
       {active === 'appearance' && (
         <Card hoverable className="max-w-2xl">
           <CardHeader title="Appearance" subtitle="Personalize how Luma looks" icon={<Palette size={17} className="text-ink-soft" />} />
-          <ThemedSelect
-            label="Theme"
-            value={theme}
-            onChange={setTheme}
-            options={[
-              { value: 'light', label: 'Light' },
-              { value: 'dark', label: 'Dark (coming soon)', disabled: true },
-            ]}
-          />
+          <ThemePicker />
         </Card>
       )}
 
@@ -136,6 +129,83 @@ export function Settings() {
       )}
       {active === 'backups' && <BackupSettings />}
       </motion.div>
+    </div>
+  )
+}
+
+/* Each option is a miniature of the real theme: rail, hero panel and a row. */
+const THEME_OPTIONS: { value: ThemePref; label: string; detail: string }[] = [
+  { value: 'light', label: 'Editorial', detail: 'Paper, forest green and amber' },
+  { value: 'dark', label: 'Midnight', detail: 'Navy and gold, easy on the eyes at night' },
+  { value: 'auto', label: 'Auto', detail: "Follows your phone's light or dark mode" },
+]
+
+const SWATCH = {
+  light: { bg: '#f4efe4', rail: '#22302b', hero: '#2f4a40', heroInk: '#f1ebdc', accent: '#e3a35b', row: '#fbf8f1', line: 'rgba(38,48,44,0.15)' },
+  dark: { bg: '#0e1424', rail: '#0a0f1c', hero: '#1a2440', heroInk: '#f3ebd7', accent: '#d4a84b', row: '#151d32', line: 'rgba(220,225,238,0.14)' },
+}
+
+function Mini({ theme }: { theme: 'light' | 'dark' }) {
+  const c = SWATCH[theme]
+  return (
+    <div className="flex h-full w-full" style={{ background: c.bg }}>
+      <div className="w-[18%]" style={{ background: c.rail }} />
+      <div className="flex flex-1 flex-col gap-1.5 p-2">
+        <div className="rounded-[5px] p-1.5" style={{ background: c.hero }}>
+          <div className="h-1 w-6 rounded-full opacity-60" style={{ background: c.heroInk }} />
+          <div className="mt-1 h-2 w-12 rounded-full" style={{ background: c.heroInk }} />
+          <div className="mt-1.5 h-1 rounded-full" style={{ background: c.accent, width: '62%' }} />
+        </div>
+        <div className="h-3 rounded-[4px]" style={{ background: c.row, border: `1px solid ${c.line}` }} />
+        <div className="h-3 rounded-[4px]" style={{ background: c.row, border: `1px solid ${c.line}` }} />
+      </div>
+    </div>
+  )
+}
+
+function ThemePicker() {
+  const { pref, theme } = useThemePref()
+  return (
+    <div>
+      <div className="grid grid-cols-3 gap-2.5 sm:gap-3" role="radiogroup" aria-label="Theme">
+        {THEME_OPTIONS.map((o) => {
+          const on = pref === o.value
+          return (
+            <button
+              key={o.value}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              onClick={() => setThemePref(o.value)}
+              className={cn('min-w-0 rounded-card border p-1.5 text-left transition-colors', on ? 'border-rust ring-2 ring-rust/30' : 'border-border hover:border-ink-soft')}
+            >
+              <div className="relative aspect-[4/3] overflow-hidden rounded-md border border-border-soft">
+                {o.value === 'auto' ? (
+                  <div className="flex h-full">
+                    <div className="w-1/2 overflow-hidden">
+                      <div className="h-full w-[200%]">
+                        <Mini theme="light" />
+                      </div>
+                    </div>
+                    <div className="w-1/2 overflow-hidden">
+                      <div className="h-full w-[200%] -translate-x-1/2">
+                        <Mini theme="dark" />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <Mini theme={o.value} />
+                )}
+              </div>
+              <p className="mt-2 px-0.5 text-[13px] font-semibold text-ink">{o.label}</p>
+              <p className="px-0.5 pb-0.5 text-[11px] leading-snug text-ink-muted">{o.detail}</p>
+            </button>
+          )
+        })}
+      </div>
+      <p className="mt-3 text-[11px] text-ink-muted">
+        Showing {theme === 'dark' ? 'Midnight' : 'Editorial'} now. Saved on this device.
+      </p>
     </div>
   )
 }

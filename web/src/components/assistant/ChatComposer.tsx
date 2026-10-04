@@ -78,7 +78,7 @@ export function ChatComposer({ onSend, busy, preparing }: ChatComposerProps) {
               onClick={send}
               aria-label="Send message"
               disabled={!value.trim() || blocked}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ai text-[#F6F1E7] transition-[opacity,transform] hover:scale-105 disabled:scale-100 disabled:opacity-30"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ai text-on-accent transition-[opacity,transform] hover:scale-105 disabled:scale-100 disabled:opacity-30"
             >
               {busy ? <Spinner size={13} /> : <ArrowUp size={15} />}
             </button>

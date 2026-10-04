@@ -8,11 +8,11 @@ export interface InvestmentTypeMeta {
 }
 
 export const INVESTMENT_TYPE_META: Record<InvestmentType, InvestmentTypeMeta> = {
-  mutual_fund: { label: 'Mutual Fund', icon: PiggyBank, color: 'var(--color-rust)' },
-  stock: { label: 'Stock', icon: LineChart, color: 'var(--color-ai)' },
-  fixed_deposit: { label: 'Fixed Deposit', icon: Landmark, color: 'var(--color-warning)' },
-  gold: { label: 'Gold', icon: Coins, color: 'var(--color-pink)' },
-  bond: { label: 'Bond', icon: Building2, color: 'var(--color-cyan)' },
+  mutual_fund: { label: 'Mutual Fund', icon: PiggyBank, color: 'var(--color-chart-1)' },
+  stock: { label: 'Stock', icon: LineChart, color: 'var(--color-chart-7)' },
+  fixed_deposit: { label: 'Fixed Deposit', icon: Landmark, color: 'var(--color-chart-4)' },
+  gold: { label: 'Gold', icon: Coins, color: 'var(--color-chart-2)' },
+  bond: { label: 'Bond', icon: Building2, color: 'var(--color-chart-3)' },
   other: { label: 'Other', icon: Banknote, color: 'var(--color-ink-muted)' },
 }
 

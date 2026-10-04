@@ -41,7 +41,7 @@ export function TaskCard({ task, toggling, overdue, onToggle, onEdit, onArchive,
           toggling
             ? 'border-rust text-rust'
             : task.completed
-              ? 'border-success bg-success text-[#F6F1E7]'
+              ? 'border-success bg-success text-on-accent'
               : 'border-ink-muted text-transparent hover:border-rust',
         )}
       >

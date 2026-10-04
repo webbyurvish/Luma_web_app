@@ -5,43 +5,72 @@
   --font-display: 'Fraunces', ui-serif, Georgia, serif;
   --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
 
-  /* Brand — Ledger */
-  --color-rust: #b5482a;
+  /* Theme: "Evolved editorial" (light). Dark mode ("Midnight ledger") overrides these
+   * same tokens further down, so components never pick colours themselves. */
+
+  /* Brand — the rust accent (buttons, active states) */
+  --color-rust: #b44a29;
   --color-rust-dark: #8f3a20;
-  --color-rust-soft: #f1dccf;
+  --color-rust-soft: #f3dacd;
+  /* Text/icons sitting on an accent fill (primary buttons, avatars) */
+  --color-on-accent: #fbf8f1;
 
   /* Surfaces */
-  --color-bg: #f6f1e7;
+  --color-bg: #f4efe4;
   --color-surface: #fbf8f1;
-  --color-bg-soft: #ede6d6;
+  --color-bg-soft: #ebe4d4;
   --color-card: #fbf8f1;
-  --color-ink-rail: #1b1a17;
-  --color-ink-rail-soft: #26241f;
-  --color-border: rgba(27, 26, 23, 0.15);
-  --color-border-soft: rgba(27, 26, 23, 0.09);
+  /* The sidebar rail: deep forest */
+  --color-ink-rail: #22302b;
+  --color-ink-rail-soft: #2b3b35;
+  --color-rail-ink: #f4efe4;
+  --color-border: rgba(38, 48, 44, 0.15);
+  --color-border-soft: rgba(38, 48, 44, 0.09);
+
+  /* Hero panels: one bold panel per screen */
+  --color-hero: #2f4a40;
+  --color-hero-ink: #f1ebdc;
+  --color-hero-muted: #a9c2b6;
+  --color-hero-track: #45625a;
+  --color-hero-line: rgba(241, 235, 220, 0.14);
+  /* Warm amber — highlights on hero panels and "coming up" moments */
+  --color-amber: #e3a35b;
+  --color-amber-ink: #8a5a14;
+  --color-amber-soft: #f6e6cc;
+
+  /* Chart series — validated categorical palette (dataviz reference), light steps.
+   * Fixed order; a category keeps its slot on every chart. */
+  --color-chart-1: #2a78d6;
+  --color-chart-2: #eb6834;
+  --color-chart-3: #1baf7a;
+  --color-chart-4: #eda100;
+  --color-chart-5: #e87ba4;
+  --color-chart-6: #008300;
+  --color-chart-7: #4a3aa7;
+  --color-chart-8: #e34948;
 
   /* Text */
-  --color-ink: #1b1a17;
-  --color-ink-soft: #5c574d;
-  --color-ink-muted: #9a937f;
-  --color-paper: #f6f1e7;
+  --color-ink: #26302c;
+  --color-ink-soft: #56605a;
+  --color-ink-muted: #6e756f;
+  --color-paper: #f4efe4;
 
   /* Semantic — desaturated, journal-appropriate */
-  --color-success: #3f6b3a;
-  --color-success-soft: #e2e8d3;
+  --color-success: #2f6b4f;
+  --color-success-soft: #dce8df;
   --color-danger: #a13a2a;
-  --color-danger-soft: #f2dcd2;
-  --color-warning: #a1791f;
-  --color-warning-soft: #f1e4c4;
+  --color-danger-soft: #f5d9cc;
+  --color-warning: #9a6f16;
+  --color-warning-soft: #f3e4c3;
   --color-ai: #35415c;
   --color-ai-soft: #dfe2e9;
   --color-info: #35415c;
   --color-info-soft: #dfe2e9;
   --color-pink: #8a4a5c;
   --color-pink-soft: #ecdce0;
-  --color-cyan: #33635f;
-  --color-cyan-soft: #dce7e5;
-  --color-green: #3f6b3a;
+  --color-cyan: #2e6662;
+  --color-cyan-soft: #d9e7e4;
+  --color-green: #2f6b4f;
 
   /* Legacy aliases kept for components not yet re-themed */
   --color-gold: var(--color-rust);
@@ -180,6 +209,78 @@
   }
 }
 
+/* ---------------------------------------------------------------------------
+ * "Midnight ledger" — dark mode. Same token names, navy and gold values.
+ * lib/theme.ts sets data-theme on <html> before the first render: Dark, or Auto
+ * while the phone is in dark mode.
+ * ------------------------------------------------------------------------- */
+/* Paper texture behind everything (not a utility token, so outside @theme) */
+:root {
+  --texture-dot: rgba(38, 48, 44, 0.14);
+  --texture-noise-opacity: 0.03;
+  --texture-noise-blend: multiply;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --color-rust: #d4a84b;
+  --color-rust-dark: #e6be68;
+  --color-rust-soft: #3a3018;
+  --color-on-accent: #0e1424;
+  --color-bg: #0e1424;
+  --color-surface: #131a2d;
+  --color-bg-soft: #1b2440;
+  --color-card: #151d32;
+  --color-ink-rail: #0a0f1c;
+  --color-ink-rail-soft: #121a2e;
+  --color-rail-ink: #dce1ee;
+  --color-border: rgba(220, 225, 238, 0.14);
+  --color-border-soft: rgba(220, 225, 238, 0.08);
+  --color-hero: #1a2440;
+  --color-hero-ink: #f3ebd7;
+  --color-hero-muted: #8a93ad;
+  --color-hero-track: #2a3452;
+  --color-hero-line: rgba(243, 235, 215, 0.1);
+  --color-amber: #e8c77a;
+  --color-amber-ink: #e8c77a;
+  --color-amber-soft: #3a3018;
+  --color-ink: #ece6d6;
+  --color-ink-soft: #a9b0c4;
+  --color-ink-muted: #7c849c;
+  --color-paper: #0e1424;
+  --color-success: #7fc8a9;
+  --color-success-soft: #15302a;
+  --color-danger: #f0a0a0;
+  --color-danger-soft: #3a1e24;
+  --color-warning: #e8c77a;
+  --color-warning-soft: #3a3018;
+  --color-ai: #9db0e0;
+  --color-ai-soft: #1e2742;
+  --color-info: #9db0e0;
+  --color-info-soft: #1e2742;
+  --color-pink: #e3a3b8;
+  --color-pink-soft: #3a2030;
+  --color-cyan: #7cc6c0;
+  --color-cyan-soft: #15302f;
+  --color-green: #7fc8a9;
+  --color-chart-1: #3987e5;
+  --color-chart-2: #d95926;
+  --color-chart-3: #199e70;
+  --color-chart-4: #c98500;
+  --color-chart-5: #d55181;
+  --color-chart-6: #008300;
+  --color-chart-7: #9085e9;
+  --color-chart-8: #e66767;
+  --texture-dot: rgba(220, 225, 238, 0.1);
+  --texture-noise-opacity: 0.025;
+  --texture-noise-blend: screen;
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-hover: 0 8px 22px -6px rgba(0, 0, 0, 0.6);
+  --shadow-hero: 0 14px 34px -14px rgba(0, 0, 0, 0.7);
+  --shadow-dropdown: 0 10px 28px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
 @layer base {
   * {
     border-color: var(--color-border);
@@ -220,7 +321,7 @@
     inset: 0;
     z-index: -2;
     pointer-events: none;
-    background-image: radial-gradient(circle, rgba(27, 26, 23, 0.14) 0.7px, transparent 0.7px);
+    background-image: radial-gradient(circle, var(--texture-dot) 0.7px, transparent 0.7px);
     background-size: 22px 22px;
     opacity: 0.5;
     mask-image: radial-gradient(ellipse 70% 55% at 50% 0%, black 0%, transparent 75%);

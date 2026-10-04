@@ -43,7 +43,7 @@ export function VoicePanel({ state, interim, onFinish, onCancel }: VoicePanelPro
         onClick={onFinish}
         disabled={!live}
         aria-label="Done speaking"
-        className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-rust px-3 text-[11px] font-medium uppercase tracking-[0.04em] text-[#F6F1E7] transition-colors hover:bg-rust-dark disabled:opacity-50"
+        className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-rust px-3 text-[11px] font-medium uppercase tracking-[0.04em] text-on-accent transition-colors hover:bg-rust-dark disabled:opacity-50"
       >
         <Check size={13} /> Done
       </button>
