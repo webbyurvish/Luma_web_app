@@ -9,9 +9,10 @@ import { VaultGate } from '@/components/vault/VaultGate'
 import { VaultItemDetail } from '@/components/vault/VaultItemDetail'
 import { VaultItemEditor } from '@/components/vault/VaultItemEditor'
 import { ChangeMasterDialog, ResetVaultDialog } from '@/components/vault/VaultDialogs'
+import { VaultSecurityPanel } from '@/components/vault/VaultSecurityPanel'
 import { useToast } from '@/context/ToastContext'
 import { useRouteIntent } from '@/hooks/useRouteIntent'
-import { deleteVaultItem, loadVault, lockVault, saveVaultItem, useVault } from '@/hooks/useVault'
+import { deleteVaultItem, loadVault, lockVault, saveVaultItem, useVault, useVaultLockPrefs } from '@/hooks/useVault'
 import { cn } from '@/lib/cn'
 import { getErrorMessage } from '@/lib/errors'
 import { VAULT_TYPES, VAULT_TYPE_META, itemExpiry, itemSubtitle, passwordStrength, reusedPasswordIds, searchText } from '@/lib/vaultMeta'
@@ -38,6 +39,8 @@ export function Vault() {
   const [deleting, setDeleting] = useState(false)
   const [favBusy, setFavBusy] = useState(false)
   const [changeOpen, setChangeOpen] = useState(false)
+  const [securityOpen, setSecurityOpen] = useState(false)
+  const lockPrefs = useVaultLockPrefs()
   const [resetOpen, setResetOpen] = useState(false)
 
   useEffect(() => {
@@ -154,9 +157,9 @@ export function Vault() {
             </span>
           </p>
           <p className="mt-0.5 text-[11px] text-ink-muted">
-            End-to-end encrypted · locks after 5 min idle ·{' '}
-            <button type="button" onClick={() => setChangeOpen(true)} className="text-ink-soft underline-offset-2 hover:text-ink hover:underline">
-              Change master password
+            End-to-end encrypted · locks {lockPrefs.onLeave === 'now' ? 'when you leave' : lockPrefs.onLeave === '1min' ? '1 min after you leave' : `after ${lockPrefs.idleMinutes} min idle`} ·{' '}
+            <button type="button" onClick={() => setSecurityOpen(true)} className="font-medium text-rust underline-offset-2 hover:underline">
+              Security & password health
             </button>
           </p>
         </div>
@@ -313,6 +316,15 @@ export function Vault() {
         onCancel={() => setDeleteTarget(null)}
       />
       <ChangeMasterDialog open={changeOpen} onClose={() => setChangeOpen(false)} />
+      <VaultSecurityPanel
+        open={securityOpen}
+        onClose={() => setSecurityOpen(false)}
+        onChangeMaster={() => setChangeOpen(true)}
+        onOpenItem={(id) => {
+          setSecurityOpen(false)
+          setSelectedId(id)
+        }}
+      />
     </div>
   )
 }

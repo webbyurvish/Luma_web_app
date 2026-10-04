@@ -826,6 +826,8 @@ export async function signOutEverywhere(): Promise<void> {
 export interface VaultStatus {
   available: boolean
   ready: boolean
+  /** The deployment accepts Argon2id vaults and app-chosen item ids. */
+  v2?: boolean
 }
 
 export async function getVaultStatus(): Promise<VaultStatus> {
@@ -887,7 +889,8 @@ async function vaultOp<T = Record<string, unknown>>(payload: Record<string, unkn
 
 export const vaultApi = {
   setup: (meta: VaultMeta) => vaultOp<{ meta: VaultMeta }>({ vaultOp: 'setup', meta }),
-  save: (data: string, id?: string) => vaultOp<{ item: RawVaultItem }>({ vaultOp: 'save', data, ...(id ? { id } : {}) }),
+  /** Updates `id`, or creates an item — with `newId` when the app chose (and sealed in) the id. */
+  save: (data: string, id?: string, newId?: string) => vaultOp<{ item: RawVaultItem }>({ vaultOp: 'save', data, ...(id ? { id } : {}), ...(!id && newId ? { newId } : {}) }),
   remove: (id: string) => vaultOp({ vaultOp: 'delete', id }),
   rekey: (meta: VaultMeta, items: { id: string; data: string }[]) => vaultOp<{ meta: VaultMeta }>({ vaultOp: 'rekey', meta, items }),
   reset: () => vaultOp({ vaultOp: 'reset', confirm: 'ERASE VAULT' }),

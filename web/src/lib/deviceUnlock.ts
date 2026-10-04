@@ -164,3 +164,43 @@ export async function unlockThisDevice(): Promise<{ deviceId: string; secret: st
   const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(rec.iv) }, key, unb64(rec.ct))
   return { deviceId: rec.deviceId, secret: new TextDecoder().decode(plain) }
 }
+
+/* Face ID for other secrets (the Vault key). Same passkey as sign-in, but its own random PRF salt
+ * and HKDF label, so the Vault secret and the sign-in secret are independent: knowing one
+ * reveals nothing about the other. Needs Face ID sign-in to be set up on this device. */
+
+export interface BiometricWrap {
+  credentialId: string
+  prfSalt: string
+  iv: string
+  ct: string
+}
+
+async function purposeKey(prf: ArrayBuffer, purpose: string): Promise<CryptoKey> {
+  const base = await crypto.subtle.importKey('raw', prf, 'HKDF', false, ['deriveKey'])
+  return crypto.subtle.deriveKey(
+    { name: 'HKDF', hash: 'SHA-256', salt: new Uint8Array(32), info: new TextEncoder().encode(`luma-${purpose}-unlock-v1`) },
+    base,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt'],
+  )
+}
+
+/** Face ID → encrypts `secret` so only a later Face ID on this device can open it. */
+export async function wrapWithBiometric(secret: Uint8Array<ArrayBuffer>, purpose: string): Promise<BiometricWrap> {
+  const raw = localStorage.getItem(STORE_KEY)
+  if (!raw) throw new Error('Turn on Face ID sign-in for this device first (Settings → Security).')
+  const rec = JSON.parse(raw) as DeviceRecord
+  const prfSalt = random(32)
+  const key = await purposeKey(await evaluatePrf(unb64(rec.credentialId), prfSalt), purpose)
+  const iv = random(12)
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, secret)
+  return { credentialId: rec.credentialId, prfSalt: b64(prfSalt), iv: b64(iv), ct: b64(ct) }
+}
+
+/** Face ID → the secret wrapped earlier. Throws when Face ID is cancelled or the passkey changed. */
+export async function unwrapWithBiometric(wrap: BiometricWrap, purpose: string): Promise<Uint8Array<ArrayBuffer>> {
+  const key = await purposeKey(await evaluatePrf(unb64(wrap.credentialId), unb64(wrap.prfSalt)), purpose)
+  return new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(wrap.iv) }, key, unb64(wrap.ct)))
+}

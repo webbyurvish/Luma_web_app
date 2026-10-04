@@ -13,6 +13,7 @@
     "clsx": "^2.1.1",
     "fflate": "^0.8.3",
     "framer-motion": "^13.4.0",
+    "hash-wasm": "^4.12.0",
     "lucide-react": "^1.47.0",
     "microsoft-cognitiveservices-speech-sdk": "^1.52.0",
     "pdf-lib": "^1.17.1",

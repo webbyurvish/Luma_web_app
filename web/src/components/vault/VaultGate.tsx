@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/Button'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { LedgerLoader } from '@/components/ui/Loader'
 import { SecretInput } from './SecretInput'
-import { loadVault, setupVault, unlockVault, type VaultPhase } from '@/hooks/useVault'
+import { loadVault, setupVault, unlockVault, unlockVaultWithBiometric, useVaultLockPrefs, vaultBiometricStatus, type VaultPhase } from '@/hooks/useVault'
+import { biometricLabel, isBiometricCancel } from '@/lib/deviceUnlock'
 import { getErrorMessage } from '@/lib/errors'
 import { passwordStrength } from '@/lib/vaultMeta'
 
@@ -129,6 +130,22 @@ function UnlockForm({ onForgot }: { onForgot: () => void }) {
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const prefs = useVaultLockPrefs()
+  const bioOn = vaultBiometricStatus() === 'on'
+  const faceId = biometricLabel()
+
+  const unlockWithBiometric = async () => {
+    setBusy(true)
+    setError(null)
+    try {
+      const ok = await unlockVaultWithBiometric()
+      if (!ok) setError(`${faceId} unlock needs setting up again — use your master password.`)
+    } catch (err) {
+      if (!isBiometricCancel(err)) setError(getErrorMessage(err, `${faceId} didn't work — use your master password.`))
+    } finally {
+      setBusy(false)
+    }
+  }
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
@@ -154,18 +171,26 @@ function UnlockForm({ onForgot }: { onForgot: () => void }) {
           <LockKeyhole size={21} />
         </span>
         <h2 className="mt-4 font-display text-2xl italic text-ink">Vault locked</h2>
-        <p className="mt-1.5 text-xs leading-relaxed text-ink-soft">Enter your master password. It locks again after 5 minutes without activity.</p>
+        <p className="mt-1.5 text-xs leading-relaxed text-ink-soft">
+          {bioOn ? `Use ${faceId} or your master password.` : 'Enter your master password.'} It locks again{' '}
+          {prefs.onLeave === 'now' ? 'when you leave Luma' : prefs.onLeave === '1min' ? 'a minute after you leave Luma' : `after ${prefs.idleMinutes} minutes without activity`}.
+        </p>
+        {bioOn && (
+          <Button type="button" size="lg" className="mt-5 w-full" loading={busy} loadingText="Unlocking…" onClick={() => void unlockWithBiometric()}>
+            Unlock with {faceId}
+          </Button>
+        )}
 
         <label htmlFor="vault-unlock" className="mb-1.5 mt-6 block text-xs font-medium text-ink-soft">
           Master password
         </label>
-        <SecretInput id="vault-unlock" value={password} onChange={setPassword} autoFocus autoComplete="current-password" invalid={!!error} disabled={busy} />
+        <SecretInput id="vault-unlock" value={password} onChange={setPassword} autoFocus={!bioOn} autoComplete="current-password" invalid={!!error} disabled={busy} />
         {error && (
           <p role="alert" className="mt-1.5 text-[11.5px] text-danger">
             {error}
           </p>
         )}
-        <Button type="submit" size="lg" className="mt-5 w-full" loading={busy} loadingText="Decrypting…" disabled={!password}>
+        <Button type="submit" size="lg" variant={bioOn ? 'secondary' : 'primary'} className="mt-5 w-full" loading={busy} loadingText="Decrypting…" disabled={!password}>
           Unlock
         </Button>
         <button type="button" onClick={onForgot} className="mt-4 w-full text-center text-[11px] text-ink-muted underline-offset-2 hover:text-ink hover:underline">

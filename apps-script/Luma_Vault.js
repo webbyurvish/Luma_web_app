@@ -65,22 +65,46 @@ function lumaVaultMetaOf_(rows) {
   return null;
 }
 
-/** Only the documented shape gets stored, so nothing else can ride along. */
+/**
+ * Only the documented shapes get stored, so nothing else can ride along.
+ *   v1: PBKDF2-SHA256 (older vaults)
+ *   v2: Argon2id (memory-hard; items also bound to their id) — what the app creates now
+ * Bounds stop a tampered request from weakening the settings below safe minimums.
+ */
 function lumaVaultCleanMeta_(meta) {
   if (!meta || typeof meta !== 'object') throw new Error('Missing vault settings.');
-  var iterations = Number(meta.iterations);
-  var clean = {
-    v: 1,
-    kdf: 'PBKDF2-SHA256',
-    iterations: iterations,
-    salt: String(meta.salt || ''),
-    check: String(meta.check || ''),
-  };
-  if (!(iterations >= 100000 && iterations <= 5000000)) throw new Error('Invalid key settings.');
+  var clean;
+  if (Number(meta.v) === 2) {
+    clean = {
+      v: 2,
+      kdf: 'argon2id',
+      memory: Number(meta.memory),
+      iterations: Number(meta.iterations),
+      parallelism: Number(meta.parallelism),
+      salt: String(meta.salt || ''),
+      check: String(meta.check || ''),
+    };
+    if (!(clean.memory >= 19456 && clean.memory <= 1048576)) throw new Error('Invalid key settings.');
+    if (!(clean.iterations >= 2 && clean.iterations <= 20)) throw new Error('Invalid key settings.');
+    if (!(clean.parallelism >= 1 && clean.parallelism <= 8)) throw new Error('Invalid key settings.');
+  } else {
+    var iterations = Number(meta.iterations);
+    clean = {
+      v: 1,
+      kdf: 'PBKDF2-SHA256',
+      iterations: iterations,
+      salt: String(meta.salt || ''),
+      check: String(meta.check || ''),
+    };
+    if (!(iterations >= 100000 && iterations <= 5000000)) throw new Error('Invalid key settings.');
+  }
   if (!/^[A-Za-z0-9_-]{16,64}$/.test(clean.salt)) throw new Error('Invalid key settings.');
   if (!LUMA_VAULT_BLOB_RE.test(clean.check) || clean.check.length > 400) throw new Error('Invalid key settings.');
   return clean;
 }
+
+/** The app picks a new item's id before encrypting it (so the id is sealed into the ciphertext). */
+var LUMA_VAULT_ID_RE = /^VLT-[A-Z0-9]{12}$/;
 
 function lumaVaultCleanBlob_(data) {
   var text = String(data || '');
@@ -108,7 +132,8 @@ function tryHandleLumaVaultGet_(e) {
     var sh = ss.getSheetByName(LUMA_VAULT_SHEET);
     var rows = sh ? lumaVaultRows_(sh) : [];
     var meta = lumaVaultMetaOf_(rows);
-    if (action === 'vaultstatus') return lumaJson_({ success: true, vault: { available: true, ready: !!meta } });
+    // v2 = this deployment accepts Argon2id settings and app-chosen item ids.
+    if (action === 'vaultstatus') return lumaJson_({ success: true, vault: { available: true, ready: !!meta, v2: true } });
     return lumaJson_({
       success: true,
       meta: meta,
@@ -168,6 +193,13 @@ function lumaVaultOp_(op, payload) {
     }
     if (rows.length > LUMA_VAULT_MAX_ITEMS) return { success: false, error: 'The vault is full.' };
     var newId = lumaVaultNewId_();
+    if (payload.newId !== undefined && payload.newId !== '') {
+      newId = String(payload.newId);
+      if (!LUMA_VAULT_ID_RE.test(newId)) return { success: false, error: 'Invalid item id.' };
+      for (var k = 0; k < rows.length; k++) {
+        if (rows[k].id === newId) return { success: false, error: 'That item id is already used.' };
+      }
+    }
     sh.appendRow([newId, data, now, now]);
     return { success: true, item: { id: newId, data: data, createdAt: now.toISOString(), updatedAt: now.toISOString() } };
   }
