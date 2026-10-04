@@ -173,12 +173,6 @@ export function runningStats(logs: VehicleLog[]): RunningStats {
   return { km, fuelCost, costPerKm: km > 0 && fuelCost > 0 ? fuelCost / km : null, mileage }
 }
 
-export function spendByKind(logs: VehicleLog[]): { kind: VehicleLogKind; amount: number }[] {
-  const map = new Map<VehicleLogKind, number>()
-  logs.forEach((l) => l.amount > 0 && map.set(l.kind, (map.get(l.kind) ?? 0) + l.amount))
-  return [...map.entries()].map(([kind, amount]) => ({ kind, amount })).sort((a, b) => b.amount - a.amount)
-}
-
 /* ------------------------------------------------- payments to log */
 
 const VEHICLE_SUB = /fuel|petrol|diesel|cng|service|toll|parking|fastag|tyre|puc|car wash|vehicle|bike|garage|mechanic/i

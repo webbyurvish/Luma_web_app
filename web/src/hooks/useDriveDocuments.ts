@@ -9,7 +9,6 @@ export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 
 /** Folders created optimistically carry this prefix until Drive returns the real id. */
 export const PENDING_PREFIX = 'pending-'
-export const isPending = (id: string) => id.startsWith(PENDING_PREFIX)
 
 // The store holds lists; the tree travels as a one-item list.
 const fetchTree = async (): Promise<DriveTree[]> => [await getDriveTree()]

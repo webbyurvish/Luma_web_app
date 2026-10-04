@@ -81,11 +81,6 @@ function stopIdleWatch() {
   window.clearInterval(idleTimer)
 }
 
-/** Milliseconds until the idle lock (for the countdown in the header). */
-export function vaultIdleRemaining(): number {
-  return Math.max(0, VAULT_IDLE_LOCK_MS - (Date.now() - lastActivity))
-}
-
 export function lockVault() {
   key = null
   stopIdleWatch()

@@ -42,10 +42,6 @@ export function calculateTotalExpense(transactions: Transaction[]): number {
   return transactions.filter(isExpense).reduce((sum, t) => sum + t.amount, 0)
 }
 
-export function calculateBalance(transactions: Transaction[]): number {
-  return calculateTotalIncome(transactions) - calculateTotalExpense(transactions)
-}
-
 export function calculateTodayExpense(transactions: Transaction[]): number {
   const today = todayIstDateKey()
   return transactions.filter((t) => isExpense(t) && toIstDateKey(t.date) === today).reduce((sum, t) => sum + t.amount, 0)
@@ -172,19 +168,6 @@ export function getRecentTransactions(transactions: Transaction[], count = 8): T
       return timeToMinutes(b.time) - timeToMinutes(a.time)
     })
     .slice(0, count)
-}
-
-/** Every distinct "Mon-YYYY" month present in the data, most recent first. */
-export function getAvailableMonths(transactions: Transaction[]): string[] {
-  const months = new Set<string>()
-  for (const t of transactions) {
-    if (t.month) months.add(t.month)
-  }
-  return Array.from(months).sort((a, b) => {
-    const pa = parseMonthLabel(a)
-    const pb = parseMonthLabel(b)
-    return (pb?.sortKey ?? 0) - (pa?.sortKey ?? 0)
-  })
 }
 
 export interface BuildFinanceSummaryOptions {

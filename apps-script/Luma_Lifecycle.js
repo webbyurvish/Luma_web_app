@@ -610,11 +610,19 @@ function assignTransactionLifecycleFields_(sh, row) {
   var statusCol  = lumaNamedCol_(headers, 'Status');
   var updatedCol = lumaNamedCol_(headers, 'Updated At');
 
-  if (idCol && String(sh.getRange(row, idCol).getValue()).trim() === '') {
+  // Read the cells we check in one call (each read is a round trip inside Google).
+  var checked = [idCol, statusCol].filter(Boolean);
+  var current = {};
+  if (checked.length) {
+    var lo = Math.min.apply(null, checked);
+    var span = sh.getRange(row, lo, 1, Math.max.apply(null, checked) - lo + 1).getValues()[0];
+    checked.forEach(function (c) { current[c] = String(span[c - lo]).trim(); });
+  }
+  if (idCol && current[idCol] === '') {
     var id = withLumaLock_(function () { return nextLumaIds_(sh, 'TXN', idCol, 1)[0]; });
     sh.getRange(row, idCol).setValue(id);
   }
-  if (statusCol && String(sh.getRange(row, statusCol).getValue()).trim() === '') sh.getRange(row, statusCol).setValue('Active');
+  if (statusCol && current[statusCol] === '') sh.getRange(row, statusCol).setValue('Active');
   if (updatedCol) sh.getRange(row, updatedCol).setValue(new Date());
 }
 

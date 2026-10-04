@@ -7,7 +7,6 @@ import type {
   RawTask,
   RawUdhaar,
   CreateApiResponse,
-  HealthCheckResponse,
   ListApiResponse,
   RawAccount,
   RawInvestment,
@@ -210,12 +209,6 @@ export async function getTransactions(signal?: AbortSignal): Promise<RawTransact
   return normalizeSheetRows(payload.transactions)
 }
 
-/** Lightweight reachability check against ?action=health — not used for the main data flow. */
-export async function healthCheck(signal?: AbortSignal): Promise<boolean> {
-  const payload = await fetchJson<HealthCheckResponse>('health', signal)
-  return payload.success === true
-}
-
 async function fetchList<T>(action: string, signal?: AbortSignal): Promise<T[]> {
   const payload = await fetchJson<ListApiResponse<T>>(action, signal)
   if (!payload.success) {
@@ -235,12 +228,20 @@ async function fetchList<T>(action: string, signal?: AbortSignal): Promise<T[]> 
  * a definite failure; only an explicit `{success:false}` is. Everything else resolves and
  * the caller re-fetches the list afterward to get the real, persisted state.
  */
-function postEntity(action: string, payload: Record<string, unknown>): Promise<void> {
+/** What a save returns: confirmed = the script answered success, so the list needn't be re-read before moving on. */
+export interface SaveReceipt {
+  confirmed: boolean
+}
+
+export const isConfirmedSave = (value: unknown): boolean =>
+  !!value && typeof value === 'object' && (value as Partial<SaveReceipt>).confirmed !== false
+
+function postEntity(action: string, payload: Record<string, unknown>): Promise<SaveReceipt> {
   // Saves the user is waiting on jump ahead of background reads. Never retried, never timed out.
   return withSlot(true, () => postEntityNow(action, payload))
 }
 
-async function postEntityNow(action: string, payload: Record<string, unknown>): Promise<void> {
+async function postEntityNow(action: string, payload: Record<string, unknown>): Promise<SaveReceipt> {
   let response: Response
   try {
     response = await fetch(buildEndpoint(action), {
@@ -261,9 +262,12 @@ async function postEntityNow(action: string, payload: Record<string, unknown>): 
     if (body.success === false) {
       throw new GoogleSheetsApiError(body.error || 'Google Sheets API reported a failure saving this record.')
     }
+    return { confirmed: body.success === true }
   } catch (err) {
     if (err instanceof GoogleSheetsApiError || err instanceof AuthRequiredError) throw err
-    // Response wasn't parseable JSON — expected for POST (see comment above). Not an error.
+    // Response wasn't parseable JSON — expected for POST (see comment above). Not an error,
+    // but not a confirmation either: the caller re-reads the list to be sure.
+    return { confirmed: false }
   }
 }
 
@@ -287,23 +291,23 @@ export async function getNotes(signal?: AbortSignal): Promise<RawNote[]> {
   return fetchList<RawNote>('notes', signal)
 }
 
-export function createAccount(payload: Record<string, unknown>): Promise<void> {
+export function createAccount(payload: Record<string, unknown>): Promise<SaveReceipt> {
   return postEntity('account', payload)
 }
 
-export function createInvestment(payload: Record<string, unknown>): Promise<void> {
+export function createInvestment(payload: Record<string, unknown>): Promise<SaveReceipt> {
   return postEntity('investment', payload)
 }
 
-export function createSip(payload: Record<string, unknown>): Promise<void> {
+export function createSip(payload: Record<string, unknown>): Promise<SaveReceipt> {
   return postEntity('sip', payload)
 }
 
-export function createLiability(payload: Record<string, unknown>): Promise<void> {
+export function createLiability(payload: Record<string, unknown>): Promise<SaveReceipt> {
   return postEntity('liability', payload)
 }
 
-export function createNote(payload: Record<string, unknown>): Promise<void> {
+export function createNote(payload: Record<string, unknown>): Promise<SaveReceipt> {
   return postEntity('note', payload)
 }
 
@@ -313,47 +317,47 @@ export function createNote(payload: Record<string, unknown>): Promise<void> {
  * `operation` + `id` travel inside the JSON body; `action` (the query param) stays
  * the entity's singular name, exactly as create already uses it.
  */
-export function updateAccount(id: string, payload: Record<string, unknown>): Promise<void> {
+export function updateAccount(id: string, payload: Record<string, unknown>): Promise<SaveReceipt> {
   return postEntity('account', { operation: 'update', id, ...payload })
 }
 
-export function archiveAccount(id: string): Promise<void> {
+export function archiveAccount(id: string): Promise<SaveReceipt> {
   return postEntity('account', { operation: 'archive', id })
 }
 
-export function updateInvestment(id: string, payload: Record<string, unknown>): Promise<void> {
+export function updateInvestment(id: string, payload: Record<string, unknown>): Promise<SaveReceipt> {
   return postEntity('investment', { operation: 'update', id, ...payload })
 }
 
-export function archiveInvestment(id: string): Promise<void> {
+export function archiveInvestment(id: string): Promise<SaveReceipt> {
   return postEntity('investment', { operation: 'archive', id })
 }
 
-export function updateSip(id: string, payload: Record<string, unknown>): Promise<void> {
+export function updateSip(id: string, payload: Record<string, unknown>): Promise<SaveReceipt> {
   return postEntity('sip', { operation: 'update', id, ...payload })
 }
 
-export function deactivateSip(id: string): Promise<void> {
+export function deactivateSip(id: string): Promise<SaveReceipt> {
   return postEntity('sip', { operation: 'deactivate', id })
 }
 
-export function updateLiability(id: string, payload: Record<string, unknown>): Promise<void> {
+export function updateLiability(id: string, payload: Record<string, unknown>): Promise<SaveReceipt> {
   return postEntity('liability', { operation: 'update', id, ...payload })
 }
 
-export function closeLiability(id: string): Promise<void> {
+export function closeLiability(id: string): Promise<SaveReceipt> {
   return postEntity('liability', { operation: 'close', id })
 }
 
-export function voidTransaction(id: string): Promise<void> {
+export function voidTransaction(id: string): Promise<SaveReceipt> {
   return postEntity('transaction', { operation: 'void', id })
 }
 
-export function updateNote(id: string, payload: Record<string, unknown>): Promise<void> {
+export function updateNote(id: string, payload: Record<string, unknown>): Promise<SaveReceipt> {
   return postEntity('note', { operation: 'update', id, ...payload })
 }
 
-export function archiveNote(id: string): Promise<void> {
+export function archiveNote(id: string): Promise<SaveReceipt> {
   return postEntity('note', { operation: 'archive', id })
 }
 
@@ -370,6 +374,7 @@ export async function getBootstrap(signal?: AbortSignal): Promise<NonNullable<Bo
   if (import.meta.env.DEV && payload.errors && Object.keys(payload.errors).length > 0) {
     console.warn('[getBootstrap] Some collections failed server-side:', payload.errors)
   }
+  primeCapabilities(payload.capabilities, payload.data as Record<string, unknown>)
   // Same cleanup as the per-collection routes (dates stored as numbers, etc.).
   const data = payload.data as Record<string, unknown>
   Object.keys(data).forEach((key) => {
@@ -381,32 +386,32 @@ export async function getBootstrap(signal?: AbortSignal): Promise<NonNullable<Bo
 /* Permanent delete — removes the sheet row. The backend first copies it to its
  * "Deleted Records" sheet, and refuses to delete an account other records still use. */
 
-export function deleteAccount(id: string): Promise<void> {
+export function deleteAccount(id: string): Promise<SaveReceipt> {
   return postEntity('account', { operation: 'delete', id })
 }
 
-export function deleteInvestment(id: string): Promise<void> {
+export function deleteInvestment(id: string): Promise<SaveReceipt> {
   return postEntity('investment', { operation: 'delete', id })
 }
 
-export function deleteSip(id: string): Promise<void> {
+export function deleteSip(id: string): Promise<SaveReceipt> {
   return postEntity('sip', { operation: 'delete', id })
 }
 
-export function deleteLiability(id: string): Promise<void> {
+export function deleteLiability(id: string): Promise<SaveReceipt> {
   return postEntity('liability', { operation: 'delete', id })
 }
 
-export function deleteNote(id: string): Promise<void> {
+export function deleteNote(id: string): Promise<SaveReceipt> {
   return postEntity('note', { operation: 'delete', id })
 }
 
-export function deleteTransaction(id: string): Promise<void> {
+export function deleteTransaction(id: string): Promise<SaveReceipt> {
   return postEntity('transaction', { operation: 'delete', id })
 }
 
 /** Partial update of a transaction's editable fields (date, amount, type, category, subcategory, paymentMethod, merchant, note). */
-export function updateTransaction(id: string, payload: Record<string, unknown>): Promise<void> {
+export function updateTransaction(id: string, payload: Record<string, unknown>): Promise<SaveReceipt> {
   return postEntity('transaction', { operation: 'update', id, ...payload })
 }
 
@@ -417,15 +422,15 @@ export async function getUdhaar(signal?: AbortSignal): Promise<RawUdhaar[]> {
   return fetchList<RawUdhaar>('udhaar', signal)
 }
 
-export function createUdhaarEntry(payload: Record<string, unknown>): Promise<void> {
+export function createUdhaarEntry(payload: Record<string, unknown>): Promise<SaveReceipt> {
   return postEntity('udhaar', payload)
 }
 
-export function updateUdhaarEntry(id: string, payload: Record<string, unknown>): Promise<void> {
+export function updateUdhaarEntry(id: string, payload: Record<string, unknown>): Promise<SaveReceipt> {
   return postEntity('udhaar', { operation: 'update', id, ...payload })
 }
 
-export function deleteUdhaarEntry(id: string): Promise<void> {
+export function deleteUdhaarEntry(id: string): Promise<SaveReceipt> {
   return postEntity('udhaar', { operation: 'delete', id })
 }
 
@@ -435,19 +440,19 @@ export async function getTasks(signal?: AbortSignal): Promise<RawTask[]> {
   return fetchList<RawTask>('tasks', signal)
 }
 
-export function createTask(payload: Record<string, unknown>): Promise<void> {
+export function createTask(payload: Record<string, unknown>): Promise<SaveReceipt> {
   return postEntity('task', payload)
 }
 
-export function updateTask(id: string, payload: Record<string, unknown>): Promise<void> {
+export function updateTask(id: string, payload: Record<string, unknown>): Promise<SaveReceipt> {
   return postEntity('task', { operation: 'update', id, ...payload })
 }
 
-export function archiveTask(id: string): Promise<void> {
+export function archiveTask(id: string): Promise<SaveReceipt> {
   return postEntity('task', { operation: 'archive', id })
 }
 
-export function deleteTask(id: string): Promise<void> {
+export function deleteTask(id: string): Promise<SaveReceipt> {
   return postEntity('task', { operation: 'delete', id })
 }
 
@@ -455,7 +460,7 @@ export function deleteTask(id: string): Promise<void> {
  * New transaction. Deliberately sent with no action/operation in the body so it takes the
  * exact same path as the iPhone Shortcut (which also assigns the new Transaction ID).
  */
-export function createTransaction(payload: Record<string, unknown>): Promise<void> {
+export function createTransaction(payload: Record<string, unknown>): Promise<SaveReceipt> {
   return postEntity('transaction', payload)
 }
 
@@ -1394,4 +1399,19 @@ export async function convertOfficeFile(fileName: string, dataBase64: string, to
   }
   if (!body.success || !body.dataBase64 || !body.fileName) throw new GoogleSheetsApiError(body.error || "Couldn't convert the file.")
   return { fileName: body.fileName, mimeType: body.mimeType || 'application/octet-stream', dataBase64: body.dataBase64 }
+}
+
+/* The bootstrap bundle says what the deployment supports, so each feature's "do you support X?"
+ * check is answered without its own round trip. Lists that arrived in the bundle prove their
+ * feature too (older deployments that don't send `capabilities` still benefit). A missing or
+ * false flag leaves the normal check in place. */
+function primeCapabilities(caps: Partial<Record<string, boolean>> | undefined, data: Record<string, unknown>) {
+  const has = (flag: string, list?: string) => caps?.[flag] === true || (!!list && Array.isArray(data[list]))
+  if (has('planning', 'bills')) planningCapability ??= Promise.resolve()
+  if (has('family', 'recharges')) familyCapability ??= Promise.resolve()
+  if (has('life', 'vehicles')) lifeCapability ??= Promise.resolve()
+  if (has('import')) importCapability ??= Promise.resolve()
+  if (has('drive')) driveStatusPromise ??= Promise.resolve()
+  if (has('snap')) snapCapability ??= Promise.resolve()
+  if (has('convert')) convertCapability ??= Promise.resolve({ sources: {}, targets: {} })
 }

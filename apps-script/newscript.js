@@ -979,11 +979,19 @@ function parseLumaPayload_(e) {
   var out = {};
   if (!e) return out;
 
+  // Every router asks for the payload; parse the body once per request (it can be MBs for
+  // uploads) and hand each caller its own shallow copy, so one can't change another's view.
   if (e.postData && e.postData.contents) {
-    try {
-      var parsed = JSON.parse(e.postData.contents);
-      if (parsed && typeof parsed === 'object') out = parsed;
-    } catch (ignored) { /* not JSON */ }
+    if (e.__lumaParsed === undefined) {
+      e.__lumaParsed = null;
+      try {
+        var parsed = JSON.parse(e.postData.contents);
+        if (parsed && typeof parsed === 'object') e.__lumaParsed = parsed;
+      } catch (ignored) { /* not JSON */ }
+    }
+    if (e.__lumaParsed) {
+      Object.keys(e.__lumaParsed).forEach(function (k) { out[k] = e.__lumaParsed[k]; });
+    }
   }
   if (e.parameter) {
     Object.keys(e.parameter).forEach(function (k) {

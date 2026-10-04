@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
-import { ensureLoaded, getSnapshot, hasRecord, refetch as refetchKey, type RemoteKey, subscribe } from '@/lib/remoteStore'
+import { ensureLoaded, getSnapshot, hasRecord, mutateLocal, refetch as refetchKey, type RemoteKey, subscribe } from '@/lib/remoteStore'
+import { isConfirmedSave } from '@/services/googleSheetsApi'
 
 export interface RemoteListResult<T> {
   items: T[]
@@ -47,8 +48,9 @@ export function useRemoteList<TRaw, T>(
 }
 
 /**
- * Wraps a write (create/update/archive/void) so its pending flag stays on until the list has
- * re-synced — the UI keeps showing "Saving…" until the new data is actually on screen.
+ * Wraps a write (create/update/archive/void). When the script confirms the save, the action
+ * finishes right away and the list re-syncs in the background (the SyncBar shows it) — no second
+ * wait. When the reply couldn't be read, "Saving…" stays on until the re-sync shows the new data.
  */
 export function useSyncedAction<A extends unknown[]>(
   action: (...args: A) => Promise<unknown>,
@@ -64,8 +66,9 @@ export function useSyncedAction<A extends unknown[]>(
     async (...args: A) => {
       setPendingArgs(args)
       try {
-        await actionRef.current(...args)
-        await refetch()
+        const result = await actionRef.current(...args)
+        if (isConfirmedSave(result)) void refetch()
+        else await refetch()
       } finally {
         setPendingArgs(null)
       }
@@ -87,15 +90,31 @@ export function useDeleteAction(
   deleteFn: (id: string) => Promise<unknown>,
   refetch: () => Promise<void>,
 ): [run: (id: string) => Promise<void>, pending: boolean] {
-  const [run, pending] = useSyncedAction(deleteFn, refetch)
+  const [pending, setPending] = useState(false)
+  const deleteRef = useRef(deleteFn)
+  useEffect(() => {
+    deleteRef.current = deleteFn
+  })
   const runAndVerify = useCallback(
     async (id: string) => {
-      await run(id)
-      if (hasRecord(key, idField, id)) {
-        throw new Error("Couldn't delete this record — it's still in your sheet. If it's an account, delete or archive what's linked to it first.")
+      setPending(true)
+      try {
+        const result = await deleteRef.current(id)
+        if (isConfirmedSave(result)) {
+          // The script confirmed it: take the row off screen now, re-sync quietly.
+          mutateLocal(key, (rows) => rows.filter((row) => String((row as Record<string, unknown>)[idField] ?? '').trim() !== id))
+          void refetch()
+          return
+        }
+        await refetch()
+        if (hasRecord(key, idField, id)) {
+          throw new Error("Couldn't delete this record — it's still in your sheet. If it's an account, delete or archive what's linked to it first.")
+        }
+      } finally {
+        setPending(false)
       }
     },
-    [run, key, idField],
+    [key, idField, refetch],
   )
   return [runAndVerify, pending]
 }

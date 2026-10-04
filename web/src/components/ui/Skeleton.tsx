@@ -7,18 +7,6 @@ export function Skeleton({ className, style }: { className?: string; style?: CSS
   return <div className={cn('skeleton-shimmer animate-shimmer', !hasRadius && 'rounded-md', className)} style={style} />
 }
 
-export function KPICardSkeleton() {
-  return (
-    <div className="rounded-card border border-border bg-card p-5 shadow-card">
-      <div className="flex items-center justify-between">
-        <Skeleton className="h-4 w-24" />
-        <Skeleton className="h-9 w-9 rounded-full" />
-      </div>
-      <Skeleton className="mt-4 h-8 w-32" />
-      <Skeleton className="mt-3 h-3 w-20" />
-    </div>
-  )
-}
 
 export function ChartCardSkeleton() {
   return (

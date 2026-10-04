@@ -17,11 +17,6 @@ export const cardHover = {
   hover: { y: -2, boxShadow: 'var(--shadow-hover)', transition: easeSnappy },
 }
 
-export const tileHover = {
-  rest: { y: 0 },
-  hover: { y: -1, transition: easeSnappy },
-  tap: { scale: 0.98, transition: { duration: 0.1 } },
-}
 
 export const pageTransition: Variants = {
   initial: { opacity: 0, y: 6 },

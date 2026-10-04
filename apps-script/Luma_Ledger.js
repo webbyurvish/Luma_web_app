@@ -112,11 +112,13 @@ function lumaRebalance_(before, after) {
 /* ------------------------------------------------------ row <-> entry */
 
 function lumaTxnEntry_(sh, row, headers) {
-  var get = function (name) { var c = headers.indexOf(name); return c < 0 ? '' : sh.getRange(row, c + 1).getValue(); };
+  // One read of the whole row instead of a call per cell.
+  var values = sh.getRange(row, 1, 1, Math.max(headers.length, 4)).getValues()[0];
+  var get = function (name) { var c = headers.indexOf(name); return c < 0 ? '' : values[c]; };
   return {
     kind: 'transaction',
-    type: sh.getRange(row, 4).getValue(),
-    amount: sh.getRange(row, 3).getValue(),
+    type: values[3],
+    amount: values[2],
     accountId: get('Account ID'),
     toAccountId: get('To Account ID'),
     voided: String(get('Status')).trim() === 'Voided'
@@ -125,11 +127,12 @@ function lumaTxnEntry_(sh, row, headers) {
 
 function lumaUdhaarEntry_(sh, row, headers) {
   var c = headers.indexOf('Account ID');
+  var values = sh.getRange(row, 1, 1, Math.max(headers.length, 5)).getValues()[0];
   return {
     kind: 'udhaar',
-    type: sh.getRange(row, 4).getValue(),
-    amount: sh.getRange(row, 5).getValue(),
-    accountId: c < 0 ? '' : sh.getRange(row, c + 1).getValue()
+    type: values[3],
+    amount: values[4],
+    accountId: c < 0 ? '' : values[c]
   };
 }
 
@@ -153,7 +156,17 @@ function lumaLinkNewTransaction_(sh, row, payload) {
   if (!payload.accountId && !payload.toAccountId) return;
   withLumaLock_(function () {
     lumaWriteTxnAccounts_(sh, row, payload);
-    lumaRebalance_(null, lumaTxnEntry_(sh, row, lumaHeaders_(sh)));
+    // The row was written from this payload a moment ago (type defaults to Expense, amount to 0,
+    // exactly as doPost writes them), so its entry comes from here — no read-back of cells,
+    // which would force Google to flush the writes first.
+    lumaRebalance_(null, {
+      kind: 'transaction',
+      type: payload.type || 'Expense',
+      amount: payload.amount || 0,
+      accountId: String(payload.accountId || '').trim(),
+      toAccountId: String(payload.toAccountId || '').trim(),
+      voided: false
+    });
   });
 }
 

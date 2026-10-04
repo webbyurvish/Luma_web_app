@@ -149,10 +149,24 @@ function doGet(e) {
         errors.transactions = safeMessage_(err);
       }
 
+      // What this deployment supports, so the app can skip a "do you support X?" round trip
+      // before its first save of each kind.
+      var p = PropertiesService.getScriptProperties();
+      var capabilities = {
+        planning: typeof tryHandleLumaPlanning_ === 'function',
+        family: typeof tryHandleLumaFamily_ === 'function',
+        life: typeof tryHandleLumaLife_ === 'function',
+        import: typeof tryHandleLumaImport_ === 'function',
+        convert: typeof tryHandleLumaConvert_ === 'function',
+        drive: typeof tryHandleLumaDrive_ === 'function',
+        snap: !!(p.getProperty('AZURE_OPENAI_ENDPOINT') && p.getProperty('AZURE_OPENAI_KEY') && p.getProperty('AZURE_OPENAI_DEPLOYMENT'))
+      };
+
       return jsonResponse({
         success: true,
         data: data,
-        errors: errors
+        errors: errors,
+        capabilities: capabilities
       });
     }
 

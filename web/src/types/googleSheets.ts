@@ -172,6 +172,8 @@ export interface BootstrapApiResponse {
   }>
   errors?: Record<string, string>
   error?: string
+  /** Features this deployment supports (newer deployments). */
+  capabilities?: Partial<Record<string, boolean>>
 }
 
 /** Sheet row shape for ?action=udhaar — one ledger entry (a "Given" or a "Repayment"). */
