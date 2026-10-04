@@ -4,6 +4,7 @@ import { PageTransition } from './PageTransition'
 import { SidebarProvider } from '@/context/SidebarContext'
 import { ToastProvider } from '@/context/ToastContext'
 import { CommandPaletteHost } from '@/components/command/CommandPaletteHost'
+import { SnapHost } from '@/components/snap/SnapHost'
 
 export function AppShell() {
   return (
@@ -19,6 +20,7 @@ export function AppShell() {
           </div>
         </div>
         <CommandPaletteHost />
+        <SnapHost />
       </ToastProvider>
     </SidebarProvider>
   )

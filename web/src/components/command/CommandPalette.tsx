@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { serviceInText } from '@/lib/family'
+import { openSnap } from '@/components/snap/SnapHost'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   ArrowLeftRight,
   CalendarClock,
+  Camera,
   CornerDownLeft,
   DatabaseBackup,
   FileText,
@@ -180,6 +182,7 @@ function PaletteBody({ onClose, onAdd }: { onClose: () => void; onAdd: (kind: Qu
       ['Add task', ListChecks, 'task'],
       ['Add bill', Receipt, () => go('/finance', { tab: 'bills' })],
       ['Upload document', FileText, () => go('/documents')],
+      ['Snap & file a paper', Camera, () => (onClose(), openSnap())],
       ['Import Google Pay statement', FileUp, () => go('/transactions', { tab: 'import-gpay' })],
       ['Log fuel or service', Fuel, () => go('/vehicles')],
       ['Add medical bill', HeartPulse, () => go('/health')],

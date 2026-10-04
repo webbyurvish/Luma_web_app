@@ -14,8 +14,7 @@ import { useKnownPeople, useMedicalBills } from '@/hooks/useLife'
 import { useTransactions } from '@/hooks/useTransactions'
 import { useAccounts } from '@/hooks/useFinanceCollections'
 import { useToast } from '@/context/ToastContext'
-import { driveApi, getDriveTree } from '@/services/googleSheetsApi'
-import { MAX_UPLOAD_BYTES } from '@/hooks/useDriveDocuments'
+import { uploadToFamilyFolder } from '@/lib/driveUpload'
 import { defaultAccountFor } from '@/lib/accountLinking'
 import { addDaysIso } from '@/lib/family'
 import { CLAIM_STATUSES, CLAIM_TONE, MEDICAL_KINDS, fyOf, fyRange, kindForPayee, outOfPocket, pendingClaims, unsortedHealthPayments } from '@/lib/medical'
@@ -29,32 +28,9 @@ const isoOk = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v)
 const numOrNull = (s: string) => (s.trim() === '' ? null : Number(s))
 const CLAIM_ACTIVE: ClaimStatus[] = ['Claim filed', 'Reimbursed', 'Partly reimbursed', 'Rejected']
 
-function readAsBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(String(reader.result).split(',')[1] ?? '')
-    reader.onerror = () => reject(new Error("Couldn't read the file."))
-    reader.readAsDataURL(file)
-  })
-}
-
-/** Uploads the bill into "<Person>/Health & Medical" when the family folders exist, else the inbox or the Luma root. */
-async function uploadBill(file: File, bill: { person: string; date: string; provider: string; kind: string }): Promise<{ id: string; url: string }> {
-  if (file.size > MAX_UPLOAD_BYTES) throw new Error('That file is over 10 MB — take a smaller photo.')
-  const tree = await getDriveTree()
-  const lower = (s: string) => s.trim().toLowerCase()
-  const personFolder = tree.folders.find((f) => lower(f.name) === lower(bill.person))
-  const health = personFolder && tree.folders.find((f) => f.parentId === personFolder.id && /health/i.test(f.name))
-  const inbox = tree.folders.find((f) => /^inbox/i.test(f.name))
-  const folderId = health?.id ?? personFolder?.id ?? inbox?.id ?? tree.rootId
-  const ext = file.name.includes('.') ? file.name.slice(file.name.lastIndexOf('.')) : ''
-  const name = `${bill.date} ${bill.person} ${bill.provider || bill.kind}`.replace(/[\\/:*?"<>|]+/g, ' ').trim() + ext
-  const { file: saved } = await driveApi.upload(
-    folderId,
-    { name, mimeType: file.type || 'application/octet-stream', dataBase64: await readAsBase64(file) },
-    { description: `${bill.kind} bill · ${bill.person}`, tags: 'medical, bill' },
-  )
-  return { id: saved.id, url: saved.url }
+/** Bill photos go into "<Person>/Health & Medical" when the family folders exist. */
+function uploadBill(file: File, bill: { person: string; date: string; provider: string; kind: string }) {
+  return uploadToFamilyFolder(file, { person: bill.person, area: /health/i, name: `${bill.date} ${bill.person} ${bill.provider || bill.kind}`, description: `${bill.kind} bill · ${bill.person}`, tags: 'medical, bill' })
 }
 
 export function Health() {

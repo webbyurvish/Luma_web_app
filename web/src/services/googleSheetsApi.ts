@@ -1307,3 +1307,47 @@ export async function createLifeBulk(action: 'vehiclelog' | 'medicalbill', rows:
   if (!body.success) throw new GoogleSheetsApiError(body.error || "Couldn't save.")
   return { created: body.created ?? 0, failed: body.failed?.length ?? 0 }
 }
+
+/* Snap & file: the AI reads one photo and says what it is (Luma_AI "snap"). Gated on aistatus.snap,
+ * so an older deployment never receives the request. Read-only on the script side. */
+
+let snapCapability: Promise<void> | null = null
+
+function requireSnap(): Promise<void> {
+  snapCapability ??= fetchJson<{ success: boolean; snap?: boolean; chat?: boolean }>('aistatus')
+    .then((body) => {
+      if (!body.success || body.snap === undefined) throw new GoogleSheetsApiError('Snap & file needs the latest Apps Script deployment (clasp push → Deploy → New version).')
+      if (!body.snap) throw new GoogleSheetsApiError("Azure OpenAI isn't set up yet. Add the AZURE_OPENAI_* Script Properties in Apps Script.")
+    })
+    .catch((err: unknown) => {
+      snapCapability = null
+      throw err
+    })
+  return snapCapability
+}
+
+/** One attempt, no hedged duplicate: a photo read takes several seconds and costs more than a chat turn. */
+export async function readSnap<T>(image: string, today: string, hints: { people: string[]; categories: string[] }): Promise<T> {
+  await requireSnap()
+  let result: { status: number; ok: boolean; text: string }
+  try {
+    result = await fetchTextWithin(
+      buildEndpoint('ai'),
+      { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ aiTask: 'snap', image, today, hints }) },
+      75_000,
+      undefined,
+      true,
+    )
+  } catch (cause) {
+    if (cause instanceof AuthRequiredError) throw cause
+    throw new GoogleSheetsApiError(cause instanceof AttemptTimeout ? 'Reading the photo took too long. Please try again.' : 'Could not reach Google. Check your connection and try again.')
+  }
+  let body: { success?: boolean; error?: string; result?: T }
+  try {
+    body = JSON.parse(result.text)
+  } catch {
+    throw new GoogleSheetsApiError("Luma couldn't read that photo. Please try again.")
+  }
+  if (!body.success || !body.result) throw new GoogleSheetsApiError(body.error || "Luma couldn't read that photo.")
+  return body.result
+}

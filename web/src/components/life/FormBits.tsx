@@ -26,7 +26,7 @@ export function Stat({ label, value, hint, tone }: { label: string; value: strin
   )
 }
 
-export function Chips<T extends string>({ value, options, onChange }: { value: T; options: readonly T[]; onChange: (v: T) => void }) {
+export function Chips<T extends string>({ value, options, onChange, labels }: { value: T; options: readonly T[]; onChange: (v: T) => void; labels?: Partial<Record<T, string>> }) {
   return (
     <div className="flex flex-wrap gap-1.5">
       {options.map((o) => (
@@ -39,7 +39,7 @@ export function Chips<T extends string>({ value, options, onChange }: { value: T
             value === o ? 'border-ink bg-ink text-paper' : 'border-border text-ink-soft hover:bg-bg-soft',
           )}
         >
-          {o}
+          {labels?.[o] ?? o}
         </button>
       ))}
     </div>

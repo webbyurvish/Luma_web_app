@@ -1,10 +1,11 @@
 import { useLocation } from 'react-router-dom'
-import { Menu, Search } from 'lucide-react'
+import { Camera, Menu, Search } from 'lucide-react'
 import { getPageMeta } from './pageMeta'
 import { useSidebar } from '@/context/SidebarContext'
 import { Avatar } from '@/components/ui/Avatar'
 import { NotificationBell } from './NotificationBell'
 import { openCommandPalette } from '@/components/command/CommandPaletteHost'
+import { openSnap } from '@/components/snap/SnapHost'
 
 export function Header() {
   const location = useLocation()
@@ -46,6 +47,15 @@ export function Header() {
           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border border-border text-ink-soft transition-colors hover:border-ink-soft hover:text-ink lg:hidden"
         >
           <Search size={15} />
+        </button>
+        <button
+          type="button"
+          aria-label="Snap & file a paper"
+          title="Snap & file"
+          onClick={openSnap}
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border border-border text-ink-soft transition-colors hover:border-ink-soft hover:text-ink"
+        >
+          <Camera size={15} />
         </button>
         <NotificationBell />
         <Avatar name="Urvish Krina" size={32} className="hidden sm:flex" />
