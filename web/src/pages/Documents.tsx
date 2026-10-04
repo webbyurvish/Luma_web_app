@@ -258,12 +258,13 @@ export function Documents() {
           <Button variant="secondary" size="sm" icon={<FolderTreeIcon size={13} />} onClick={() => setTreeOpen(true)} className="lg:hidden" aria-label="Browse folders">
             <span className="hidden sm:inline">Folders</span>
           </Button>
-          <div className="min-w-[180px] flex-1 sm:max-w-sm">
+          {/* Phones: search gets its own row, the buttons sit on the row below and can wrap. */}
+          <div className="order-first w-full sm:order-none sm:w-auto sm:min-w-[180px] sm:max-w-sm sm:flex-1">
             <Input icon={<Search size={15} />} placeholder="Search all documents, tags, folders…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-1.5 sm:ml-auto sm:flex-none sm:gap-2">
             <SyncBadge active={drive.refreshing} />
-            <div className="flex rounded-btn border border-border p-0.5" role="group" aria-label="View">
+            <div className="flex items-center gap-0.5 rounded-btn border border-border bg-surface p-0.5" role="group" aria-label="View">
               {(['grid', 'list'] as const).map((mode) => (
                 <button
                   key={mode}
@@ -271,9 +272,13 @@ export function Documents() {
                   onClick={() => setView(mode)}
                   aria-pressed={view === mode}
                   aria-label={mode === 'grid' ? 'Grid view' : 'List view'}
-                  className={cn('rounded-[6px] p-1.5 transition-colors', view === mode ? 'bg-ink text-paper' : 'text-ink-muted hover:text-ink')}
+                  // Fixed, equal sizes (a 36px touch target on phones) so both halves always match.
+                  className={cn(
+                    'grid size-7 place-items-center rounded-[6px] transition-colors pointer-coarse:size-9',
+                    view === mode ? 'bg-ink text-paper shadow-xs' : 'text-ink-muted hover:bg-bg-soft hover:text-ink',
+                  )}
                 >
-                  {mode === 'grid' ? <LayoutGrid size={13} /> : <List size={13} />}
+                  {mode === 'grid' ? <LayoutGrid size={14} /> : <List size={14} />}
                 </button>
               ))}
             </div>
